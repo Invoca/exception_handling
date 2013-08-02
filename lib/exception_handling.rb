@@ -1,4 +1,8 @@
 require 'timeout'
+require 'active_support'
+require 'active_support/core_ext/hash'
+
+_ = ActiveSupport::HashWithIndifferentAccess
 
 if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
   require 'em/protocols/smtpclient'
@@ -10,11 +14,11 @@ module ExceptionHandling # never included
   class MailerTimeout < Timeout::Error; end
 
   SUMMARY_THRESHOLD = 5
-  SUMMARY_PERIOD = 1.hour
+  SUMMARY_PERIOD = 60*60 # 1.hour
 
 
   SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-  EXCEPTION_FILTER_LIST_PATH = "#{RAILS_ROOT}/config/exception_filters.yml"
+  EXCEPTION_FILTER_LIST_PATH = "#{defined?(RAILS_ROOT) ? RAILS_ROOT : '.'}/config/exception_filters.yml"
 
   ENVIRONMENT_WHITELIST = [
 /^HTTP_/,
@@ -63,12 +67,18 @@ EOF
 
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION','X-HTTP_AUTHORIZATION','X_HTTP_AUTHORIZATION','REDIRECT_X_HTTP_AUTHORIZATION']
 
+  @logger = ExceptionHandling.logger if defined?(Rails)
+
+
   class << self
     attr_accessor :current_controller
     attr_accessor :last_exception_timestamp
     attr_accessor :periodic_exception_intervals
 
     attr_accessor :stub_handler # See log_error_stub.rb. Used in tests
+
+    attr_accessor :logger
+
 
     def log_error(exception_or_string, exception_context = '', controller = nil)
       if stub_handler # See log_error_stub.rb. Used for tests
@@ -115,11 +125,11 @@ EOF
     end
 
     def log_info( message )
-      RAILS_DEFAULT_LOGGER.info( message )
+      ExceptionHandling.logger.info( message )
     end
 
     def log_debug( message )
-      RAILS_DEFAULT_LOGGER.debug( message )
+      ExceptionHandling.logger.debug( message )
     end
 
     def ensure_safe( exception_context = "" )
@@ -147,8 +157,8 @@ EOF
       timestamp = Time.now.to_i
       ActiveSupport::Deprecation.silence do
         ExceptionHandling.last_exception_timestamp = timestamp
-        Rails.logger.fatal(
-          if ActionView::TemplateError === exception
+        ExceptionHandling.logger.fatal(
+          if defined?(ActionView) && defined?(ActionView::TemplateError) && ActionView::TemplateError === exception
             "#{exception.to_s} Error:#{timestamp}"
           else
             "\n(Error:#{timestamp}) #{exception.class} #{exception_context} (#{exception.message}):\n  " +
@@ -227,7 +237,7 @@ EOF
                 :content  => "#{mail_message}\r\n.\r\n"
               }
           )
-          send_deferrable.errback { |err| Rails.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
+          send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
         end
       else
         safe_email_deliver do
@@ -261,11 +271,11 @@ EOF
 
     def normalize_exception_data( data )
       data[:location] = {}
-      if data[:request]._?.key?( :params )
+      if data[:request] && data[:request].key?( :params )
         data[:location][:controller] = data[:request][:params]['controller']
         data[:location][:action]     = data[:request][:params]['action']
       end
-      if data[:backtrace]._?.first
+      if data[:backtrace] && data[:backtrace].first
         first_line = data[:backtrace].first
 
         # template exceptions have the line number and filename as the first element in backtrace
@@ -299,7 +309,11 @@ EOF
 
     def clean_backtrace( backtrace )
       return ['<no backtrace>'] unless backtrace
-      Rails.backtrace_cleaner.clean( backtrace )
+      if defined?(Rails)
+        Rails.backtrace_cleaner.clean(backtrace)
+      else
+        backtrace
+      end
     end
 
     def clear_exception_summary
@@ -357,7 +371,7 @@ EOF
   public # TODO: fix test to not use this.
     def enhance_exception_data(data)
       # If we get a routing error without an HTTP referrer, assume we have one of them hackers poking at us.
-      if data[:request]._?[:params]._?[:controller] != 'vxml'
+      if data[:request] && data[:request][:params] && data[:request][:params][:controller] != 'vxml'
         if data[:error_class].in? ['ActionController::RoutingError', 'ActionController::UnknownAction', 'ActiveRecord::RecordNotFound']
           if data[:environment]['HTTP_HOST']
             if data[:environment]['HTTP_REFERER'].blank?
@@ -408,13 +422,15 @@ EOF
             end
           end
 
-          # Handle basic authentication
-          if credentials = AUTHENTICATION_HEADERS.map_and_find{ |header| data[:environment][header] }
-            username = ActiveSupport::Base64.decode64(credentials.split(' ', 2).last).split(/:/).first
+          if defined?(Username)
+            # Handle basic authentication
+            if credentials = AUTHENTICATION_HEADERS.map_and_find{ |header| data[:environment][header] }
+              username = ActiveSupport::Base64.decode64(credentials.split(' ', 2).last).split(/:/).first
 
-            if !data[:user_details][:username] && username.nonblank?
-              data[:user_details][:username] = Username.find_by_username(username)
-              data[:user_details][:user] = data[:user_details][:username]._?.user
+              if !data[:user_details][:username] && username.nonblank?
+                data[:user_details][:username] = Username.find_by_username(username)
+                data[:user_details][:user] = data[:user_details][:username] && data[:user_details][:username].user
+              end
             end
           end
 
@@ -438,7 +454,7 @@ EOF
     end
 
     def exception_to_data( exception, exception_context, timestamp )
-      data = HashWithIndifferentAccess.new
+      data = ActiveSupport::HashWithIndifferentAccess.new
       data[:error_class] = exception.class.name
       data[:error_string]= "#{data[:error_class]}: #{exception.message}"
       data[:error]       = "#{data[:error_string]}#{': ' + exception_context unless exception_context.blank?}"
@@ -480,11 +496,11 @@ EOF
   class ExceptionFilters
     class Filter
       def initialize filter_name, regexes
-        @regexes = regexes.map_hash do |section, regex|
+        @regexes = Hash[ *regexes.map do |section, regex|
           section = section.to_sym
           raise "Unknown section: #{section}" unless section == :error || section.in?( ExceptionHandling::SECTIONS )
-          Regexp.new( regex, 'i' ) unless regex.blank?
-        end
+          [section, (Regexp.new(regex, 'i') unless regex.blank?)]
+        end ]
 
         raise "Filter #{filter_name} has all blank regexes" if @regexes.all? { |section, regex| regex.nil? }
       end
@@ -519,7 +535,7 @@ EOF
 
       @filters.any? do |name, filter|
         if ( match = filter.match?( exception_data ) )
-          RAILS_DEFAULT_LOGGER.warn( "Filtered exception using '#{name}'; not sending email to notify" )
+          ExceptionHandling.logger.warn( "Filtered exception using '#{name}'; not sending email to notify" )
         end
         match
       end
@@ -530,7 +546,7 @@ EOF
     def refresh_filters
       mtime = last_modified_time
       if @filters_last_modified_time.nil? || mtime != @filters_last_modified_time
-        RAILS_DEFAULT_LOGGER.info( "Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}" )
+        ExceptionHandling.logger.info( "Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}" )
         @filters_last_modified_time = mtime # make race condition fall on the side of reloading unnecessarily next time rather than missing a set of changes
 
         @filters = load_file
@@ -543,9 +559,9 @@ EOF
     def load_file
       # store all strings from YAML file into regex's on initial load, instead of converting to regex on every exception that is logged
       filters = YAML::load_file( @filter_path )
-      filters.map_hash do |filter_name, regexes|
-        Filter.new( filter_name, regexes )
-      end
+      Hash[ *filters.map do |filter_name, regexes|
+        [filter_name, Filter.new( filter_name, regexes )]
+      end ]
     end
 
     def last_modified_time
@@ -568,11 +584,11 @@ public
     end
 
     def log_info( message )
-      RAILS_DEFAULT_LOGGER.info( message )
+      ExceptionHandling.logger.info( message )
     end
 
     def log_debug( message )
-      RAILS_DEFAULT_LOGGER.debug( message )
+      ExceptionHandling.logger.debug( message )
     end
 
     def ensure_safe( exception_context = "" )
@@ -591,7 +607,7 @@ public
     end
 
     # Store aside the current controller when included
-    LONG_REQUEST_SECONDS = (Rails.env == 'test' ? 300 : 30)
+    LONG_REQUEST_SECONDS = (defined?(Rails) && Rails.env == 'test' ? 300 : 30)
     def set_current_controller
       ExceptionHandling.current_controller = self
       result = nil
