@@ -2,6 +2,8 @@ require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
 
+EXCEPTION_HANDLING_MAILER_SEND_MAIL = true unless defined?(EXCEPTION_HANDLING_MAILER_SEND_MAIL)
+
 _ = ActiveSupport::HashWithIndifferentAccess
 
 if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
@@ -116,6 +118,7 @@ EOF
           log_error_email( data, ex )
         end
       rescue Exception => ex
+        $stderr.puts("ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}")
         log_error_local(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}")
       end
     end
@@ -194,22 +197,29 @@ EOF
     private
 
     def log_error_email( data, exc )
+      puts "\n***log_error_email!\n\n"
       enhance_exception_data( data )
 
+      puts "\n*** 0"
       clean_exception_data( data )
 
+      puts "\n*** 1"
       SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a?(Hash) }
 
+      puts "\n*** 2"
       if exception_filters.filtered?( data )
         return
       end
 
+      puts "\n*** 3"
       if summarize_exception( data ) == :Summarized
         return
       end
 
+      puts "\n*** 4"
       deliver(ExceptionHandlingMailer.send(:new, 'exception_notification', data))
 
+      puts "\n*** 5"
       Errplane.transmit(exc, :custom_data => data)
       nil
     end
@@ -222,6 +232,7 @@ EOF
     def deliver(mail_object)
       mail_message = mail_object.mail
       if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
+        puts "\nabout to use EM to deliver!"
         EventMachine.schedule do # in case we're running outside the reactor
           async_send_method = EVENTMACHINE_EXCEPTION_HANDLING == :Synchrony ? :asend : :send
           smtp_settings = ActionMailer::Base.smtp_settings
@@ -241,6 +252,7 @@ EOF
         end
       else
         safe_email_deliver do
+          puts "\nabout to deliver!"
           mail_object.deliver!
         end
       end
