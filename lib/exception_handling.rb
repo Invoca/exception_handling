@@ -8,13 +8,14 @@ module ExceptionHandling # never included
 
   class Warning < StandardError; end
   class MailerTimeout < Timeout::Error; end
+  class ClientLoggingError < StandardError; end
 
   SUMMARY_THRESHOLD = 5
   SUMMARY_PERIOD = 1.hour
 
 
   SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-  EXCEPTION_FILTER_LIST_PATH = "#{RAILS_ROOT}/config/exception_filters.yml"
+  EXCEPTION_FILTER_LIST_PATH = "#{Rails.root}/config/exception_filters.yml"
 
   ENVIRONMENT_WHITELIST = [
 /^HTTP_/,
@@ -67,47 +68,123 @@ EOF
     attr_accessor :current_controller
     attr_accessor :last_exception_timestamp
     attr_accessor :periodic_exception_intervals
-
     attr_accessor :stub_handler # See log_error_stub.rb. Used in tests
 
-    def log_error(exception_or_string, exception_context = '', controller = nil)
-      if stub_handler # See log_error_stub.rb. Used for tests
-        return stub_handler.handle_stub_log_error(exception_or_string, exception_context, controller)
+    #
+    # Gets called by Rack Middleware: DebugExceptions or ShowExceptions
+    # it does 2 things:
+    #   log the error
+    #   email the error
+    #
+    # but not during functional tests, when rack middleware is not used
+    #
+    def log_error_rack(exception, env, rack_filter)
+      timestamp = set_log_error_timestamp
+      exception_data = exception_to_data(exception, env, timestamp)
+
+      if stub_handler
+        return stub_handler.handle_stub_log_error(exception_data)
       end
 
-      begin
-        ex = make_exception( exception_or_string )
+      # TODO: add a more interesting custom description, like:
+      # custom_description = ": caught and processed by Rack middleware filter #{rack_filter}"
+      # which would be nice, but would also require changing quite a few tests
+      custom_description = ""
+      write_exception_to_log(exception, custom_description, timestamp)
 
-        timestamp = log_error_local( ex, exception_context )
+      if should_send_email?
+        controller = env['action_controller.instance']
+        # controller may not exist in some cases (like most 404 errors)
+        extract_and_merge_controller_data(controller, exception_data) if controller
+        log_error_email(exception_data, exception)
+      end
+    end
+
+    #
+    # Normal Operation:
+    #   Called directly by our code, usually from rescue blocks.
+    #   Does two things: write to log file and send an email
+    #
+    # Functional Test Operation:
+    #   Calls into handle_stub_log_error and returns. no log file. no email.
+    #
+    def log_error(exception_or_string, exception_context = '', controller = nil, treat_as_local = false)
+      begin
+        ex = make_exception(exception_or_string)
+        timestamp = set_log_error_timestamp
+        data = exception_to_data(ex, exception_context, timestamp)
+
+        # this line will return during functional tests if you called stub_log_error.
+        # if treat_as_local is true, this will raise (on purpose)
+        if stub_handler
+          stub_handler.handle_stub_log_error(data, treat_as_local)
+          return
+        end
+
+        write_exception_to_log(ex, exception_context, timestamp)
+
+        if treat_as_local
+          return
+        end
 
         if should_send_email?
           controller ||= current_controller
-          data = exception_to_data( ex, exception_context, timestamp )
+
           if block_given?
+            # the expectation is that if the caller passed a block then they will be
+            # doing their own merge of hash values into data
             begin
               yield data
             rescue Exception => ex
               data.merge!(:environment => "Exception in yield: #{ex.class}:#{ex}")
             end
           elsif controller
-            data[:request] = {
-              :params      => controller.request.parameters.to_hash,
-              :rails_root  => File.expand_path(RAILS_ROOT),
-              :url         => "#{controller.request.protocol}#{controller.request.host}#{controller.request.request_uri}"
-            }
-            data[:environment].merge!(controller.request.env.to_hash)
-
-            controller.session[:fault_in_session]
-            data[:session] = {
-              :key         => controller.request.session_options[:id],
-              :data        => controller.session.dup
-            }
+          # most of the time though, this method will not get passed a block
+          # and additional hash data is extracted from the controller
+            extract_and_merge_controller_data(controller, data)
           end
-          log_error_email( data, ex )
         end
+
+        log_error_email(data, ex)
+
+      rescue LogErrorStub::UnexpectedExceptionLogged
+        raise # pass this through for tests
       rescue Exception => ex
-        log_error_local(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}")
+        write_exception_to_log(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
       end
+    end
+
+    #
+    # Write an exception out to the log file using our own custom format.
+    #
+    def write_exception_to_log(ex, exception_context, timestamp)
+      ActiveSupport::Deprecation.silence do
+        Rails.logger.fatal(
+          if ActionView::TemplateError === ex
+            "#{ex} Error:#{timestamp}"
+          else
+            "\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n"
+          end
+        )
+      end
+    end
+
+    #
+    # Pull certain fields out of the controller and add to the data hash.
+    #
+    def extract_and_merge_controller_data(controller, data)
+      data[:request] = {
+        :params      => controller.request.parameters.to_hash,
+        :rails_root  => Rails.root,
+        :url         => controller.complete_request_uri
+      }
+      data[:environment].merge!(controller.request.env.to_hash)
+
+      controller.session[:fault_in_session]
+      data[:session] = {
+        :key         => controller.request.session_options[:id],
+        :data        => controller.session.dup
+      }
     end
 
     def log_warning( message )
@@ -115,20 +192,18 @@ EOF
     end
 
     def log_info( message )
-      RAILS_DEFAULT_LOGGER.info( message )
+      Rails.logger.info( message )
     end
 
     def log_debug( message )
-      RAILS_DEFAULT_LOGGER.debug( message )
+      Rails.logger.debug( message )
     end
 
     def ensure_safe( exception_context = "" )
-      begin
-        yield
-      rescue => ex
-        log_error ex, exception_context
-        return nil
-      end
+      yield
+    rescue => ex
+      log_error ex, exception_context
+      return nil
     end
 
     def ensure_escalation( email_subject )
@@ -137,33 +212,19 @@ EOF
       rescue => ex
         log_error ex
         escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
-        return nil
+        nil
       end
     end
 
-    def log_error_local( exception, exception_context )
-      # Duplicates code from ActionController::Rescue, but the code
-      # is in the rails library and it is protected.
-      timestamp = Time.now.to_i
-      ActiveSupport::Deprecation.silence do
-        ExceptionHandling.last_exception_timestamp = timestamp
-        Rails.logger.fatal(
-          if ActionView::TemplateError === exception
-            "#{exception.to_s} Error:#{timestamp}"
-          else
-            "\n(Error:#{timestamp}) #{exception.class} #{exception_context} (#{exception.message}):\n  " +
-            clean_backtrace(exception.backtrace).join("\n  ") + "\n\n"
-          end
-        )
-      end
-      timestamp
+    def set_log_error_timestamp
+      ExceptionHandling.last_exception_timestamp = Time.now.to_i
     end
 
     def should_send_email?
       defined?( EXCEPTION_HANDLING_MAILER_SEND_MAIL ) && EXCEPTION_HANDLING_MAILER_SEND_MAIL
     end
 
-    def trace_timing description
+    def trace_timing(description)
       result = nil
       time = Benchmark.measure do
         result = yield
@@ -181,14 +242,93 @@ EOF
       end
     end
 
+    # TODO: fix test to not use this.
+    def enhance_exception_data(data)
+      # If we get a routing error without an HTTP referrer, assume we have one of them hackers poking at us.
+      if data[:request]._?[:params]._?[:controller] != 'vxml'
+        if data[:error_class].in? ['ActionController::RoutingError', 'ActionController::UnknownAction', 'ActiveRecord::RecordNotFound']
+          if data[:environment]['HTTP_HOST']
+            if data[:environment]['HTTP_REFERER'].blank?
+              data[:error] = "ScriptKiddie suspected because of HTTP request without a referer. Original exception: #{data[:error]}"
+              data[:error_class] = 'ScriptKiddie'
+            elsif data[:session] && data[:session][:data] && data[:session][:data][:user_id]
+              if data[:environment]['HTTP_REFERER'] =~/\/session\/|\/login/
+                data[:error] = "Found broken link after user logged in from #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
+                data[:error_class] = 'BrokenLinkAfterLogin'
+              else
+                data[:error] = "Logged in user experienced broken link on page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
+                data[:error_class] = 'BrokenLinkForUser'
+              end
+            elsif data[:environment]['HTTP_REFERER'] =~ /ringrevenue/
+              data[:error] = "Broken link clicked on from local page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
+              data[:error_class] = 'BrokenLocalLink'
+            else
+              data[:error] = "Broken link clicked on from remote page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
+              data[:error_class] = 'BrokenRemoteLink'
+            end
+          end
+        end
+      end
+
+      # Provide details on session data.
+      begin
+        if data[:session] && data[:session][:data]
+
+          data[:user_details] = {}
+
+          if data[:session][:data][:impersonated_organization_pk]
+            data[:user_details][:impersonated_organization] = ApplicationModel.from_pk(data[:session][:data][:impersonated_organization_pk],
+                                                                                       { :allowed_types => [Advertiser,Affiliate,Network] } ) rescue nil
+          end
+
+          data[:session][:data].each do |key, value|
+            id_match = /^(.*)_id$/.match( key.to_s )
+            if id_match && value.is_a?( Numeric )
+              id_details = ( obj = Object.const_get(id_match[1].camelize).find(value) ).to_s rescue "not found"
+              case obj
+                when User
+                  data[:user_details][:user]     = obj
+                  data[:user_details][:username] = obj.username
+                when OrganizationMembership
+                  data[:user_details][:organization] = obj.organization
+              end
+              data[:session][:data][key] = "#{value} - #{id_details}"
+            end
+          end
+
+          # Handle basic authentication
+          if credentials = AUTHENTICATION_HEADERS.map_and_find{ |header| data[:environment][header] }
+            username = Base64.decode64(credentials.split(' ', 2).last).split(/:/).first
+
+            if !data[:user_details][:username] && username.nonblank?
+              data[:user_details][:username] = Username.find_by_username(username)
+              data[:user_details][:user] = data[:user_details][:username]._?.user
+
+            end
+          end
+
+          # fill in organization if still not set
+          if data[:user_details][:user] && !data[:user_details][:organization]
+            data[:user_details][:organization] = data[:user_details][:user].default_organization
+          end
+
+          # do not show authentication headers
+          AUTHENTICATION_HEADERS.each{ |header| data[:environment].delete(header) }
+        end
+      rescue Exception => ex
+        log_error(ex, '', nil, true)
+        data[:session][:data]['exceptionnote'] = "data mapping aborted because of exception.  Mapping exception is in server log."
+      end
+    end
+
     private
 
     def log_error_email( data, exc )
       enhance_exception_data( data )
-
+      normalize_exception_data( data )
       clean_exception_data( data )
 
-      SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a?(Hash) }
+      SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a? Hash }
 
       if exception_filters.filtered?( data )
         return
@@ -198,7 +338,7 @@ EOF
         return
       end
 
-      deliver(ExceptionHandlingMailer.send(:new, 'exception_notification', data))
+      deliver(ExceptionHandlingMailer.exception_notification(data))
 
       Errplane.transmit(exc, :custom_data => data)
       nil
@@ -206,11 +346,10 @@ EOF
 
     def escalate( email_subject, ex, timestamp )
       data = exception_to_data( ex, nil, timestamp )
-      deliver(ExceptionHandlingMailer.send(:new, 'escalation_notification', email_subject, data))
+      deliver(ExceptionHandlingMailer.escalation_notification(email_subject, data))
     end
 
     def deliver(mail_object)
-      mail_message = mail_object.mail
       if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
         EventMachine.schedule do # in case we're running outside the reactor
           async_send_method = EVENTMACHINE_EXCEPTION_HANDLING == :Synchrony ? :asend : :send
@@ -222,16 +361,16 @@ EOF
                 :port     => smtp_settings[:port],
                 :domain   => smtp_settings[:domain],
                 :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
-                :from     => mail_message['from'],
-                :to       => mail_message['to'],
-                :content  => "#{mail_message}\r\n.\r\n"
+                :from     => mail_object['from'].to_s,
+                :to       => mail_object['to'].to_s,
+                :body     => mail_object.body.to_s
               }
           )
           send_deferrable.errback { |err| Rails.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
         end
       else
         safe_email_deliver do
-          mail_object.deliver!
+          mail_object.deliver
         end
       end
     end
@@ -241,11 +380,10 @@ EOF
         yield
       end
     rescue StandardError, MailerTimeout => ex
-      log_error_local( ex, "ExceptionHandling::safe_email_deliver" )
+      log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
     end
 
     def clean_exception_data( data )
-      normalize_exception_data( data )
       if (as_array = data[:backtrace].to_a).size == 1
         data[:backtrace] = as_array.first.to_s.split(/\n\s*/)
       end
@@ -260,10 +398,12 @@ EOF
     end
 
     def normalize_exception_data( data )
+      if data[:location].nil?
       data[:location] = {}
       if data[:request]._?.key?( :params )
         data[:location][:controller] = data[:request][:params]['controller']
-        data[:location][:action]     = data[:request][:params]['action']
+          data[:location][:action]     = "fake action"
+      end
       end
       if data[:backtrace]._?.first
         first_line = data[:backtrace].first
@@ -297,9 +437,14 @@ EOF
       @exception_filters ||= ExceptionFilters.new( EXCEPTION_FILTER_LIST_PATH )
     end
 
-    def clean_backtrace( backtrace )
-      return ['<no backtrace>'] unless backtrace
-      Rails.backtrace_cleaner.clean( backtrace )
+    def clean_backtrace(exception)
+      if exception.backtrace.nil?
+        ['<no backtrace>']
+      elsif exception.is_a?(ClientLoggingError)
+        exception.backtrace
+      else
+        Rails.backtrace_cleaner.clean(exception.backtrace)
+      end
     end
 
     def clear_exception_summary
@@ -350,89 +495,14 @@ EOF
       nil
     end
 
-    def send_exception_summary(exception_data, first_seen, occurrences)
-      deliver(ExceptionHandlingMailer.send(:new, 'exception_notification', exception_data, first_seen, occurrences))
-    end
-
-  public # TODO: fix test to not use this.
-    def enhance_exception_data(data)
-      # If we get a routing error without an HTTP referrer, assume we have one of them hackers poking at us.
-      if data[:request]._?[:params]._?[:controller] != 'vxml'
-        if data[:error_class].in? ['ActionController::RoutingError', 'ActionController::UnknownAction', 'ActiveRecord::RecordNotFound']
-          if data[:environment]['HTTP_HOST']
-            if data[:environment]['HTTP_REFERER'].blank?
-              data[:error] = "ScriptKiddie suspected because of HTTP request without a referer. Original exception: #{data[:error]}"
-              data[:error_class] = 'ScriptKiddie'
-            elsif data[:session] && data[:session][:data] && data[:session][:data][:user_id]
-              if data[:environment]['HTTP_REFERER'] =~/\/session\/|\/login/
-                data[:error] = "Found broken link after user logged in from #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-                data[:error_class] = 'BrokenLinkAfterLogin'
-              else
-                data[:error] = "Logged in user experienced broken link on page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-                data[:error_class] = 'BrokenLinkForUser'
-              end
-            elsif data[:environment]['HTTP_REFERER'] =~ /ringrevenue/
-              data[:error] = "Broken link clicked on from local page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-              data[:error_class] = 'BrokenLocalLink'
-            else
-              data[:error] = "Broken link clicked on from remote page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-              data[:error_class] = 'BrokenRemoteLink'
-            end
-          end
-        end
+    def send_exception_summary( exception_data, first_seen, occurrences )
+      Timeout::timeout 30, MailerTimeout do
+        ExceptionHandlingMailer.deliver!(:exception_notification, exception_data, first_seen, occurrences )
       end
-
-      # Provide details on session data.
-      begin
-        if data[:session] && data[:session][:data]
-
-          data[:user_details] = {}
-
-          if data[:session][:data][:impersonated_organization_pk]
-            data[:user_details][:impersonated_organization] = ApplicationModel.from_pk(data[:session][:data][:impersonated_organization_pk],
-                                                                                       { :allowed_types => [Advertiser,Affiliate,Network] } ) rescue nil
+    rescue StandardError, MailerTimeout => ex
+      log_error( ex, "ExceptionHandling::log_error_email", nil, true)
           end
 
-          data[:session][:data].each do |key, value|
-            id_match = /^(.*)_id$/.match( key.to_s )
-            if id_match && value.is_a?( Numeric )
-              id_details = ( obj = Object.const_get(id_match[1].camelize).find(value) ).to_s rescue "not found"
-              case obj
-              when User
-                data[:user_details][:user]     = obj
-                data[:user_details][:username] = obj.username
-              when OrganizationMembership
-                data[:user_details][:organization] = obj.organization
-              end
-              data[:session][:data][key] = "#{value} - #{id_details}"
-            end
-          end
-
-          # Handle basic authentication
-          if credentials = AUTHENTICATION_HEADERS.map_and_find{ |header| data[:environment][header] }
-            username = ActiveSupport::Base64.decode64(credentials.split(' ', 2).last).split(/:/).first
-
-            if !data[:user_details][:username] && username.nonblank?
-              data[:user_details][:username] = Username.find_by_username(username)
-              data[:user_details][:user] = data[:user_details][:username]._?.user
-            end
-          end
-
-          # fill in organization if still not set
-          if data[:user_details][:user] && !data[:user_details][:organization]
-            data[:user_details][:organization] = data[:user_details][:user].default_organization
-          end
-
-          # do not show authentication headers
-          AUTHENTICATION_HEADERS.each{ |header| data[:environment].delete(header) }
-        end
-      rescue Exception => ex
-        log_error_local(ex, 'Data mapping aborted because of exception')
-        data[:session][:data]['exceptionnote'] = "data mapping aborted because of exception.  Mapping exception is in server log."
-      end
-    end
-
-  private
     def add_to_s( data_section )
       data_section[:to_s] = dump_hash( data_section )
     end
@@ -441,10 +511,18 @@ EOF
       data = HashWithIndifferentAccess.new
       data[:error_class] = exception.class.name
       data[:error_string]= "#{data[:error_class]}: #{exception.message}"
-      data[:error]       = "#{data[:error_string]}#{': ' + exception_context unless exception_context.blank?}"
-      data[:backtrace]   = clean_backtrace(exception.backtrace)
-      data[:environment] = ENV.to_hash
       data[:timestamp]   = timestamp
+      data[:backtrace]   = clean_backtrace(exception)
+      if exception_context._?.is_a?(Hash)
+        # if we are a hash, then we got called from the DebugExceptions rack middleware filter
+        # and we need to do some things different to get the info we want
+        data[:error] = "#{data[:error_class]}: #{exception.message}"
+        data[:session] = exception_context['rack.session']
+        data[:environment] = exception_context
+      else
+        data[:error]       = "#{data[:error_string]}#{': ' + exception_context unless exception_context.blank?}"
+        data[:environment] = { :message => exception_context }
+      end
       data
     end
 
@@ -519,7 +597,7 @@ EOF
 
       @filters.any? do |name, filter|
         if ( match = filter.match?( exception_data ) )
-          RAILS_DEFAULT_LOGGER.warn( "Filtered exception using '#{name}'; not sending email to notify" )
+          Rails.logger.warn( "Filtered exception using '#{name}'; not sending email to notify" )
         end
         match
       end
@@ -530,14 +608,14 @@ EOF
     def refresh_filters
       mtime = last_modified_time
       if @filters_last_modified_time.nil? || mtime != @filters_last_modified_time
-        RAILS_DEFAULT_LOGGER.info( "Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}" )
+        Rails.logger.info( "Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}" )
         @filters_last_modified_time = mtime # make race condition fall on the side of reloading unnecessarily next time rather than missing a set of changes
 
         @filters = load_file
       end
 
     rescue => ex # any exceptions
-      ExceptionHandling::log_error_local( ex, "ExceptionRegexes::refresh_filters: #{@filter_path}" )
+      ExceptionHandling::log_error( ex, "ExceptionRegexes::refresh_filters: #{@filter_path}", nil, true)
     end
 
     def load_file
@@ -558,24 +636,28 @@ public
 
   module Methods # included on models and controllers
     protected
-    def log_error( exception_or_string, exception_context = '' )
-      controller = self if respond_to?( :request ) && respond_to?( :session )
-      ExceptionHandling.log_error( exception_or_string, exception_context, controller )
+    def log_error(exception_or_string, exception_context = '')
+      controller = self if respond_to?(:request) && respond_to?(:session)
+      ExceptionHandling.log_error(exception_or_string, exception_context, controller)
     end
 
-    def log_warning( message )
-      log_error( Warning.new(message) )
+    def log_error_rack(exception_or_string, exception_context = '', rack_filter = '')
+      ExceptionHandling.log_error_rack(exception_or_string, exception_context, controller)
     end
 
-    def log_info( message )
-      RAILS_DEFAULT_LOGGER.info( message )
+    def log_warning(message)
+      log_error(Warning.new(message))
     end
 
-    def log_debug( message )
-      RAILS_DEFAULT_LOGGER.debug( message )
+    def log_info(message)
+      Rails.logger.info(message)
     end
 
-    def ensure_safe( exception_context = "" )
+    def log_debug(message)
+      Rails.logger.debug(message)
+    end
+
+    def ensure_safe(exception_context = "")
       begin
         yield
       rescue => ex
