@@ -1,6 +1,10 @@
 require './test/test_helper'
 require 'exception_handling'
 
+ExceptionHandling.email_environment     = 'test'
+ExceptionHandling.sender_address        = 'server@example.com'
+ExceptionHandling.exception_recipients  = 'exceptions@example.com'
+ExceptionHandling.server_name           = 'server'
 
 class ExceptionHandlingTest < ActiveSupport::TestCase
   class LoggerStub
@@ -11,7 +15,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     def info(message)
-      logged << string
+      logged << message
     end
 
     def fatal(message)
@@ -436,7 +440,7 @@ end
 
   should "rescue exceptions that happen when log_error yields" do
     ExceptionHandling.expects(:write_exception_to_log).with do |ex, context, timestamp|
-      ex.to_s['Bad argument'] or raise "Unexpected ex #{ex.class} - #{ex}"
+      ex.to_s['Bad argument'] or raise "=================================================\nUnexpected ex #{ex.class} - #{ex}\n#{ex.backtrace.join("\n")}\n=============================================\n"
       context['Context message'] or raise "Unexpected context #{context}"
       true
     end
@@ -563,8 +567,8 @@ end
         end
         assert_emails 1, ActionMailer::Base.deliveries.map { |m| m.body.inspect }
         assert mail = ActionMailer::Base.deliveries.last
-        assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
-        assert_equal 'null@ringrevenue.com', mail.from.to_s
+        assert_equal ['exceptions@example.com'], mail.to
+        assert_equal 'server@example.com', mail.from.to_s
         assert_match /Exception 1/, mail.to_s
         assert_match /key: DECAFE/, mail.to_s
         assert_match /id: 10993/, mail.to_s
@@ -591,6 +595,7 @@ end
             set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
 
             ExceptionHandling.log_error(exception_1)
+            assert EventMachineStub.block
             EventMachineStub.block.call
             assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientStub.send_hash.inspect
             assert_equal (synchrony_flag == :Synchrony ? :asend : :send), SmtpClientStub.last_method
@@ -649,33 +654,35 @@ end
         assert_nil ExceptionHandling.current_controller
       end
 
-    should "use the current controller when included in a Model" do
-      ActiveRecord::Base.logger.expects(:fatal).with { |ex| ex =~ /blah/ }
-      @controller.simulate_around_filter( ) do
-        a = TestAdvertiser.new :name => 'Joe Ads'
-        a.test_log_error( ArgumentError.new("blah") )
-        mail = ActionMailer::Base.deliveries.last
-        assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
-        assert_match( @controller.request.request_uri, mail.body.to_s )
-        assert_match( Username.first.username.to_s, mail.body.to_s )
+      should "use the current controller when included in a Model" do
+        ActiveRecord::Base.logger.expects(:fatal).with { |ex| ex =~ /blah/ }
+        @controller.simulate_around_filter( ) do
+          a = TestAdvertiser.new :name => 'Joe Ads'
+          a.test_log_error( ArgumentError.new("blah") )
+          mail = ActionMailer::Base.deliveries.last
+          assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+          assert_match( @controller.request.request_uri, mail.body.to_s )
+          assert_match( Username.first.username.to_s, mail.body.to_s )
+        end
       end
 
-    should "use the current_controller when available" do
-      ActiveRecord::Base.logger.expects(:fatal).with( ) { |ex| ex =~ /blah/ }
-      @controller.simulate_around_filter do
-        ExceptionHandling.log_error( ArgumentError.new("blah") )
-        mail = ActionMailer::Base.deliveries.last
-       assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
-       assert_match( @controller.request.request_uri, mail.body )
-       assert_match( Username.first.username.to_s, mail.body )
-        mail = ActionMailer::Base.deliveries.last
-       assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
-       assert_match( @controller.request.request_uri, mail.body.to_s )
-       assert_match( Username.first.username.to_s, mail.body.to_s )
-        assert mail = ActionMailer::Base.deliveries.last
-        assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
-        assert_match( @controller.request.request_uri, mail.body.to_s )
-        assert_match( Username.first.username.to_s, mail.body.to_s )
+      should "use the current_controller when available" do
+        ActiveRecord::Base.logger.expects(:fatal).with( ) { |ex| ex =~ /blah/ }
+        @controller.simulate_around_filter do
+          ExceptionHandling.log_error( ArgumentError.new("blah") )
+          mail = ActionMailer::Base.deliveries.last
+         assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+         assert_match( @controller.request.request_uri, mail.body )
+         assert_match( Username.first.username.to_s, mail.body )
+          mail = ActionMailer::Base.deliveries.last
+         assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+         assert_match( @controller.request.request_uri, mail.body.to_s )
+         assert_match( Username.first.username.to_s, mail.body.to_s )
+          assert mail = ActionMailer::Base.deliveries.last
+          assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+          assert_match( @controller.request.request_uri, mail.body.to_s )
+          assert_match( Username.first.username.to_s, mail.body.to_s )
+        end
       end
 
       should "report long running controller action" do
@@ -687,108 +694,106 @@ end
         end
       end
     end
-  end
 
-if defined?(Rails)
-  context "a model object" do
-    setup do
-      @a = TestAdvertiser.new :name => 'Joe Ads'
-      ActionMailer::Base.deliveries.clear
-    end
-
-    context "with an argument error" do
+    context "a model object" do
       setup do
-        begin
-          raise ArgumentError.new("blah");
-        rescue => ex
-          @argument_error = ex
-        end
+        @a = TestAdvertiser.new :name => 'Joe Ads'
+        ActionMailer::Base.deliveries.clear
       end
 
-      context "log_error on a model" do
-        should "log errors" do
-          ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          @a.test_log_error( @argument_error )
-        end
-
-        should "log errors from strings" do
-          ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          @a.test_log_error( "blah" )
-        end
-
-        should "log errors with strings" do
-          ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo.* \(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          @a.test_log_error( @argument_error, "mooo" )
-        end
-      end
-
-      context "ensure_escalation on a model" do
-        should "work" do
-          ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          @a.test_ensure_escalation 'Favorite Feature' do
-            raise @argument_error
+      context "with an argument error" do
+        setup do
+          begin
+            raise ArgumentError.new("blah");
+          rescue => ex
+            @argument_error = ex
           end
-          assert_equal 2, ActionMailer::Base.deliveries.count
-          email = ActionMailer::Base.deliveries.last
-          assert_equal 'development-local Escalation: Favorite Feature', email.subject
-          assert_match 'ArgumentError: blah', email.body.to_s
+        end
+
+        context "log_error on a model" do
+          should "log errors" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            @a.test_log_error( @argument_error )
+          end
+
+          should "log errors from strings" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            @a.test_log_error( "blah" )
+          end
+
+          should "log errors with strings" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo.* \(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            @a.test_log_error( @argument_error, "mooo" )
+          end
+        end
+
+        context "ensure_escalation on a model" do
+          should "work" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            @a.test_ensure_escalation 'Favorite Feature' do
+              raise @argument_error
+            end
+            assert_equal 2, ActionMailer::Base.deliveries.count
+            email = ActionMailer::Base.deliveries.last
+            assert_equal 'development-local Escalation: Favorite Feature', email.subject
+            assert_match 'ArgumentError: blah', email.body.to_s
+          end
+        end
+
+        context "ExceptionHandling::log_error" do
+          should "log errors" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            ExceptionHandling::log_error( @argument_error )
+          end
+
+          should "log errors from strings" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            ExceptionHandling::log_error( "blah" )
+          end
+
+          should "log errors with strings" do
+            ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo.*\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+            ExceptionHandling::log_error( @argument_error, "mooo" )
+          end
         end
       end
 
-      context "ExceptionHandling::log_error" do
-        should "log errors" do
+      should "log warnings" do
+        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /blah/ }
+        @a.test_log_warning("blah")
+      end
+
+      context "ensure_safe on the model" do
+        should "log an exception if an exception is raised." do
           ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          ExceptionHandling::log_error( @argument_error )
+          @a.test_ensure_safe { raise ArgumentError.new("blah") }
         end
 
-        should "log errors from strings" do
-          ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          ExceptionHandling::log_error( "blah" )
+        should "should not log an exception if an exception is not raised." do
+          ExceptionHandling.logger.expects(:fatal).never
+          @a.test_ensure_safe { ; }
         end
 
-        should "log errors with strings" do
+        should "return its value if used during an assignment" do
+          ExceptionHandling.logger.expects(:fatal).never
+          b = @a.test_ensure_safe { 5 }
+          assert_equal 5, b
+        end
+
+        should "return nil if an exception is raised during an assignment" do
+          ExceptionHandling.logger.expects(:fatal).returns(nil)
+          b = @a.test_ensure_safe { raise ArgumentError.new("blah") }
+          assert_nil b
+        end
+
+        should "allow a message to be appended to the error when logged." do
           ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo.*\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-          ExceptionHandling::log_error( @argument_error, "mooo" )
+          b = @a.test_ensure_safe("mooo") { raise ArgumentError.new("blah") }
+          assert_nil b
         end
-      end
-    end
-
-    should "log warnings" do
-      ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /blah/ }
-      @a.test_log_warning("blah")
-    end
-
-    context "ensure_safe on the model" do
-      should "log an exception if an exception is raised." do
-        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-        @a.test_ensure_safe { raise ArgumentError.new("blah") }
-      end
-
-      should "should not log an exception if an exception is not raised." do
-        ExceptionHandling.logger.expects(:fatal).never
-        @a.test_ensure_safe { ; }
-      end
-
-      should "return its value if used during an assignment" do
-        ExceptionHandling.logger.expects(:fatal).never
-        b = @a.test_ensure_safe { 5 }
-        assert_equal 5, b
-      end
-
-      should "return nil if an exception is raised during an assignment" do
-        ExceptionHandling.logger.expects(:fatal).returns(nil)
-        b = @a.test_ensure_safe { raise ArgumentError.new("blah") }
-        assert_nil b
-      end
-
-      should "allow a message to be appended to the error when logged." do
-        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo.*\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
-        b = @a.test_ensure_safe("mooo") { raise ArgumentError.new("blah") }
-        assert_nil b
       end
     end
   end
-end
 
   context "Exception mapping" do
     setup do
@@ -880,99 +885,6 @@ end
       ExceptionHandling::enhance_exception_data( @data )
       assert_equal 'BrokenLinkAfterLogin', @data[:error_class], @data.inspect
       assert_match /www.ringrevenue.com/, @data[:error], @data.inspect
-    end
-
-
-    if defined?(Affiliate)
-      [ "affiliate", "advertiser" ].each do |c|
-        should "provide additional information for #{c}_id when found" do
-          obj = Object.const_get(c.camelize).first
-          @data[:session][:data]["#{c}_id"] = obj.id
-          ExceptionHandling::enhance_exception_data( @data )
-          assert_equal "#{obj.id} - #{obj.to_s}", @data[:session][:data]["#{c}_id"]
-        end
-
-        should "report when #{c}_id is not found" do
-          not_found_id = Object.const_get(c.camelize).find(:last,:order=>"id").id.to_i + 1
-          @data[:session][:data]["#{c}_id".to_sym] = not_found_id
-          ExceptionHandling::enhance_exception_data( @data )
-          assert_equal "#{not_found_id} - not found", @data[:session][:data]["#{c}_id".to_sym]
-        end
-      end
-
-      should "not die on invalid class ids in session data" do
-        @data[:session][:data]["notaclass_id"] = 1
-        ExceptionHandling::enhance_exception_data( @data )
-        assert_equal "1 - not found", @data[:session][:data]["notaclass_id"]
-      end
-
-      should "not lookup non-integer session ids" do
-        @data[:session][:data][:user_id] = "abc"
-        ExceptionHandling::enhance_exception_data( @data )
-        assert_equal "abc", @data[:session][:data][:user_id], @data[:session][:data][:user_id]
-      end
-
-      should "add additional user data when logged in and no organization info" do
-        @data[:session][:data][:user_id] = users(:bill).id
-        ExceptionHandling::enhance_exception_data( @data )
-        assert_equal users(:bill), @data[:user_details][:user], "user object. #{@data[:user_details]}"
-        assert_equal users(:bill).default_organization, @data[:user_details][:organization], "user's default organization. #{@data[:user_details]}"
-      end
-
-      should "add additional user data when logged in and switching between organizations" do
-        @data[:session][:data][:organization_membership_id]   = organization_memberships(:scott_network_1).id
-        @data[:session][:data][:user_id]                      = users(:bill).id
-        @data[:session][:data][:impersonated_organization_pk] = nil
-        ExceptionHandling::enhance_exception_data( @data )
-        assert_equal users(:bill), @data[:user_details][:user],             "user object. #{@data[:user_details]}"
-        assert_equal Network.find(1), @data[:user_details][:organization],  "user's organization. #{@data[:user_details]}"
-        assert_nil @data[:user_details][:impersonated_organization], "impersonated organization. #{@data[:user_details]}"
-      end
-
-      should "use default org when logged in no organization info" do
-        @data[:session][:data][:user_id]                      = users(:bill).id
-        @data[:session][:data][:impersonated_organization_pk] = nil
-        ExceptionHandling::enhance_exception_data( @data )
-        assert_equal users(:bill),       @data[:user_details][:user],          "user object. #{@data[:user_details]}"
-        assert_equal affiliates(:seven), @data[:user_details][:organization],  "user's organization. #{@data[:user_details]}"
-        assert_nil @data[:user_details][:impersonated_organization],           "impersonated organization. #{@data[:user_details]}"
-      end
-
-      should "add user data and impersonating info when impersonating" do
-        @data[:session][:data][:organization_membership_id] = organization_memberships(:scott_network_1).id
-        @data[:session][:data][:user_id] = users(:bill).id
-        ExceptionHandling::enhance_exception_data( @data )
-        assert_equal users(:bill),       @data[:user_details][:user],                      "user object. #{@data[:user_details]}"
-        assert_equal Network.find(1),    @data[:user_details][:organization],              "user's organization. #{@data[:user_details]}"
-        assert_equal Advertiser.find(1), @data[:user_details][:impersonated_organization], "impersonated organization. #{@data[:user_details]}"
-      end
-
-    should "use default org when logged in no organization info" do
-      @data[:session][:data][:user_id]                      = users(:bill).id
-      @data[:session][:data][:impersonated_organization_pk] = nil
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal users(:bill),       @data[:user_details][:user],          "user object. #{@data[:user_details]}"
-      assert_equal affiliates(:seven), @data[:user_details][:organization],  "user's organization. #{@data[:user_details]}"
-      assert_nil @data[:user_details][:impersonated_organization],           "impersonated organization. #{@data[:user_details]}"
-    end
-
-    should "add user data and impersonating info when impersonating" do
-      @data[:session][:data][:organization_membership_id] = organization_memberships(:scott_network_1).id
-      @data[:session][:data][:user_id] = users(:bill).id
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal users(:bill),       @data[:user_details][:user],                      "user object. #{@data[:user_details]}"
-      assert_equal Network.find(1),    @data[:user_details][:organization],              "user's organization. #{@data[:user_details]}"
-      assert_equal Advertiser.find(1), @data[:user_details][:impersonated_organization], "impersonated organization. #{@data[:user_details]}"
-    end
-
-    should "add user data when using digest authentication" do
-      @data[:environment]['HTTP_AUTHORIZATION'] = 'Basic ' +  Base64.strict_encode64( "scottherriman@yahoo.com:access_token" )
-      @data[:session][:data] = {}
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal users(:scott),     @data[:user_details][:user],                      "user object. #{@data[:user_details]}"
-      assert_equal Network.find(1),   @data[:user_details][:organization],              "user's organization. #{@data[:user_details]}"
-      assert_nil                      @data[:user_details][:impersonated_organization], "impersonated organization. #{@data[:user_details]}"
-      assert_nil                      @data[:environment]['HTTP_AUTHORIZATION']
     end
 
     should "clean backtraces" do

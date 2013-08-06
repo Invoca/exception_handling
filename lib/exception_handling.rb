@@ -1,3 +1,4 @@
+require 'lib/exception_handling_mailer'
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
@@ -74,11 +75,14 @@ EOF
 
 
   class << self
+    attr_accessor :email_environment
+    attr_accessor :server_name
+    attr_accessor :sender_address
+    attr_accessor :exception_recipients
+
     attr_accessor :current_controller
     attr_accessor :last_exception_timestamp
     attr_accessor :periodic_exception_intervals
-    attr_accessor :stub_handler # See log_error_stub.rb. Used in tests
-
     attr_accessor :logger
 
     #
@@ -92,11 +96,6 @@ EOF
     def log_error_rack(exception, env, rack_filter)
       timestamp = set_log_error_timestamp
       exception_data = exception_to_data(exception, env, timestamp)
-
-      if stub_handler
-        return stub_handler.handle_stub_log_error(exception_data)
-      end
-
 
       # TODO: add a more interesting custom description, like:
       # custom_description = ": caught and processed by Rack middleware filter #{rack_filter}"
@@ -126,13 +125,6 @@ EOF
         timestamp = set_log_error_timestamp
         data = exception_to_data(ex, exception_context, timestamp)
 
-        # this line will return during functional tests if you called stub_log_error.
-        # if treat_as_local is true, this will raise (on purpose)
-        if stub_handler
-          stub_handler.handle_stub_log_error(data, treat_as_local)
-          return
-        end
-
         write_exception_to_log(ex, exception_context, timestamp)
 
         if treat_as_local
@@ -155,13 +147,12 @@ EOF
           # and additional hash data is extracted from the controller
             extract_and_merge_controller_data(controller, data)
           end
+
+          log_error_email(data, ex)
         end
 
-        log_error_email(data, ex)
-
-      rescue LogErrorStub::UnexpectedExceptionLogged
-        raise # pass this through for tests
       rescue Exception => ex
+        $stderr.puts("ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
         write_exception_to_log(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
       end
     end
@@ -171,7 +162,7 @@ EOF
     #
     def write_exception_to_log(ex, exception_context, timestamp)
       ActiveSupport::Deprecation.silence do
-        Rails.logger.fatal(
+        ExceptionHandling.logger.fatal(
           if ActionView::TemplateError === ex
             "#{ex} Error:#{timestamp}"
           else
@@ -257,7 +248,7 @@ EOF
     # TODO: fix test to not use this.
     def enhance_exception_data(data)
       # If we get a routing error without an HTTP referrer, assume we have one of them hackers poking at us.
-      if data[:request]._?[:params]._?[:controller] != 'vxml'
+      if data[:request] && data[:request][:params] && data[:request][:params][:controller] != 'vxml'
         if data[:error_class].in? ['ActionController::RoutingError', 'ActionController::UnknownAction', 'ActiveRecord::RecordNotFound']
           if data[:environment]['HTTP_HOST']
             if data[:environment]['HTTP_REFERER'].blank?
@@ -314,8 +305,7 @@ EOF
 
             if !data[:user_details][:username] && username.nonblank?
               data[:user_details][:username] = Username.find_by_username(username)
-              data[:user_details][:user] = data[:user_details][:username]._?.user
-
+              data[:user_details][:user] = data[:user_details][:username] && data[:user_details][:username].user
             end
           end
 
@@ -336,38 +326,36 @@ EOF
     private
 
     def log_error_email( data, exc )
-      puts "\n***log_error_email!\n\n"
       enhance_exception_data( data )
       normalize_exception_data( data )
       clean_exception_data( data )
 
       SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a? Hash }
 
-      puts "\n*** 2"
       if exception_filters.filtered?( data )
         return
       end
 
-      puts "\n*** 3"
       if summarize_exception( data ) == :Summarized
         return
       end
 
-      deliver(ExceptionHandlingMailer.exception_notification(data))
+      deliver(ExceptionHandling::Mailer.exception_notification(data))
 
-      puts "\n*** 5"
-      Errplane.transmit(exc, :custom_data => data)
+      if defined?(Errplane)
+        Errplane.transmit(exc, :custom_data => data)
+      end
+
       nil
     end
 
     def escalate( email_subject, ex, timestamp )
       data = exception_to_data( ex, nil, timestamp )
-      deliver(ExceptionHandlingMailer.escalation_notification(email_subject, data))
+      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, data))
     end
 
     def deliver(mail_object)
       if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
-        puts "\nabout to use EM to deliver!"
         EventMachine.schedule do # in case we're running outside the reactor
           async_send_method = EVENTMACHINE_EXCEPTION_HANDLING == :Synchrony ? :asend : :send
           smtp_settings = ActionMailer::Base.smtp_settings
@@ -397,6 +385,7 @@ EOF
         yield
       end
     rescue StandardError, MailerTimeout => ex
+      $stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
     end
 
@@ -445,9 +434,9 @@ EOF
     end
 
     def clean_environment env
-      env.select_hash do |k, v|
-        ! ( "#{k}: #{v}".in? ENVIRONMENT_OMIT ) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
-      end
+      Hash[ env.select do |k, v|
+        [k, v] unless ( "#{k}: #{v}".in? ENVIRONMENT_OMIT ) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
+      end ]
     end
 
     def exception_filters
@@ -462,7 +451,7 @@ EOF
       elsif defined?(Rails)
         Rails.backtrace_cleaner.clean(exception.backtrace)
       else
-        backtrace
+        exception.backtrace
       end
     end
 
@@ -516,10 +505,11 @@ EOF
 
     def send_exception_summary( exception_data, first_seen, occurrences )
       Timeout::timeout 30, MailerTimeout do
-        ExceptionHandlingMailer.deliver!(:exception_notification, exception_data, first_seen, occurrences)
+        deliver(ExceptionHandling::Mailer.exception_notification(exception_data, first_seen, occurrences))
       end
     rescue StandardError, MailerTimeout => ex
-      log_error( ex, "ExceptionHandling::log_error_email", nil, true)
+      $stderr.puts("ExceptionHandling.log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      log_error(ex, "ExceptionHandling::log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}", nil, true)
     end
 
     def add_to_s( data_section )
@@ -532,7 +522,7 @@ EOF
       data[:error_string]= "#{data[:error_class]}: #{exception.message}"
       data[:timestamp]   = timestamp
       data[:backtrace]   = clean_backtrace(exception)
-      if exception_context._?.is_a?(Hash)
+      if exception_context && exception_context.is_a?(Hash)
         # if we are a hash, then we got called from the DebugExceptions rack middleware filter
         # and we need to do some things different to get the info we want
         data[:error] = "#{data[:error_class]}: #{exception.message}"
@@ -577,13 +567,13 @@ EOF
   class ExceptionFilters
     class Filter
       def initialize filter_name, regexes
-        @regexes = Hash[ *regexes.map do |section, regex|
+        @regexes = Hash[ regexes.map do |section, regex|
           section = section.to_sym
           raise "Unknown section: #{section}" unless section == :error || section.in?( ExceptionHandling::SECTIONS )
           [section, (Regexp.new(regex, 'i') unless regex.blank?)]
         end ]
 
-        raise "Filter #{filter_name} has all blank regexes" if @regexes.all? { |section, regex| regex.nil? }
+        raise "Filter #{filter_name} has all blank regexes: #{regexes.inspect}" if @regexes.all? { |section, regex| regex.nil? }
       end
 
       def match?(exception_data)
@@ -640,7 +630,7 @@ EOF
     def load_file
       # store all strings from YAML file into regex's on initial load, instead of converting to regex on every exception that is logged
       filters = YAML::load_file( @filter_path )
-      Hash[ *filters.map do |filter_name, regexes|
+      Hash[ filters.map do |filter_name, regexes|
         [filter_name, Filter.new( filter_name, regexes )]
       end ]
     end
