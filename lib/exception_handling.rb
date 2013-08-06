@@ -247,80 +247,7 @@ EOF
 
     # TODO: fix test to not use this.
     def enhance_exception_data(data)
-      # If we get a routing error without an HTTP referrer, assume we have one of them hackers poking at us.
-      if data[:request] && data[:request][:params] && data[:request][:params][:controller] != 'vxml'
-        if data[:error_class].in? ['ActionController::RoutingError', 'ActionController::UnknownAction', 'ActiveRecord::RecordNotFound']
-          if data[:environment]['HTTP_HOST']
-            if data[:environment]['HTTP_REFERER'].blank?
-              data[:error] = "ScriptKiddie suspected because of HTTP request without a referer. Original exception: #{data[:error]}"
-              data[:error_class] = 'ScriptKiddie'
-            elsif data[:session] && data[:session][:data] && data[:session][:data][:user_id]
-              if data[:environment]['HTTP_REFERER'] =~/\/session\/|\/login/
-                data[:error] = "Found broken link after user logged in from #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-                data[:error_class] = 'BrokenLinkAfterLogin'
-              else
-                data[:error] = "Logged in user experienced broken link on page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-                data[:error_class] = 'BrokenLinkForUser'
-              end
-            elsif data[:environment]['HTTP_REFERER'] =~ /ringrevenue/
-              data[:error] = "Broken link clicked on from local page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-              data[:error_class] = 'BrokenLocalLink'
-            else
-              data[:error] = "Broken link clicked on from remote page #{data[:environment]['HTTP_REFERER']}. Original exception: #{data[:error]}"
-              data[:error_class] = 'BrokenRemoteLink'
-            end
-          end
-        end
-      end
 
-      # Provide details on session data.
-      begin
-        if data[:session] && data[:session][:data]
-
-          data[:user_details] = {}
-
-          if data[:session][:data][:impersonated_organization_pk]
-            data[:user_details][:impersonated_organization] = ApplicationModel.from_pk(data[:session][:data][:impersonated_organization_pk],
-                                                                                       { :allowed_types => [Advertiser,Affiliate,Network] } ) rescue nil
-          end
-
-          data[:session][:data].each do |key, value|
-            id_match = /^(.*)_id$/.match( key.to_s )
-            if id_match && value.is_a?( Numeric )
-              id_details = ( obj = Object.const_get(id_match[1].camelize).find(value) ).to_s rescue "not found"
-              case obj
-                when User
-                  data[:user_details][:user]     = obj
-                  data[:user_details][:username] = obj.username
-                when OrganizationMembership
-                  data[:user_details][:organization] = obj.organization
-              end
-              data[:session][:data][key] = "#{value} - #{id_details}"
-            end
-          end
-
-          # Handle basic authentication
-          if credentials = AUTHENTICATION_HEADERS.map_and_find{ |header| data[:environment][header] }
-            username = Base64.decode64(credentials.split(' ', 2).last).split(/:/).first
-
-            if !data[:user_details][:username] && username.nonblank?
-              data[:user_details][:username] = Username.find_by_username(username)
-              data[:user_details][:user] = data[:user_details][:username] && data[:user_details][:username].user
-            end
-          end
-
-          # fill in organization if still not set
-          if data[:user_details][:user] && !data[:user_details][:organization]
-            data[:user_details][:organization] = data[:user_details][:user].default_organization
-          end
-
-          # do not show authentication headers
-          AUTHENTICATION_HEADERS.each{ |header| data[:environment].delete(header) }
-        end
-      rescue Exception => ex
-        log_error(ex, '', nil, true)
-        data[:session][:data]['exceptionnote'] = "data mapping aborted because of exception.  Mapping exception is in server log."
-      end
     end
 
     private
@@ -434,9 +361,9 @@ EOF
     end
 
     def clean_environment env
-      Hash[ env.select do |k, v|
-        [k, v] unless ( "#{k}: #{v}".in? ENVIRONMENT_OMIT ) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
-      end ]
+      Hash[ env.map do |k, v|
+        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
+      end.compact ]
     end
 
     def exception_filters

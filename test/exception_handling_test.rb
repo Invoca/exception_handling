@@ -608,7 +608,7 @@ end
             assert EventMachineStub.block
             EventMachineStub.block.call
             SmtpClientErrbackStub.block.call("credential mismatch")
-            assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientErrbackStub.send_hash.inspect
+            EXPECTED_SMTP_HASH.map { |key, value| assert_equal value, SmtpClientErrbackStub.send_hash[key].to_s, SmtpClientErrbackStub.send_hash.inspect }
             assert_emails 0, ActionMailer::Base.deliveries.map { |m| m.body.inspect }
           end
         end
@@ -814,72 +814,6 @@ end
         :error_class=>"StandardError",
         :error=>'Some error message'
       }
-    end
-
-    should "find script kiddies" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:environment]['HTTP_REFERER'] = nil
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'ScriptKiddie', @data[:error_class], @data.inspect
-      assert_match /ScriptKiddie/, @data[:error], @data.inspect
-    end
-
-    should "find script kiddies for incorrect ids." do
-      @data[:error_class] = 'ActiveRecord::RecordNotFound'
-      @data[:environment]['HTTP_REFERER'] = nil
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'ScriptKiddie', @data[:error_class], @data.inspect
-      assert_match /ScriptKiddie/, @data[:error], @data.inspect
-    end
-
-    should "not suppress routing errors to the VXML controller" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:request] = { :params=>{ :controller=>'vxml' } }
-      @data[:environment]['HTTP_REFERER'] = nil
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'ActionController::RoutingError', @data[:error_class], @data.inspect
-    end
-
-    should "find broken remote links" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:environment]['HTTP_REFERER'] = 'http://somethingwithalink'
-      @data[:session][:data][:user_id] = nil
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'BrokenRemoteLink', @data[:error_class], @data.inspect
-      assert_match /somethingwithalink/, @data[:error], @data.inspect
-    end
-
-    should "find broken local links" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:environment]['HTTP_REFERER'] = 'http://www.ringrevenue.com/corporate/home'
-      @data[:session][:data][:user_id] = nil
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'BrokenLocalLink', @data[:error_class], @data.inspect
-      assert_match /www.ringrevenue.com/, @data[:error], @data.inspect
-    end
-
-    should "find links for logged in users" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:environment]['HTTP_REFERER'] = 'http://www.ringrevenue.com/corporate/home'
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'BrokenLinkForUser', @data[:error_class], @data.inspect
-      assert_match /www.ringrevenue.com/, @data[:error], @data.inspect
-    end
-
-    should "find broken links referred through session new" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:environment]['HTTP_REFERER'] = 'http://www.ringrevenue.com/login'
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'BrokenLinkAfterLogin', @data[:error_class], @data.inspect
-      assert_match /www.ringrevenue.com/, @data[:error], @data.inspect
-    end
-
-    should "find broken links referred through switch organization help" do
-      @data[:error_class] = 'ActionController::RoutingError'
-      @data[:environment]['HTTP_REFERER'] = 'http://www.ringrevenue.com/session/switch_organization_help'
-      ExceptionHandling::enhance_exception_data( @data )
-      assert_equal 'BrokenLinkAfterLogin', @data[:error_class], @data.inspect
-      assert_match /www.ringrevenue.com/, @data[:error], @data.inspect
     end
 
     should "clean backtraces" do
