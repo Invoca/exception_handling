@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>Exception Email</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+  <body>
+
+    <% if @cleaned_data[:first_seen_at] %>
+    <p> This exception occurred <%= @cleaned_data[:occurrences] %> times since <%= @cleaned_data[:first_seen_at] %>.</p>
+    <% end %>
+
+    <b>Error # </b><%= @cleaned_data[:timestamp] -%><br />
+
+    <b>URL:</b><br />
+      <% if (request = @cleaned_data[:request]) %>
+        <%= request[:url] || '<i>no URL in request data</i>'.html_safe %> <br />
+        Referred from: <%= (@cleaned_data[:environment]['HTTP_REFERER'] || '<i>no referrer</i>').html_safe %>
+      <% else %>
+        <i>no URL accessed</i>
+      <% end %>
+    <br />
+    <br />
+
+    <b>User summary:</b><br />
+    <% if (user_details = @cleaned_data[:user_details]) && ( user_details[:user] || user_details[:organization] ) %>
+      User: <%= h user_details[:user] %> (<%= h user_details[:username] %>)<br />
+      Organization: <%= user_details[:organization] %> <br />
+      <%= "Network: #{h user_details[:organization].network if user_details[:organization]}" if !user_details[:organization].is_a?(Network) %>
+
+      <% if @cleaned_data[:user_details][:impersonated_organization] %>
+        <br />
+        <b>Impersonating:</b><br />
+        Organization: <%= h @cleaned_data[:user_details][:impersonated_organization] %>
+      <% end %>
+    <% else %>
+     <i>No user logged in.</i>
+    <% end %>
+
+    <br />
+    <br />
+    <hr />
+
+    <h3>Exception:</h3>
+    <span id="error">
+    <%= h(@cleaned_data[:error]).gsub("\n","<br/>\n").gsub(/ {2,}/) { |spaces| '&nbsp;'*spaces.size }.html_safe %>
+    </span>
+
+    <br />
+    <br />
+
+    <h3>Where:</h3>
+    <%= "#{ h location[:controller]}##{ h location[:action]}<br />".html_safe if (location = @cleaned_data[:location]) && location[:controller] -%>
+    <%= "#{ h location[:file]}, line #{ h location[:line]}<br />".html_safe   if (location = @cleaned_data[:location]) && location[:file] -%>
+
+    <br />
+
+
+
+    <% for section in ExceptionHandling::SECTIONS %>
+      <% section_value = @cleaned_data[section] %>
+      <% if section_value %>
+        <h3><%= section.to_s.capitalize -%>:</h3>
+        <pre id="<%= section.to_s.capitalize -%>" style="font-size: 12px; font-family: 'Courier New',Arial,sans-serif">
+  <%= case section_value
+       when Hash
+         section_value[:to_s]
+       when Array
+         section_value.join( "\n" )
+       when NilClass # omitted
+       else
+         raise "Unexpected value #{section_value.inspect} for section #{section}"
+       end
+-%>
+    </pre>
+      <% end %>
+
+    <% end %>
+
+  </body>
+</html>

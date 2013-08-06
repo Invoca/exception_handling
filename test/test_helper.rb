@@ -18,6 +18,8 @@ class ActiveSupport::TestCase
     unless @@constant_overrides.nil? || @@constant_overrides.empty?
       raise "Uh-oh! constant_overrides left over: #{@@constant_overrides.inspect}"
     end
+
+    Time.now_override = nil
   end
 
   teardown do
@@ -74,7 +76,7 @@ class Time
       else
         override_time.nil? || Time === override_time or raise "override_time should be a Time object, but was a #{override_time.class.name}"
       end
-      @@now_override = override_time
+      @now_override = override_time
     end
 
     unless defined? @@_old_now_defined

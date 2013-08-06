@@ -212,7 +212,7 @@ end
         ExceptionHandling::ensure_escalation( "Favorite Feature") { raise ArgumentError.new("blah") }
         assert_equal 2, ActionMailer::Base.deliveries.count
         email = ActionMailer::Base.deliveries.last
-        assert_equal 'development-local Escalation: Favorite Feature', email.subject
+        assert_equal 'test Escalation: Favorite Feature', email.subject
         assert_match 'ArgumentError: blah', email.body.to_s
         assert_match ExceptionHandling.last_exception_timestamp.to_s, email.body.to_s
       end
@@ -235,25 +235,20 @@ end
       end
     end
 
-    should "include the git revision in the exception" do
-      ExceptionHandling::ensure_safe("mooo") { raise "Some BS" }
-      assert_match /#{Web::Application::GIT_REVISION}/, ActionMailer::Base.deliveries[-1].body.to_s
-    end
-
     context "exception timestamp" do
       setup do
-        Time.now_override = Time.zone.parse( '1986-5-21 4:17 am' )
+        Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
       end
 
       should "include the timestamp when the exception is logged" do
-        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(Error:517058220\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+        ExceptionHandling.logger.expects(:fatal).with { |ex| ex =~ /\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
         b = ExceptionHandling::ensure_safe("mooo") { raise ArgumentError.new("blah") }
         assert_nil b
 
-        assert_equal 517058220, ExceptionHandling.last_exception_timestamp
+        assert_equal 517033020, ExceptionHandling.last_exception_timestamp
 
         assert_emails 1
-        assert_match /517058220/, ActionMailer::Base.deliveries[-1].body.to_s
+        assert_match /517033020/, ActionMailer::Base.deliveries[-1].body.to_s
       end
     end
 
@@ -578,8 +573,8 @@ end
           {
               :host   => 'localhost',
               :domain => 'localhost.localdomain',
-              :from   => 'Test Exception Mailer <null@ringrevenue.com>',
-              :to     => 'exceptions@ringrevenue.com'
+              :from   => 'server@example.com',
+              :to     => 'exceptions@example.com'
           }
 
       [true, :Synchrony].each do |synchrony_flag|
@@ -597,7 +592,7 @@ end
             ExceptionHandling.log_error(exception_1)
             assert EventMachineStub.block
             EventMachineStub.block.call
-            assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientStub.send_hash.inspect
+            EXPECTED_SMTP_HASH.map { |key, value| assert_equal value, SmtpClientStub.send_hash[key].to_s, SmtpClientStub.send_hash.inspect }
             assert_equal (synchrony_flag == :Synchrony ? :asend : :send), SmtpClientStub.last_method
             assert_match /Exception 1/, SmtpClientStub.send_hash[:body]
             assert_emails 0, ActionMailer::Base.deliveries.map { |m| m.body.inspect }
@@ -630,7 +625,7 @@ end
       end
       assert_emails 1, ActionMailer::Base.deliveries.map { |m| m.inspect }
       mail = ActionMailer::Base.deliveries.last
-      subject = "development-local exception: RuntimeError: " + text
+      subject = "test exception: RuntimeError: " + text
       assert_equal subject[0,300], mail.subject
     end
   end
