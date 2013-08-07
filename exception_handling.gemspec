@@ -1,7 +1,7 @@
 require File.expand_path('../lib/exception_handling/version', __FILE__)
 
 Gem::Specification.new do |gem|
-  gem.add_dependency 'eventmachine', '0.12.10'
+  gem.add_dependency 'eventmachine', '>0.12.10'
   gem.add_dependency 'activesupport', '3.2.12'
   gem.add_dependency 'actionpack', '3.2.12'
   gem.add_dependency 'actionmailer', '3.2.12'
