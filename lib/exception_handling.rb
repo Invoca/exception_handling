@@ -1,7 +1,7 @@
-require 'lib/exception_handling_mailer'
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
+require "#{File.dirname(__FILE__)}/exception_handling_mailer"
 
 EXCEPTION_HANDLING_MAILER_SEND_MAIL = true unless defined?(EXCEPTION_HANDLING_MAILER_SEND_MAIL)
 
