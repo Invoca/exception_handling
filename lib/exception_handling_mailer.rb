@@ -1,3 +1,5 @@
+require 'action_mailer'
+
 module ExceptionHandling
   class Mailer < ActionMailer::Base
     default :content_type => "text/html"
