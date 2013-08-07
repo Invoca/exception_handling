@@ -2,9 +2,9 @@ PATH
   remote: .
   specs:
     exception_handling (0.1.0)
-      actionmailer (= 3.2.12)
-      actionpack (= 3.2.12)
-      activesupport (= 3.2.12)
+      actionmailer (>= 3.2.12)
+      actionpack (>= 3.2.12)
+      activesupport (>= 3.2.12)
       eventmachine (>= 0.12.10)
 
 GEM
@@ -75,6 +75,6 @@ PLATFORMS
 
 DEPENDENCIES
   exception_handling!
-  mocha (= 0.13.0)
+  mocha (>= 0.13.0)
   rake (~> 0.9)
-  shoulda (= 3.1.1)
+  shoulda (>= 3.1.1)
