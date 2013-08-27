@@ -20,6 +20,8 @@ class ActiveSupport::TestCase
     end
 
     Time.now_override = nil
+
+    ActionMailer::Base.deliveries.clear
   end
 
   teardown do

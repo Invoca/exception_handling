@@ -18,6 +18,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       logged << message
     end
 
+    def warn(message)
+      logged << message
+    end
+
     def fatal(message)
       logged << message
     end
@@ -159,7 +163,6 @@ end
 
   context "Exception Handling" do
     setup do
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.send(:clear_exception_summary)
     end
 
@@ -455,13 +458,11 @@ end
     should "handle case where filter list is not found" do
       YAML.stubs(:load_file).raises( Errno::ENOENT.new( "File not found" ) )
 
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.log_error( "My error message is in list" )
       assert_emails 1
     end
 
     should "log exception and suppress email when exception is on filter list" do
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.log_error( "Error message is not in list" )
       assert_emails 1
 
@@ -494,7 +495,6 @@ end
     end
 
     should "reload filter list on the next exception if file was modified" do
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.log_error( "Error message is not in list" )
       assert_emails 1
 
@@ -509,7 +509,6 @@ end
 
     should "not consider filter if both error message and body do not match" do
       # error message matches, but not full text
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.log_error( "some other message" )
       assert_emails 1, ActionMailer::Base.deliveries.map { |m| m.body.inspect }
 
@@ -522,7 +521,6 @@ end
     end
 
     should "skip environment keys not on whitelist" do
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.log_error( "some message" ) do |data|
         data[:environment] = { :SERVER_PROTOCOL => "HTTP/1.0", :RAILS_SECRETS_YML_CONTENTS => 'password: VERY_SECRET_PASSWORD' }
       end
@@ -533,7 +531,6 @@ end
     end
 
     should "omit environment defaults" do
-      ActionMailer::Base.deliveries.clear
       ExceptionHandling.log_error( "some message" ) do |data|
         data[:environment] = {:SERVER_PORT => '80', :SERVER_PROTOCOL => "HTTP/1.0"}
       end
@@ -616,7 +613,6 @@ end
     end
 
     should "truncate email subject" do
-      ActionMailer::Base.deliveries.clear
       text = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLM".split('').join("123456789")
       begin
         raise text
@@ -693,7 +689,6 @@ end
     context "a model object" do
       setup do
         @a = TestAdvertiser.new :name => 'Joe Ads'
-        ActionMailer::Base.deliveries.clear
       end
 
       context "with an argument error" do
