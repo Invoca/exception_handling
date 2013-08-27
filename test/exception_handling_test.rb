@@ -232,6 +232,7 @@ end
         exception_count = 0
         exception_regexs = [/first_test_exception/, /safe_email_deliver .*Delivery Error/]
 
+        $stderr.stubs(:puts)
         ExceptionHandling.logger.expects(:fatal).times(2).with { |ex| ex =~ exception_regexs[exception_count] or raise "Unexpected [#{exception_count}]: #{ex.inspect}"; exception_count += 1; true }
         ExceptionHandling::ensure_escalation("Not Used") { raise ArgumentError.new("first_test_exception") }
         #assert_equal 0, ActionMailer::Base.deliveries.count
@@ -433,6 +434,7 @@ end
       context['ExceptionHandling.log_error rescued exception while logging Runtime message'] or raise "Unexpected context #{context}"
       true
     end
+    $stderr.stubs(:puts)
     ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
   end
 
