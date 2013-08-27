@@ -270,7 +270,7 @@ EOF
       deliver(ExceptionHandling::Mailer.exception_notification(data))
 
       if defined?(Errplane)
-        Errplane.transmit(exc, :custom_data => data)
+        Errplane.transmit(exc, :custom_data => data) unless exc.is_a?(Warning)
       end
 
       nil

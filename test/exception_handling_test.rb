@@ -864,6 +864,41 @@ end
     end
   end
 
+  context "Errplane" do
+    module ErrplaneStub
+    end
+
+    setup do
+      set_test_const('Errplane', ErrplaneStub)
+    end
+
+    should "forward exceptions" do
+      ex = data = nil
+      Errplane.expects(:transmit).with do |ex_, data_|
+        ex, data = ex_, data_
+        true
+      end
+
+      ExceptionHandling.log_error(exception_1, "context")
+
+      assert_equal exception_1, ex, ex.inspect
+      custom_data = data[:custom_data]
+      custom_data["error"].include?("context") or raise "Wrong custom_data #{custom_data["error"].inspect}"
+    end
+
+    should "not forward warnings" do
+      never = true
+      Errplane.stubs(:transmit).with do
+        never = false
+        true
+      end
+
+      ExceptionHandling.log_warning("warning message")
+
+      assert never, "transmit should not have been called"
+    end
+  end
+
   private
 
   def incrementing_mtime
