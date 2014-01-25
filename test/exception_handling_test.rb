@@ -206,6 +206,49 @@ end
         b = ExceptionHandling::ensure_safe("mooo") { raise ArgumentError.new("blah") }
         assert_nil b
       end
+
+      should "only rescue StandardError and descendents" do
+        assert_raise(Exception) { ExceptionHandling::ensure_safe("mooo") { raise Exception } }
+
+        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo \(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+        b = ExceptionHandling::ensure_safe("mooo") { raise StandardError.new("blah") }
+        assert_nil b
+      end
+    end
+
+    context "ExceptionHandling::ensure_completely_safe" do
+      should "log an exception if an exception is raised." do
+        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+        ExceptionHandling::ensure_completely_safe { raise ArgumentError.new("blah") }
+      end
+
+      should "should not log an exception if an exception is not raised." do
+        ExceptionHandling.logger.expects(:fatal).never
+        ExceptionHandling::ensure_completely_safe { ; }
+      end
+
+      should "return its value if used during an assignment" do
+        ExceptionHandling.logger.expects(:fatal).never
+        b = ExceptionHandling::ensure_completely_safe { 5 }
+        assert_equal 5, b
+      end
+
+      should "return nil if an exception is raised during an assignment" do
+        ExceptionHandling.logger.expects(:fatal).returns(nil)
+        b = ExceptionHandling::ensure_completely_safe { raise ArgumentError.new("blah") }
+        assert_equal nil, b
+      end
+
+      should "allow a message to be appended to the error when logged." do
+        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /mooo \(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+        b = ExceptionHandling::ensure_completely_safe("mooo") { raise ArgumentError.new("blah") }
+        assert_nil b
+      end
+
+      should "rescue any instance or child of Exception" do
+        ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
+        ExceptionHandling::ensure_completely_safe { raise Exception.new("blah") }
+      end
     end
 
     context "ExceptionHandling::ensure_escalation" do

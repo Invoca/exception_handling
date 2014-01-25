@@ -209,6 +209,14 @@ EOF
       return nil
     end
 
+    def ensure_completely_safe( exception_context = "" )
+      yield
+    rescue SystemExit, SystemStackError, NoMemoryError, SecurityError, SignalException
+      raise
+    rescue Exception => ex
+      log_error ex, exception_context
+    end
+
     def ensure_escalation( email_subject )
       begin
         yield
