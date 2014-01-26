@@ -249,6 +249,16 @@ end
         ExceptionHandling.logger.expects(:fatal).with( ) { |ex| ex =~ /\(blah\):\n.*exception_handling_test\.rb/ or raise "Unexpected: #{ex.inspect}" }
         ExceptionHandling::ensure_completely_safe { raise Exception.new("blah") }
       end
+
+      should "not rescue the special exceptions that Ruby uses" do
+        [SystemExit, SystemStackError, NoMemoryError, SecurityError].each do |exception|
+          assert_raise exception do
+            ExceptionHandling.ensure_completely_safe do
+              raise exception.new
+            end
+          end
+        end
+      end
     end
 
     context "ExceptionHandling::ensure_escalation" do
