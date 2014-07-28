@@ -12,8 +12,8 @@ Gem::Specification.new do |gem|
   gem.authors       = ["Colin Kelley"]
   gem.email         = ["colindkelley@gmail.com"]
   gem.description   = %q{Exception handling logger/emailer}
-  gem.summary       = %q{RingRevenue's exception handling logger/emailer layer, based on exception_notifier. Works with Rails or EventMachine or EventMachine+Synchrony.}
-  gem.homepage      = "https://github.com/RingRevenue/exception_handling"
+  gem.summary       = %q{Invoca's exception handling logger/emailer layer, based on exception_notifier. Works with Rails or EventMachine or EventMachine+Synchrony.}
+  gem.homepage      = "https://github.com/Invoca/exception_handling"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }

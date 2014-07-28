@@ -17,7 +17,7 @@ Spiders:
 
 Googlebot:
   environment: "googlebot"
-  error: "ReferenceError: Can't find variable: RingRevenue"
+  error: "ReferenceError: Can't find variable: Invoca"
 
 Options Request:
   environment: "REQUEST_METHOD: OPTIONS"
@@ -27,7 +27,7 @@ Click Request Rejected:
   request: "controller: corporate"
 
 Staging Full Started:
-  error: "Mysql::Error: Can't connect to MySQL server on 'stagingmaster.ringrevenue.com'"
+  error: "Mysql::Error: Can't connect to MySQL server on 'stagingmaster.invoca.com'"
 
 Google Analytics:
   error: "ActionController.*RoutingError*google-analytics.*"
@@ -57,7 +57,7 @@ Archiver mangling caused missing template:
   environment: "(aihit|archive)"
 
 Number Loader 404s from invalid url concatenation:
-  request: "url: https?:\/\/js\d{0,2}\.ringrevenue.com\/"
+  request: "url: https?:\/\/js\d{0,2}\.invoca.com\/"
   error: "Broken link.*ActiveRecord::RecordNotFound"
 
 collegequest bad TLD:
