@@ -3,10 +3,10 @@ All script kiddies:
   error: "ScriptKiddie suspected because of HTTP request without a referer"
 
 Tony Robbins:
-  request: "  url: https?\:\/\/www\.tonyrobbins\.com"
+  request: "url: https?\\:\\/\\/www\\.tonyrobbins\\.com"
 
 Soulful Beauty:
-  request: "HTTP_REFERER: http://.*soulfulbeauty\.com"
+  request: "HTTP_REFERER: http://.*soulfulbeauty\\.com"
 
 The Credit Exchange:
   error: "VirtualLine.find_by_external_ids - No promo number found.*Affiliate id from network (1389811|3079560|3366822|3179522|3375281|3375756|3362634|550151) not found"
@@ -24,7 +24,7 @@ Options Request:
 
 Click Request Rejected:
   error: "Request to click domain rejected"
-  request: "controller: corporate"
+  request: "controller: sessions"
 
 Staging Full Started:
   error: "Mysql::Error: Can't connect to MySQL server on 'stagingmaster.ringrevenue.com'"
@@ -39,7 +39,7 @@ NoRouteOnTerms:
   error: "ActionController.*RoutingError.*No route matches.*campaign_terms"
 
 InvalidAuth:
-  error: "Invalid authenticity token received from.*new\?"
+  error: "Invalid authenticity token received from.*new\\?"
 
 NoRoute:
   error: "No route matches"
@@ -57,25 +57,25 @@ Archiver mangling caused missing template:
   environment: "(aihit|archive)"
 
 Number Loader 404s from invalid url concatenation:
-  request: "url: https?:\/\/js\d{0,2}\.ringrevenue.com\/"
+  request: "url: https?:\\/\\/js\\d{0,2}\\.ringrevenue.com\\/"
   error: "Broken link.*ActiveRecord::RecordNotFound"
 
 collegequest bad TLD:
   error: "Hostname 'me.cq' does not have a known public suffix"
 
 Ignite calls API:
-  request: "calls\/10\.xml"
+  request: "calls\\/10\\.xml"
 
 BrokenLinkAfterLogin:
   error: "Found broken link after user logged in from"
 
 Link Trust Pixel Firing:
-  error: "Errno::ECONNREFUSED.*(linktrust\.com|mobitracking\.com|xy7track\.com|mbltrack\.com)"
+  error: "Errno::ECONNREFUSED.*(linktrust\\.com|mobitracking\\.com|xy7track\\.com|mbltrack\\.com)"
 
 # JAVASCRIPT exceptions
 # http://www.roslindesign.com/2010/10/12/avg-antivirus-2011-corrupting-web-pages-with-injection-of-script-avg_ls_dom-js/
 AVG Anti Virus:
-  request: "avg_ls_dom\.js"
+  request: "avg_ls_dom\\.js"
 
 Firefox Framework Bug:
   error: "Javascript: window.onerror: Permission denied to access property 'nodeType' from a non-chrome context"
@@ -83,7 +83,7 @@ Firefox Framework Bug:
 
 Javascript Error Loading Script:
   error: "Javascript: window.onerror: Error loading script"
-  request: "filename: .*hubspot\.com.*"
+  request: "filename: .*hubspot\\.com.*"
 
 Javascript Plugin Errors:
   error: "Javascript: window.onerror: Script error"
@@ -104,9 +104,6 @@ Sale for the same reason and sku:
 
 Found Inconsistent Caller Id Settings:
   error: "CampaignIds:CampaignTerms_7542,CampaignTerms_7544,CampaignTerms_8242,CampaignTerms_8478,CampaignTerms_9244"
-
-Invalid tacked_action referrer:
-  error: "StandardError: process_click_from_network_id - saving click failed.: Mysql::Error: Incorrect string value:.*for column 'referrer'.*INSERT INTO `tracked_actions`"
 
 invalid click domain rdparking:
   error: "Request to click domain rejected"
@@ -129,10 +126,32 @@ buffered_sale:
 
 SQL Injection Attempts:
   request: "controller: virtual_lines"
-  request: "av_id: \D\d*\D\d*\D\d*\D"
+  request: "av_id: \\D\\d*\\D\\d*\\D\\d*\\D"
 
 Opera Browser:
   environment: "HTTP_USER_AGENT: Opera"
 
 Affiliate Map Number invalid requests:
   error: "Publisher Map Number returning with invalid campaign"
+
+Long Event Response:
+  error: "RingSwitch Long EventResponse"
+
+NoBridge:
+  error: "Bridge outcall hasn't been answered in"
+
+LongControllerAction:
+  error: "Long controller action detected"
+
+Salesforce Integration Old Method:
+  error: "SalesForceIntegration::InvalidType: INVALID_TYPE: sObject type"
+
+Salesforce Integration Expired Password:
+  error: "INVALID_OPERATION_WITH_EXPIRED_PASSWORD"
+
+Salesforce Integration Invalid Login:
+  error: "SalesForceIntegration::InvalidLogin"
+
+Web Integration Invalid Advertiser Id:
+  error: "VirtualLinesController::NumberMapper::InvalidAdvertiserId"
+

@@ -1,4 +1,5 @@
 require './test/test_helper'
+require 'minitest/autorun'
 require 'exception_handling'
 
 ExceptionHandling.email_environment     = 'test'
@@ -476,7 +477,7 @@ end
         data.merge!(:event_response => EventResponse.new)
       end
       assert_emails 1
-      assert_match /message from to_s!/, ActionMailer::Base.deliveries.last.body
+      assert_match /message from to_s!/, ActionMailer::Base.deliveries.last.body.to_s
     end
   end
 
@@ -615,7 +616,7 @@ end
         assert_emails 1, ActionMailer::Base.deliveries.map { |m| m.body.inspect }
         assert mail = ActionMailer::Base.deliveries.last
         assert_equal ['exceptions@example.com'], mail.to
-        assert_equal 'server@example.com', mail.from.to_s
+        assert_equal ['server@example.com'].to_s, mail.from.to_s
         assert_match /Exception 1/, mail.to_s
         assert_match /key: DECAFE/, mail.to_s
         assert_match /id: 10993/, mail.to_s
