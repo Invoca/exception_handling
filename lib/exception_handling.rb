@@ -514,7 +514,7 @@ EOF
       def match?(exception_data)
         @regexes.all? do |section, regex|
           regex.nil? ||
-            case exception_data[section]
+            case exception_data[section.to_s]
             when String
               regex =~ exception_data[section]
             when Array

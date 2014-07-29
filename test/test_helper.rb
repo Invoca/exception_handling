@@ -4,7 +4,7 @@ require 'active_support/test_case'
 require 'action_mailer'
 require 'shoulda'
 require 'mocha/setup'
-require 'test/mocha_patch'
+require './test/mocha_patch'
 
 ActionMailer::Base.delivery_method = :test
 
