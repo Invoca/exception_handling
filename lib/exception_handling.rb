@@ -2,6 +2,7 @@ require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
 require "#{File.dirname(__FILE__)}/exception_handling_mailer"
+require 'invoca/metrics'
 
 EXCEPTION_HANDLING_MAILER_SEND_MAIL = true unless defined?(EXCEPTION_HANDLING_MAILER_SEND_MAIL)
 
@@ -97,6 +98,10 @@ EOF
       timestamp = set_log_error_timestamp
       exception_data = exception_to_data(exception, env, timestamp)
 
+      if stub_handler
+        return stub_handler.handle_stub_log_error(exception_data)
+      end
+
       # TODO: add a more interesting custom description, like:
       # custom_description = ": caught and processed by Rack middleware filter #{rack_filter}"
       # which would be nice, but would also require changing quite a few tests
@@ -106,7 +111,10 @@ EOF
       if should_send_email?
         controller = env['action_controller.instance']
         # controller may not exist in some cases (like most 404 errors)
-        extract_and_merge_controller_data(controller, exception_data) if controller
+        if controller
+          extract_and_merge_controller_data(controller, exception_data)
+          controller.session["last_exception_timestamp"] = ExceptionHandling.last_exception_timestamp
+        end
         log_error_email(exception_data, exception)
       end
     end
@@ -152,7 +160,7 @@ EOF
         end
 
       rescue Exception => ex
-        $stderr.puts("ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+        #$stderr.puts("ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
         write_exception_to_log(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
       end
     end
@@ -217,12 +225,23 @@ EOF
       log_error ex, exception_context
     end
 
-    def ensure_escalation( email_subject )
+    def escalate_error(exception_or_string, email_subject)
+      ex = make_exception(exception_or_string)
+      log_error(ex)
+      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+    end
+
+    def escalate_warning(message, email_subject)
+      ex = Warning.new(message)
+      log_error(ex)
+      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+    end
+
+    def ensure_escalation(email_subject)
       begin
         yield
       rescue => ex
-        log_error ex
-        escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+        escalate_error(ex, email_subject)
         nil
       end
     end
@@ -281,6 +300,12 @@ EOF
         Errplane.transmit(exc, :custom_data => data) unless exc.is_a?(Warning)
       end
 
+      if exc.is_a?(Warning)
+        Invoca::Metrics::Client.metrics.counter("exception_handling/warning")
+      else
+        Invoca::Metrics::Client.metrics.counter("exception_handling/exception")
+      end
+
       nil
     end
 
@@ -303,7 +328,7 @@ EOF
                 :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
                 :from     => mail_object['from'].to_s,
                 :to       => mail_object['to'].to_s,
-                :body     => mail_object.body.to_s
+                :content     => "#{mail_object}.\r\n"
               }
           )
           send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
@@ -320,7 +345,7 @@ EOF
         yield
       end
     rescue StandardError, MailerTimeout => ex
-      $stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      #$stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
     end
 
@@ -341,10 +366,10 @@ EOF
     def normalize_exception_data( data )
       if data[:location].nil?
       data[:location] = {}
-      if data[:request] && data[:request].key?( :params )
-        data[:location][:controller] = data[:request][:params]['controller']
-          data[:location][:action]     = "fake action"
-      end
+        if data[:request] && data[:request].key?( :params )
+          data[:location][:controller] = data[:request][:params]['controller']
+          data[:location][:action]     = data[:request][:params]['action']
+        end
       end
       if data[:backtrace] && data[:backtrace].first
         first_line = data[:backtrace].first
@@ -443,7 +468,7 @@ EOF
         deliver(ExceptionHandling::Mailer.exception_notification(exception_data, first_seen, occurrences))
       end
     rescue StandardError, MailerTimeout => ex
-      $stderr.puts("ExceptionHandling.log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      #$stderr.puts("ExceptionHandling.log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error(ex, "ExceptionHandling::log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}", nil, true)
     end
 
@@ -586,7 +611,7 @@ public
     end
 
     def log_error_rack(exception_or_string, exception_context = '', rack_filter = '')
-      ExceptionHandling.log_error_rack(exception_or_string, exception_context, controller)
+      ExceptionHandling.log_error_rack(exception_or_string, exception_context, rack_filter)
     end
 
     def log_warning(message)
@@ -608,6 +633,14 @@ public
         log_error ex, exception_context
         nil
       end
+    end
+
+    def escalate_error(exception_or_string, email_subject)
+      ExceptionHandling.escalate_error(exception_or_string, email_subject)
+    end
+
+    def escalate_warning(message, email_subject)
+      ExceptionHandling.escalate_warning(message, email_subject)
     end
 
     def ensure_escalation(*args)

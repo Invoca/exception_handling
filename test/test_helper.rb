@@ -2,9 +2,9 @@ require 'active_support'
 require 'active_support/time'
 require 'active_support/test_case'
 require 'action_mailer'
+require 'hobo_support'
 require 'shoulda'
-require 'mocha/setup'
-require './test/mocha_patch'
+require 'rr'
 
 ActionMailer::Base.delivery_method = :test
 
@@ -65,6 +65,14 @@ class ActiveSupport::TestCase
       original_count = 0
     end
     assert_equal expected, ActionMailer::Base.deliveries.size - original_count, "wrong number of emails#{ ': ' + message.to_s if message}"
+  end
+end
+
+def assert_equal_with_diff arg1, arg2, msg = ''
+  if arg1 == arg2
+    assert true # To keep the assertion count accurate
+  else
+    assert_equal arg1, arg2, "#{msg}\n#{Diff.compare(arg1, arg2)}"
   end
 end
 

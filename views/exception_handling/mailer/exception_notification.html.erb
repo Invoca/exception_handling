@@ -13,6 +13,9 @@
 
     <b>Error #:</b>  <%= @cleaned_data[:timestamp] -%><br />
     <b>Server:</b>   <%= @cleaned_data[:server].presence || '<i>hostname not set</i>'.html_safe -%><br />
+    <% if @cleaned_data[:scm_revision] %>
+    <b>Revision:</b> <%= @cleaned_data[:scm_revision] %><br />
+    <% end %>
 
     <b>URL:</b><br />
       <% if (request = @cleaned_data[:request]) %>
