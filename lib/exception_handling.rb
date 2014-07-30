@@ -4,13 +4,7 @@ require 'active_support/core_ext/hash'
 require "#{File.dirname(__FILE__)}/exception_handling_mailer"
 require 'invoca/metrics'
 
-EXCEPTION_HANDLING_MAILER_SEND_MAIL = true unless defined?(EXCEPTION_HANDLING_MAILER_SEND_MAIL)
-
 _ = ActiveSupport::HashWithIndifferentAccess
-
-if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
-  require 'em/protocols/smtpclient'
-end
 
 module ExceptionHandling # never included
 
@@ -21,9 +15,7 @@ module ExceptionHandling # never included
   SUMMARY_THRESHOLD = 5
   SUMMARY_PERIOD = 60*60 # 1.hour
 
-
   SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-  EXCEPTION_FILTER_LIST_PATH = "#{defined?(Rails) ? Rails.root : '.'}/config/exception_filters.yml"
 
   ENVIRONMENT_WHITELIST = [
 /^HTTP_/,
@@ -72,19 +64,87 @@ EOF
 
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION','X-HTTP_AUTHORIZATION','X_HTTP_AUTHORIZATION','REDIRECT_X_HTTP_AUTHORIZATION']
 
-  @logger = Rails.logger if defined?(Rails)
-
-
   class << self
-    attr_accessor :email_environment
+
+    #
+    # required settings
+    #
     attr_accessor :server_name
     attr_accessor :sender_address
     attr_accessor :exception_recipients
+    attr_accessor :logger
 
+    def server_name
+      if @server_name.nil?
+        raise ArgumentError, "You must assign a value to #{self.name}.server_name"
+      end
+      @server_name
+    end
+
+    def sender_address
+      if @sender_address.nil?
+        raise ArgumentError, "You must assign a value to #{self.name}.sender_address"
+      end
+      @sender_address
+    end
+
+    def exception_recipients
+      if @exception_recipients.nil?
+        raise ArgumentError, "You must assign a value to #{self.name}.exception_recipients"
+      end
+      @exception_recipients
+    end
+
+    def logger
+      if @logger.nil?
+        raise ArgumentError, "You must assign a value to #{self.name}.logger"
+      end
+      @logger
+    end
+
+    #
+    # optional settings
+    #
+    attr_accessor :escalation_recipients
+    attr_accessor :email_environment
+    attr_accessor :filter_list_filename
+    attr_accessor :mailer_send_enabled
+    attr_accessor :eventmachine_safe
+    attr_accessor :eventmachine_synchrony
+    attr_accessor :custom_data_hook
+
+    @filter_list_filename = "./config/exception_filters.yml"
+    @mailer_send_enabled  = true
+    @email_environment = ""
+    @eventmachine_safe = false
+    @eventmachine_synchrony = false
+
+    # set this for operation within an eventmachine reactor
+    def eventmachine_safe=(bool)
+      if bool != true && bool != false
+        raise ArgumentError, "#{self.name}.eventmachine_safe must be a boolean."
+      end
+      if bool
+        require 'eventmachine'
+        require 'em/protocols/smtpclient'
+      end
+      @eventmachine_safe = bool
+    end
+
+    # set this for EM::Synchrony async operation
+    def eventmachine_synchrony=(bool)
+      if bool != true && bool != false
+        raise ArgumentError, "#{self.name}.eventmachine_synchrony must be a boolean."
+      end
+      @eventmachine_synchrony = bool
+    end
+
+    #
+    # internal settings (don't set directly)
+    #
     attr_accessor :current_controller
     attr_accessor :last_exception_timestamp
     attr_accessor :periodic_exception_intervals
-    attr_accessor :logger
 
     #
     # Gets called by Rack Middleware: DebugExceptions or ShowExceptions
@@ -251,7 +311,7 @@ EOF
     end
 
     def should_send_email?
-      defined?( EXCEPTION_HANDLING_MAILER_SEND_MAIL ) && EXCEPTION_HANDLING_MAILER_SEND_MAIL
+      ExceptionHandling.mailer_send_enabled
     end
 
     def trace_timing(description)
@@ -272,9 +332,8 @@ EOF
       end
     end
 
-    # TODO: fix test to not use this.
     def enhance_exception_data(data)
-
+      ExceptionHandling.custom_data_hook.call(data) if ExceptionHandling.custom_data_hook
     end
 
     private
@@ -315,9 +374,9 @@ EOF
     end
 
     def deliver(mail_object)
-      if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
+      if ExceptionHandling.eventmachine_safe
         EventMachine.schedule do # in case we're running outside the reactor
-          async_send_method = EVENTMACHINE_EXCEPTION_HANDLING == :Synchrony ? :asend : :send
+          async_send_method = ExceptionHandling.eventmachine_synchrony ? :asend : :send
           smtp_settings = ActionMailer::Base.smtp_settings
           send_deferrable = EventMachine::Protocols::SmtpClient.__send__(
               async_send_method,
@@ -400,7 +459,7 @@ EOF
     end
 
     def exception_filters
-      @exception_filters ||= ExceptionFilters.new( EXCEPTION_FILTER_LIST_PATH )
+      @exception_filters ||= ExceptionFilters.new( ExceptionHandling.filter_list_filename )
     end
 
     def clean_backtrace(exception)

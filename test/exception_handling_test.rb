@@ -6,7 +6,12 @@ require 'pry'
 ExceptionHandling.email_environment     = 'test'
 ExceptionHandling.sender_address        = 'server@example.com'
 ExceptionHandling.exception_recipients  = 'exceptions@example.com'
+ExceptionHandling.escalation_recipients = 'escalation@example.com'
 ExceptionHandling.server_name           = 'server'
+ExceptionHandling.mailer_send_enabled     = true
+ExceptionHandling.filter_list_filename    = "./config/exception_filters.yml"
+ExceptionHandling.eventmachine_safe       = false
+ExceptionHandling.eventmachine_synchrony  = false
 
 Invoca::Metrics.service_name = "exception_handling_test"
 
@@ -173,6 +178,31 @@ end
   class SmtpClientErrbackStub < SmtpClientStub
   end
 
+  context "configuration" do
+    def append_organization_info(data)
+      begin
+        data[:user_details]                = {}
+        data[:user_details][:username]     = "CaryP"
+        data[:user_details][:organization] = "Invoca Engineering Dept."
+      rescue Exception => e
+        # don't let these out!
+      end
+    end
+
+    setup do
+      ExceptionHandling.custom_data_hook = method(:append_organization_info)
+    end
+
+    teardown do
+      ExceptionHandling.custom_data_hook = nil
+    end
+
+    should "support a custom_data_hook" do
+      ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
+      assert_match(/Invoca Engineering Dept./, ActionMailer::Base.deliveries[-1].body.to_s)
+    end
+  end
+
   context "Exception Handling" do
     setup do
       ActionMailer::Base.deliveries.clear
@@ -306,11 +336,6 @@ end
         ExceptionHandling.ensure_escalation("Not Used") { raise ArgumentError.new("first_test_exception") }
         #assert_equal 0, ActionMailer::Base.deliveries.count
       end
-    end
-
-    should "include the git revision in the exception" do
-      ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
-      assert_match(/#{Web::Application::GIT_REVISION}/, ActionMailer::Base.deliveries[-1].body.to_s)
     end
 
     context "exception timestamp" do
@@ -652,13 +677,19 @@ end
               :to     => 'exceptions@example.com'
           }
 
-      [true, :Synchrony].each do |synchrony_flag|
-        context "EVENTMACHINE_EXCEPTION_HANDLING = #{synchrony_flag}" do
+      [[true, false], [true, true]].each do |em_flag, synchrony_flag|
+        context "eventmachine_safe = #{em_flag} && eventmachine_synchrony = #{synchrony_flag}" do
           setup do
-            set_test_const('EVENTMACHINE_EXCEPTION_HANDLING', synchrony_flag)
+            ExceptionHandling.eventmachine_safe       = em_flag
+            ExceptionHandling.eventmachine_synchrony  = synchrony_flag
             EventMachineStub.block = nil
             set_test_const('EventMachine', EventMachineStub)
             set_test_const('EventMachine::Protocols', Module.new)
+          end
+
+          teardown do
+            ExceptionHandling.eventmachine_safe       = false
+            ExceptionHandling.eventmachine_synchrony  = false
           end
 
           should "schedule EventMachine STMP when EventMachine defined" do
@@ -668,7 +699,7 @@ end
             assert EventMachineStub.block
             EventMachineStub.block.call
             assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientStub.send_hash.inspect
-            assert_equal((synchrony_flag == :Synchrony ? :asend : :send), SmtpClientStub.last_method)
+            assert_equal((synchrony_flag ? :asend : :send), SmtpClientStub.last_method)
             assert_match(/Exception 1/, SmtpClientStub.send_hash[:content])
             assert_emails 0, ActionMailer::Base.deliveries.*.to_s
           end
@@ -740,7 +771,7 @@ end
           a = TestAdvertiser.new :name => 'Joe Ads'
           a.test_log_error( ArgumentError.new("blah") )
           mail = ActionMailer::Base.deliveries.last
-          assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+          assert_equal ExceptionHandling.exception_recipients, mail.to
           assert_match( @controller.request.request_uri, mail.body.to_s )
           assert_match( Username.first.username.to_s, mail.body.to_s )
         end
@@ -751,15 +782,15 @@ end
         @controller.simulate_around_filter do
           ExceptionHandling.log_error( ArgumentError.new("blah") )
           mail = ActionMailer::Base.deliveries.last
-         assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+         assert_equal ExceptionHandling.exception_recipients, mail.to
          assert_match( @controller.request.request_uri, mail.body )
          assert_match( Username.first.username.to_s, mail.body )
           mail = ActionMailer::Base.deliveries.last
-         assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+         assert_equal ExceptionHandling.exception_recipients, mail.to
          assert_match( @controller.request.request_uri, mail.body.to_s )
          assert_match( Username.first.username.to_s, mail.body.to_s )
           assert mail = ActionMailer::Base.deliveries.last
-          assert_equal EXCEPTION_HANDLING_MAILER_RECIPIENTS, mail.to
+          assert_equal ExceptionHandling.exception_recipients, mail.to
           assert_match( @controller.request.request_uri, mail.body.to_s )
           assert_match( Username.first.username.to_s, mail.body.to_s )
         end
