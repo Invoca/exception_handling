@@ -5,6 +5,43 @@ require 'action_mailer'
 require 'hobo_support'
 require 'shoulda'
 require 'rr'
+require 'minitest/autorun'
+require 'pry'
+
+require 'invoca/metrics'
+Invoca::Metrics.service_name = "exception_handling_test"
+
+require 'exception_handling'
+
+ class LoggerStub
+    attr_accessor :logged
+
+    def initialize
+      clear
+    end
+
+    def info(message)
+      logged << message
+    end
+
+    def warn(message)
+      logged << message
+    end
+
+    def fatal(message)
+      logged << message
+    end
+
+    def clear
+      @logged = []
+    end
+  end
+
+  ExceptionHandling.logger = LoggerStub.new
+
+  def dont_stub_log_error
+    true
+  end
 
 ActionMailer::Base.delivery_method = :test
 
@@ -22,6 +59,16 @@ class ActiveSupport::TestCase
     Time.now_override = nil
 
     ActionMailer::Base.deliveries.clear
+
+    ExceptionHandling.email_environment     = 'Test'
+    ExceptionHandling.sender_address        = 'server@example.com'
+    ExceptionHandling.exception_recipients  = 'exceptions@example.com'
+    ExceptionHandling.escalation_recipients = 'escalation@example.com'
+    ExceptionHandling.server_name           = 'server'
+    ExceptionHandling.mailer_send_enabled     = true
+    ExceptionHandling.filter_list_filename    = "./config/exception_filters.yml"
+    ExceptionHandling.eventmachine_safe       = false
+    ExceptionHandling.eventmachine_synchrony  = false
   end
 
   teardown do

@@ -74,6 +74,23 @@ Then tie this in using the `custom_data_hook`:
 
     ExceptionHandling.custom_data_hook = method(:append_custom_user_info)
 
+## Monitoring
+
+This gem will spit out some metrics using the [invoca-metrics](https://github.com/Invoca/invoca-metrics) gem.  To enable these metrics, your application must properly configure `Invoca::Metrics`.  For example:
+
+    Invoca::Metrics.service_name    = "my_event_worker"
+    Invoca::Metrics.server_name     = Socket.gethostname
+    Invoca::Metrics.cluster_name    = "production"
+    Invoca::Metrics.sub_server_name = "worker_process_1"
+
+If you want monitoring, you will also need a local STATSD process running.  Even if you _don't_ want monitoring you must define a value for `service_name`.  For example:
+
+    Invoca::Metrics.service_name = "my_bunny_bus_service"
+
+The following metrics are published:
+
+ * Warning count ("exception_handling/warning")
+ * Exception count ("exception_handling/exception")
 
 ## Contributing
 

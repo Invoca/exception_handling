@@ -1,13 +1,14 @@
 PATH
   remote: .
   specs:
-    exception_handling (0.2.0)
+    exception_handling (1.0.0)
       actionmailer (~> 3.2)
       actionpack (~> 3.2)
       activesupport (~> 3.2)
       eventmachine (>= 0.12.10)
       hobo_support
       invoca-metrics
+      invoca-utils (~> 0.0.1)
 
 GEM
   remote: https://rubygems.org/
@@ -56,6 +57,7 @@ GEM
       keen (~> 0.8.4)
       rails (~> 3.2)
       statsd-ruby (~> 1.2.1)
+    invoca-utils (0.0.1)
     journey (1.0.4)
     json (1.8.1)
     keen (0.8.4)
