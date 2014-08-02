@@ -559,7 +559,7 @@ EOF
         data[:session] = exception_context['rack.session']
         data[:environment] = exception_context
       else
-        data[:error]       = "#{data[:error_string]}#{': ' + exception_context unless exception_context.blank?}"
+        data[:error]       = "#{data[:error_string]}#{': ' + exception_context.to_s unless exception_context.blank?}"
         data[:environment] = { :message => exception_context }
       end
       data
