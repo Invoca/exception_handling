@@ -30,7 +30,7 @@
     <b>User summary:</b><br />
     <% if (user_details = @cleaned_data[:user_details]) && ( user_details[:user] || user_details[:organization] ) %>
       User: <%= user_details[:user] %> (<%= user_details[:username] %>)<br />
-      Organization: <%= user_details[:organization] %> <br />
+      Organization: <%= h(user_details[:organization]).gsub("\n","<br/>\n").gsub(/ {2,}/) { |spaces| '&nbsp;'*spaces.size }.html_safe %> <br />
 
       <% if user_details[:impersonated_organization] %>
         <br />
