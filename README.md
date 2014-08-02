@@ -92,6 +92,15 @@ The following metrics are published:
  * Warning count ("exception_handling/warning")
  * Exception count ("exception_handling/exception")
 
+## Testing
+
+There is a reusable rails controller stub that might be useful for your own tests.  To leverage it in your own test, simply add the following require to your unit tests:
+
+        require 'exception_handling/testing'
+
+We use it for testing that our `custom_data_hook` code is working properly.
+
+
 ## Contributing
 
 1. Fork it
