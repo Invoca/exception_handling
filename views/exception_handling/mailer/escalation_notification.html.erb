@@ -10,5 +10,8 @@
     <b>Error #:</b>  <%= h(@cleaned_data[:timestamp]).presence || '<i>no error #</i>'.html_safe -%><br />
     <b>Exception:</b>  <%= h(@cleaned_data[:error_string]).gsub("\n","<br/>\n").gsub(/ {2,}/) { |spaces| '&nbsp;'*spaces.size }.html_safe %><br />
     <b>Server:</b>   <%= h(@server).presence || '<i>hostname not set</i>'.html_safe -%><br />
+    <% if @cleaned_data[:scm_revision] %>
+    <b>Revision:</b> <%= @cleaned_data[:scm_revision] %><br />
+    <% end %>
   </body>
 </html>
