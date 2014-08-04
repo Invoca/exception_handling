@@ -4,7 +4,7 @@ module ExceptionHandling
   class Mailer < ActionMailer::Base
     default :content_type => "text/html"
 
-    self.append_view_path "#{File.dirname(__FILE__)}/../views"
+    self.append_view_path "#{File.dirname(__FILE__)}/../../views"
 
     [:email_environment, :server_name, :sender_address, :exception_recipients, :escalation_recipients].each do |method|
       define_method method do

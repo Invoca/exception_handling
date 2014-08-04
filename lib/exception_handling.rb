@@ -1,15 +1,14 @@
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
-require "#{File.dirname(__FILE__)}/exception_handling_mailer"
 
-EXCEPTION_HANDLING_MAILER_SEND_MAIL = true unless defined?(EXCEPTION_HANDLING_MAILER_SEND_MAIL)
+require 'invoca/utils'
+
+require "exception_handling/mailer"
+require "exception_handling/methods"
+require "exception_handling/log_stub_error"
 
 _ = ActiveSupport::HashWithIndifferentAccess
-
-if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
-  require 'em/protocols/smtpclient'
-end
 
 module ExceptionHandling # never included
 
@@ -20,9 +19,7 @@ module ExceptionHandling # never included
   SUMMARY_THRESHOLD = 5
   SUMMARY_PERIOD = 60*60 # 1.hour
 
-
   SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-  EXCEPTION_FILTER_LIST_PATH = "#{defined?(Rails) ? Rails.root : '.'}/config/exception_filters.yml"
 
   ENVIRONMENT_WHITELIST = [
 /^HTTP_/,
@@ -71,19 +68,77 @@ EOF
 
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION','X-HTTP_AUTHORIZATION','X_HTTP_AUTHORIZATION','REDIRECT_X_HTTP_AUTHORIZATION']
 
-  @logger = Rails.logger if defined?(Rails)
-
-
   class << self
-    attr_accessor :email_environment
+
+    #
+    # required settings
+    #
     attr_accessor :server_name
     attr_accessor :sender_address
     attr_accessor :exception_recipients
+    attr_accessor :logger
 
+    def server_name
+      @server_name or raise ArgumentError, "You must assign a value to #{self.name}.server_name"
+    end
+
+    def sender_address
+      @sender_address or raise ArgumentError, "You must assign a value to #{self.name}.sender_address"
+    end
+
+    def exception_recipients
+      @exception_recipients or raise ArgumentError, "You must assign a value to #{self.name}.exception_recipients"
+    end
+
+    def logger
+      @logger or raise ArgumentError, "You must assign a value to #{self.name}.logger"
+    end
+
+    #
+    # optional settings
+    #
+    attr_accessor :escalation_recipients
+    attr_accessor :email_environment
+    attr_accessor :filter_list_filename
+    attr_accessor :mailer_send_enabled
+    attr_accessor :eventmachine_safe
+    attr_accessor :eventmachine_synchrony
+    attr_accessor :custom_data_hook
+    attr_accessor :post_log_error_hook
+    attr_accessor :stub_handler
+
+    @filter_list_filename = "./config/exception_filters.yml"
+    @mailer_send_enabled  = true
+    @email_environment = ""
+    @eventmachine_safe = false
+    @eventmachine_synchrony = false
+
+    # set this for operation within an eventmachine reactor
+    def eventmachine_safe=(bool)
+      if bool != true && bool != false
+        raise ArgumentError, "#{self.name}.eventmachine_safe must be a boolean."
+      end
+      if bool
+        require 'eventmachine'
+        require 'em/protocols/smtpclient'
+      end
+      @eventmachine_safe = bool
+    end
+
+    # set this for EM::Synchrony async operation
+    def eventmachine_synchrony=(bool)
+      if bool != true && bool != false
+        raise ArgumentError, "#{self.name}.eventmachine_synchrony must be a boolean."
+      end
+      @eventmachine_synchrony = bool
+    end
+
+    #
+    # internal settings (don't set directly)
+    #
     attr_accessor :current_controller
     attr_accessor :last_exception_timestamp
     attr_accessor :periodic_exception_intervals
-    attr_accessor :logger
 
     #
     # Gets called by Rack Middleware: DebugExceptions or ShowExceptions
@@ -97,6 +152,10 @@ EOF
       timestamp = set_log_error_timestamp
       exception_data = exception_to_data(exception, env, timestamp)
 
+      if stub_handler
+        return stub_handler.handle_stub_log_error(exception_data)
+      end
+
       # TODO: add a more interesting custom description, like:
       # custom_description = ": caught and processed by Rack middleware filter #{rack_filter}"
       # which would be nice, but would also require changing quite a few tests
@@ -106,7 +165,10 @@ EOF
       if should_send_email?
         controller = env['action_controller.instance']
         # controller may not exist in some cases (like most 404 errors)
-        extract_and_merge_controller_data(controller, exception_data) if controller
+        if controller
+          extract_and_merge_controller_data(controller, exception_data)
+          controller.session["last_exception_timestamp"] = ExceptionHandling.last_exception_timestamp
+        end
         log_error_email(exception_data, exception)
       end
     end
@@ -124,6 +186,10 @@ EOF
         ex = make_exception(exception_or_string)
         timestamp = set_log_error_timestamp
         data = exception_to_data(ex, exception_context, timestamp)
+
+        if stub_handler
+          return stub_handler.handle_stub_log_error(data)
+        end
 
         write_exception_to_log(ex, exception_context, timestamp)
 
@@ -151,6 +217,8 @@ EOF
           log_error_email(data, ex)
         end
 
+      rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
+        raise
       rescue Exception => ex
         $stderr.puts("ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
         write_exception_to_log(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
@@ -178,7 +246,7 @@ EOF
     def extract_and_merge_controller_data(controller, data)
       data[:request] = {
         :params      => controller.request.parameters.to_hash,
-        :rails_root  => Rails.root,
+        :rails_root  => defined?(Rails) ? Rails.root : "Rails.root not defined. Is this a test environment?",
         :url         => controller.complete_request_uri
       }
       data[:environment].merge!(controller.request.env.to_hash)
@@ -217,12 +285,23 @@ EOF
       log_error ex, exception_context
     end
 
-    def ensure_escalation( email_subject )
+    def escalate_error(exception_or_string, email_subject)
+      ex = make_exception(exception_or_string)
+      log_error(ex)
+      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+    end
+
+    def escalate_warning(message, email_subject)
+      ex = Warning.new(message)
+      log_error(ex)
+      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+    end
+
+    def ensure_escalation(email_subject)
       begin
         yield
       rescue => ex
-        log_error ex
-        escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+        escalate_error(ex, email_subject)
         nil
       end
     end
@@ -232,7 +311,7 @@ EOF
     end
 
     def should_send_email?
-      defined?( EXCEPTION_HANDLING_MAILER_SEND_MAIL ) && EXCEPTION_HANDLING_MAILER_SEND_MAIL
+      ExceptionHandling.mailer_send_enabled
     end
 
     def trace_timing(description)
@@ -253,9 +332,14 @@ EOF
       end
     end
 
-    # TODO: fix test to not use this.
     def enhance_exception_data(data)
-
+      return if ! ExceptionHandling.custom_data_hook
+      begin
+        ExceptionHandling.custom_data_hook.call(data)
+      rescue Exception => ex
+        # can't call log_error here or we will blow the call stack
+        log_info( "Unable to execute custom custom_data_hook callback. #{ex.message} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+      end
     end
 
     private
@@ -281,7 +365,19 @@ EOF
         Errplane.transmit(exc, :custom_data => data) unless exc.is_a?(Warning)
       end
 
+      execute_custom_log_error_callback(data, exc)
+
       nil
+    end
+
+    def execute_custom_log_error_callback(exception_data, exception)
+      return if ! ExceptionHandling.post_log_error_hook
+      begin
+        ExceptionHandling.post_log_error_hook.call(exception_data, exception)
+      rescue Exception => ex
+        # can't call log_error here or we will blow the call stack
+        log_info( "Unable to execute custom log_error callback. #{ex.message} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+      end
     end
 
     def escalate( email_subject, ex, timestamp )
@@ -290,9 +386,9 @@ EOF
     end
 
     def deliver(mail_object)
-      if defined?(EVENTMACHINE_EXCEPTION_HANDLING) && EVENTMACHINE_EXCEPTION_HANDLING
+      if ExceptionHandling.eventmachine_safe
         EventMachine.schedule do # in case we're running outside the reactor
-          async_send_method = EVENTMACHINE_EXCEPTION_HANDLING == :Synchrony ? :asend : :send
+          async_send_method = ExceptionHandling.eventmachine_synchrony ? :asend : :send
           smtp_settings = ActionMailer::Base.smtp_settings
           send_deferrable = EventMachine::Protocols::SmtpClient.__send__(
               async_send_method,
@@ -303,7 +399,7 @@ EOF
                 :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
                 :from     => mail_object['from'].to_s,
                 :to       => mail_object['to'].to_s,
-                :body     => mail_object.body.to_s
+                :content     => "#{mail_object}.\r\n"
               }
           )
           send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
@@ -320,7 +416,7 @@ EOF
         yield
       end
     rescue StandardError, MailerTimeout => ex
-      $stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      #$stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
     end
 
@@ -341,10 +437,10 @@ EOF
     def normalize_exception_data( data )
       if data[:location].nil?
       data[:location] = {}
-      if data[:request] && data[:request].key?( :params )
-        data[:location][:controller] = data[:request][:params]['controller']
-          data[:location][:action]     = "fake action"
-      end
+        if data[:request] && data[:request].key?( :params )
+          data[:location][:controller] = data[:request][:params]['controller']
+          data[:location][:action]     = data[:request][:params]['action']
+        end
       end
       if data[:backtrace] && data[:backtrace].first
         first_line = data[:backtrace].first
@@ -375,7 +471,7 @@ EOF
     end
 
     def exception_filters
-      @exception_filters ||= ExceptionFilters.new( EXCEPTION_FILTER_LIST_PATH )
+      @exception_filters ||= ExceptionFilters.new( ExceptionHandling.filter_list_filename )
     end
 
     def clean_backtrace(exception)
@@ -464,7 +560,7 @@ EOF
         data[:session] = exception_context['rack.session']
         data[:environment] = exception_context
       else
-        data[:error]       = "#{data[:error_string]}#{': ' + exception_context unless exception_context.blank?}"
+        data[:error]       = "#{data[:error_string]}#{': ' + exception_context.to_s unless exception_context.blank?}"
         data[:environment] = { :message => exception_context }
       end
       data
@@ -573,66 +669,6 @@ EOF
     def last_modified_time
       File.mtime( @filter_path )
     end
-  end
 
-
-public
-
-  module Methods # included on models and controllers
-    protected
-    def log_error(exception_or_string, exception_context = '')
-      controller = self if respond_to?(:request) && respond_to?(:session)
-      ExceptionHandling.log_error(exception_or_string, exception_context, controller)
-    end
-
-    def log_error_rack(exception_or_string, exception_context = '', rack_filter = '')
-      ExceptionHandling.log_error_rack(exception_or_string, exception_context, controller)
-    end
-
-    def log_warning(message)
-      log_error(Warning.new(message))
-    end
-
-    def log_info(message)
-      ExceptionHandling.logger.info( message )
-    end
-
-    def log_debug(message)
-      ExceptionHandling.logger.debug( message )
-    end
-
-    def ensure_safe(exception_context = "")
-      begin
-        yield
-      rescue => ex
-        log_error ex, exception_context
-        nil
-      end
-    end
-
-    def ensure_escalation(*args)
-      ExceptionHandling.ensure_escalation(*args) do
-        yield
-      end
-    end
-
-    # Store aside the current controller when included
-    LONG_REQUEST_SECONDS = (defined?(Rails) && Rails.env == 'test' ? 300 : 30)
-    def set_current_controller
-      ExceptionHandling.current_controller = self
-      result = nil
-      time = Benchmark.measure do
-        result = yield
-      end
-      name = " in #{controller_name}::#{action_name}" rescue " "
-      log_error( "Long controller action detected#{name} %.4fs  " % time.real ) if time.real > LONG_REQUEST_SECONDS && !['development', 'test'].include?(Rails.env)
-      result
-    ensure
-      ExceptionHandling.current_controller = nil
-    end
-
-    def self.included( controller )
-      controller.around_filter :set_current_controller if controller.respond_to? :around_filter
-    end
   end
 end
