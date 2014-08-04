@@ -2,6 +2,7 @@ require File.expand_path('../../../test_helper',  __FILE__)
 
 module ExceptionHandling
   class LogErrorStubTest < ActiveSupport::TestCase
+
     include LogErrorStub
 
     context "while running tests" do

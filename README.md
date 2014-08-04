@@ -56,7 +56,9 @@ Then call any method available in the `ExceptionHandling::Methods` mixin:
       flash.now['error'] = "A specific error occurred. Support has been notified."
     end
 
-## Custom Data
+## Custom Hooks
+
+### custom_data_hook
 
 Emails are generated using the `.erb` templates in the [views](./views) directory.  You can add custom information to the exception data with a custom method. For example:
 
@@ -74,23 +76,20 @@ Then tie this in using the `custom_data_hook`:
 
     ExceptionHandling.custom_data_hook = method(:append_custom_user_info)
 
-## Monitoring
 
-This gem will spit out some metrics using the [invoca-metrics](https://github.com/Invoca/invoca-metrics) gem.  To enable these metrics, your application must properly configure `Invoca::Metrics`.  For example:
+### post_log_error_hook
 
-    Invoca::Metrics.service_name    = "my_event_worker"
-    Invoca::Metrics.server_name     = Socket.gethostname
-    Invoca::Metrics.cluster_name    = "production"
-    Invoca::Metrics.sub_server_name = "worker_process_1"
+There is another hook available intended for custom actions after an error email is sent.  This can be used to send information about errors to your alerting subsystem.  For example:
 
-If you want monitoring, you will also need a local STATSD process running.  Even if you _don't_ want monitoring you must define a value for `service_name`.  For example:
+    def log_error_metrics(exception_data, exception)
+      if exception.is_a?(ExceptionHandling::Warning)
+        Invoca::Metrics::Client.metrics.counter("exception_handling/warning")
+      else
+        Invoca::Metrics::Client.metrics.counter("exception_handling/exception")
+      end
+    end
+    ExceptionHandling.post_log_error_hook = method(:log_error_metrics)
 
-    Invoca::Metrics.service_name = "my_bunny_bus_service"
-
-The following metrics are published:
-
- * Warning count ("exception_handling/warning")
- * Exception count ("exception_handling/exception")
 
 ## Testing
 

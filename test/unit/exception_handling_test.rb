@@ -58,17 +58,37 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
-    setup do
-      ExceptionHandling.custom_data_hook = method(:append_organization_info)
+    def log_error_callback(data, ex)
+      @fail_count += 1
     end
 
-    teardown do
-      ExceptionHandling.custom_data_hook = nil
+    def log_error_callback_with_failure(data, ex)
+      raise "this should be rescued"
+    end
+
+    setup do
+      @fail_count = 0
     end
 
     should "support a custom_data_hook" do
+      ExceptionHandling.custom_data_hook = method(:append_organization_info)
       ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
       assert_match(/Invoca Engineering Dept./, ActionMailer::Base.deliveries[-1].body.to_s)
+      ExceptionHandling.custom_data_hook = nil
+    end
+
+    should "support a log_error hook" do
+      ExceptionHandling.post_log_error_hook = method(:log_error_callback)
+      ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
+      assert_equal 1, @fail_count
+      ExceptionHandling.post_log_error_hook = nil
+    end
+
+    should "support rescue exceptions from a log_error hook" do
+      ExceptionHandling.post_log_error_hook = method(:log_error_callback_with_failure)
+      assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+      assert_equal 0, @fail_count
+      ExceptionHandling.post_log_error_hook = nil
     end
   end
 
@@ -666,23 +686,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     should "not forward warnings" do
       stub(Errplane).transmit.times(0)
-      ExceptionHandling.log_warning("warning message")
-    end
-  end
-
-  context "Invoca::Metrics::Client" do
-
-    should "forward exceptions" do
-      any_instance_of(Invoca::Metrics::Client) do |klass|
-        stub(klass).counter("exception_handling/exception")
-      end
-      ExceptionHandling.log_error(exception_1, "context")
-    end
-
-    should "forward warnings" do
-      any_instance_of(Invoca::Metrics::Client) do |klass|
-        stub(klass).counter("exception_handling/warning")
-      end
       ExceptionHandling.log_warning("warning message")
     end
   end

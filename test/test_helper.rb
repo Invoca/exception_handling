@@ -8,10 +8,8 @@ require 'rr'
 require 'minitest/autorun'
 require 'pry'
 
-require 'invoca/metrics'
-Invoca::Metrics.service_name = "exception_handling_test"
-
 require 'exception_handling'
+require 'exception_handling/testing'
 
  class LoggerStub
     attr_accessor :logged

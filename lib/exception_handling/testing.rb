@@ -60,5 +60,6 @@ module ExceptionHandling
       include ExceptionHandling::Methods
 
     end
+
   end
 end

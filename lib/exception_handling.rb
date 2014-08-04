@@ -3,10 +3,10 @@ require 'active_support'
 require 'active_support/core_ext/hash'
 
 require 'invoca/utils'
-require 'invoca/metrics'
 
 require "exception_handling/mailer"
 require "exception_handling/methods"
+require "exception_handling/log_stub_error"
 
 _ = ActiveSupport::HashWithIndifferentAccess
 
@@ -79,31 +79,19 @@ EOF
     attr_accessor :logger
 
     def server_name
-      if @server_name.nil?
-        raise ArgumentError, "You must assign a value to #{self.name}.server_name"
-      end
-      @server_name
+      @server_name or raise ArgumentError, "You must assign a value to #{self.name}.server_name"
     end
 
     def sender_address
-      if @sender_address.nil?
-        raise ArgumentError, "You must assign a value to #{self.name}.sender_address"
-      end
-      @sender_address
+      @sender_address or raise ArgumentError, "You must assign a value to #{self.name}.sender_address"
     end
 
     def exception_recipients
-      if @exception_recipients.nil?
-        raise ArgumentError, "You must assign a value to #{self.name}.exception_recipients"
-      end
-      @exception_recipients
+      @exception_recipients or raise ArgumentError, "You must assign a value to #{self.name}.exception_recipients"
     end
 
     def logger
-      if @logger.nil?
-        raise ArgumentError, "You must assign a value to #{self.name}.logger"
-      end
-      @logger
+      @logger or raise ArgumentError, "You must assign a value to #{self.name}.logger"
     end
 
     #
@@ -116,6 +104,7 @@ EOF
     attr_accessor :eventmachine_safe
     attr_accessor :eventmachine_synchrony
     attr_accessor :custom_data_hook
+    attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
 
     @filter_list_filename = "./config/exception_filters.yml"
@@ -228,8 +217,8 @@ EOF
           log_error_email(data, ex)
         end
 
-      rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged => ex
-        raise ex
+      rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
+        raise
       rescue Exception => ex
         $stderr.puts("ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
         write_exception_to_log(ex, "ExceptionHandling.log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
@@ -344,7 +333,13 @@ EOF
     end
 
     def enhance_exception_data(data)
-      ExceptionHandling.custom_data_hook.call(data) if ExceptionHandling.custom_data_hook
+      return if ! ExceptionHandling.custom_data_hook
+      begin
+        ExceptionHandling.custom_data_hook.call(data)
+      rescue Exception => ex
+        # can't call log_error here or we will blow the call stack
+        log_info( "Unable to execute custom custom_data_hook callback. #{ex.message} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+      end
     end
 
     private
@@ -370,13 +365,19 @@ EOF
         Errplane.transmit(exc, :custom_data => data) unless exc.is_a?(Warning)
       end
 
-      if exc.is_a?(Warning)
-        Invoca::Metrics::Client.metrics.counter("exception_handling/warning")
-      else
-        Invoca::Metrics::Client.metrics.counter("exception_handling/exception")
-      end
+      execute_custom_log_error_callback(data, exc)
 
       nil
+    end
+
+    def execute_custom_log_error_callback(exception_data, exception)
+      return if ! ExceptionHandling.post_log_error_hook
+      begin
+        ExceptionHandling.post_log_error_hook.call(exception_data, exception)
+      rescue Exception => ex
+        # can't call log_error here or we will blow the call stack
+        log_info( "Unable to execute custom log_error callback. #{ex.message} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+      end
     end
 
     def escalate( email_subject, ex, timestamp )
@@ -668,5 +669,6 @@ EOF
     def last_modified_time
       File.mtime( @filter_path )
     end
+
   end
 end
