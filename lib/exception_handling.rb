@@ -399,7 +399,7 @@ EOF
                 :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
                 :from     => mail_object['from'].to_s,
                 :to       => mail_object['to'].to_s,
-                :content     => "#{mail_object}.\r\n"
+                :content     => "#{mail_object}\r\n.\r\n"
               }
           )
           send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }

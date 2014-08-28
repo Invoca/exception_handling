@@ -528,7 +528,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             EventMachineStub.block.call
             assert content = SmtpClientStub.send_hash[:content]
             assert_match(/Content-Transfer-Encoding: 7bit/, content)
-            assert_match(/<\/html>\r\n\.\r\n\z/, content)
+            assert_match(/\r\n\.\r\n\z/, content)
           end
 
           should "log fatal on EventMachine STMP errback" do
