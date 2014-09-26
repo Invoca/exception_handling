@@ -355,14 +355,8 @@ EOF
         return
       end
 
-      if summarize_exception( data ) == :Summarized
-        return
-      end
-
-      deliver(ExceptionHandling::Mailer.exception_notification(data))
-
-      if defined?(Errplane)
-        Errplane.transmit(exc, :custom_data => data) unless exc.is_a?(Warning)
+      if summarize_exception( data ) != :Summarized
+        deliver(ExceptionHandling::Mailer.exception_notification(data))
       end
 
       execute_custom_log_error_callback(data, exc)

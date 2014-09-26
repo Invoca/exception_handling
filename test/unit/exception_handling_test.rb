@@ -232,6 +232,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
       end
 
+      def log_error_callback(data, ex)
+        @fail_count += 1
+      end
+
+
       should "include the timestamp when the exception is logged" do
         mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/)
         b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
@@ -252,12 +257,15 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
     end
 
-    should "only send 5 of a repeated error" do
+    should "only send 5 of a repeated error, but call post hook for every exception" do
+      @fail_count = 0
+      ExceptionHandling.post_log_error_hook = method(:log_error_callback)
       assert_emails 5 do
         10.times do
           ExceptionHandling.log_error(exception_1)
         end
       end
+      assert_equal 10, @fail_count
     end
 
     should "only send 5 of a repeated error but don't send summary if 6th is different" do
@@ -668,25 +676,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
       assert_equal 3, logger_stub.logged.size
-    end
-  end
-
-  context "Errplane" do
-    module ErrplaneStub
-    end
-
-    setup do
-      set_test_const('Errplane', ErrplaneStub)
-    end
-
-    should "forward exceptions" do
-      mock(Errplane).transmit(exception_1, anything)
-      ExceptionHandling.log_error(exception_1, "context")
-    end
-
-    should "not forward warnings" do
-      stub(Errplane).transmit.times(0)
-      ExceptionHandling.log_warning("warning message")
     end
   end
 
