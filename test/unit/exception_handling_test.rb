@@ -98,18 +98,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       ExceptionHandling.send(:clear_exception_summary)
     end
 
-    context "exception filter parsing and loading" do
-      should "happen without an error" do
-        stub(File).mtime { incrementing_mtime }
-        exception_filters = ExceptionHandling.send( :exception_filters )
-        assert( exception_filters.is_a?( ExceptionHandling::ExceptionFilters ) )
-        assert_nothing_raised "Loading the exception filter should not raise" do
-          exception_filters.send :load_file
-        end
-        assert !exception_filters.filtered?( "Scott says unlikely to ever match" )
-      end
-    end
-
     context "ExceptionHandling.ensure_safe" do
       should "log an exception if an exception is raised." do
         mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
