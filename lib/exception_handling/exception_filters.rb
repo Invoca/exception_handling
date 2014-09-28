@@ -44,35 +44,5 @@ module ExceptionHandling
     def last_modified_time
       File.mtime( @filter_path )
     end
-
-    class Filter
-      def initialize(filter_name, regexes)
-        @regexes = Hash[ regexes.map do |section, regex|
-          section = section.to_sym
-          raise "Unknown section: #{section}" unless section == :error || section.in?( ExceptionHandling::SECTIONS )
-          [section, (Regexp.new(regex, 'i') unless regex.blank?)]
-        end ]
-
-        raise "Filter #{filter_name} has all blank regexes: #{regexes.inspect}" if @regexes.all? { |section, regex| regex.nil? }
-      end
-
-      def match?(exception_data)
-        @regexes.all? do |section, regex|
-          regex.nil? ||
-              case exception_data[section.to_s]
-              when String
-                regex =~ exception_data[section]
-              when Array
-                exception_data[section].any? { |row| row =~ regex }
-              when Hash
-                exception_data[section] && exception_data[section][:to_s] =~ regex
-              when NilClass
-                false
-              else
-                raise "Unexpected class #{exception_data[section].class.name}"
-              end
-        end
-      end
-    end
   end
 end

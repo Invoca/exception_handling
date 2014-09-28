@@ -7,6 +7,7 @@ require 'invoca/utils'
 require "exception_handling/mailer"
 require "exception_handling/methods"
 require "exception_handling/log_stub_error"
+require "exception_handling/filter"
 require "exception_handling/exception_filters"
 
 _ = ActiveSupport::HashWithIndifferentAccess
