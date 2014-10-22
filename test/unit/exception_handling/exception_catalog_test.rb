@@ -1,7 +1,7 @@
 require File.expand_path('../../../test_helper',  __FILE__)
 
 module ExceptionHandling
-  class ExceptionFiltersTest < ActiveSupport::TestCase
+  class ExceptionCatalogTest < ActiveSupport::TestCase
 
     context "With stubbed yaml content" do
       setup do
