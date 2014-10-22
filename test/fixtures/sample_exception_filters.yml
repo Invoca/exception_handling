@@ -1,0 +1,159 @@
+--- !map:HashWithIndifferentAccess
+All script kiddies:
+  error: "ScriptKiddie suspected because of HTTP request without a referer"
+
+Tony Robbins:
+  request: "url: https?\\:\\/\\/www\\.tonyrobbins\\.com"
+
+Soulful Beauty:
+  request: "HTTP_REFERER: http://.*soulfulbeauty\\.com"
+
+The Credit Exchange:
+  error: "VirtualLine.find_by_external_ids - No promo number found.*Affiliate id from network (1389811|3079560|3366822|3179522|3375281|3375756|3362634|550151) not found"
+  request: "av_id: 178$"
+
+Spiders:
+  environment: "Microsoft-WebDAV|COMODOspider|Baiduspider|YandexBot|TurnitinBot"
+
+Googlebot:
+  environment: "googlebot"
+  error: "ReferenceError: Can't find variable: RingRevenue"
+
+Options Request:
+  environment: "REQUEST_METHOD: OPTIONS"
+
+Click Request Rejected:
+  error: "Request to click domain rejected"
+  request: "controller: sessions"
+
+Staging Full Started:
+  error: "Mysql::Error: Can't connect to MySQL server on 'stagingmaster.ringrevenue.com'"
+
+Google Analytics:
+  error: "ActionController.*RoutingError*google-analytics.*"
+
+TermsLinksBroken:
+  error: "Logged in user experienced broken link on.*advertiser_campaign_terms"
+
+NoRouteOnTerms:
+  error: "ActionController.*RoutingError.*No route matches.*campaign_terms"
+
+InvalidAuth:
+  error: "Invalid authenticity token received from.*new\\?"
+
+NoRoute:
+  error: "No route matches"
+
+SearchWebPlacementsJson:
+  error: "search_web_placement Invalid JSON response from yahoo api"
+
+Rss 404s from Java:
+  request: "controller: articles"
+  error: "ActionController.*UnknownAction"
+  environment: "HTTP_USER_AGENT: Java"
+
+Archiver mangling caused missing template:
+  error: "Missing template corporate/platform.erb"
+  environment: "(aihit|archive)"
+
+Number Loader 404s from invalid url concatenation:
+  request: "url: https?:\\/\\/js\\d{0,2}\\.ringrevenue.com\\/"
+  error: "Broken link.*ActiveRecord::RecordNotFound"
+
+collegequest bad TLD:
+  error: "Hostname 'me.cq' does not have a known public suffix"
+
+Ignite calls API:
+  request: "calls\\/10\\.xml"
+
+BrokenLinkAfterLogin:
+  error: "Found broken link after user logged in from"
+
+Link Trust Pixel Firing:
+  error: "Errno::ECONNREFUSED.*(linktrust\\.com|mobitracking\\.com|xy7track\\.com|mbltrack\\.com)"
+
+# JAVASCRIPT exceptions
+# http://www.roslindesign.com/2010/10/12/avg-antivirus-2011-corrupting-web-pages-with-injection-of-script-avg_ls_dom-js/
+AVG Anti Virus:
+  request: "avg_ls_dom\\.js"
+
+Firefox Framework Bug:
+  error: "Javascript: window.onerror: Permission denied to access property 'nodeType' from a non-chrome context"
+  request: "action: javascript_error"
+
+Javascript Error Loading Script:
+  error: "Javascript: window.onerror: Error loading script"
+  request: "filename: .*hubspot\\.com.*"
+
+Javascript Plugin Errors:
+  error: "Javascript: window.onerror: Script error"
+  request: "filename: chrome://leapfrog.*"
+
+Javascript users with browser plugin issues:
+  error: "Javascript: .*"
+  session: "user_id: (42595|58296|61276|74059)"
+
+Calls API Errors:
+  error: "calls_api returning status not_found"
+
+Duplicate Sales Reported:
+  error: "Call.update_order called with duplicate sales"
+
+Sale for the same reason and sku:
+  error: "Sale for the same reason and sku"
+
+Found Inconsistent Caller Id Settings:
+  error: "CampaignIds:CampaignTerms_7542,CampaignTerms_7544,CampaignTerms_8242,CampaignTerms_8478,CampaignTerms_9244"
+
+invalid click domain rdparking:
+  error: "Request to click domain rejected"
+  request: ".*rdparking.*"
+
+update order with duplicate sales:
+  error: "update_order called with duplicate sales information"
+
+failsafe on vxml because readonly:
+  error: "The MySQL server is running with the --read-only option so it cannot execute this statement.*INSERT INTO simple_sessions"
+
+failsafe on propfind:
+  error: "UnknownHttpMethod: PROPFIND"
+
+pixel_misconfigured:
+  error: "PixelUrlTemplate substitution"
+
+buffered_sale:
+  error: "Couldn't apply BufferedSale"
+
+SQL Injection Attempts:
+  request: "controller: virtual_lines"
+  request: "av_id: \\D\\d*\\D\\d*\\D\\d*\\D"
+
+Opera Browser:
+  environment: "HTTP_USER_AGENT: Opera"
+
+Affiliate Map Number invalid requests:
+  error: "Publisher Map Number returning with invalid campaign"
+
+Long Event Response:
+  error: "RingSwitch Long EventResponse"
+
+NoBridge:
+  error: "Bridge outcall hasn't been answered in"
+
+LongControllerAction:
+  error: "Long controller action detected"
+
+Salesforce Integration Old Method:
+  error: "SalesForceIntegration::InvalidType: INVALID_TYPE: sObject type"
+
+Salesforce Integration Expired Password:
+  error: "INVALID_OPERATION_WITH_EXPIRED_PASSWORD"
+
+Salesforce Integration Invalid Login:
+  error: "SalesForceIntegration::InvalidLogin"
+
+Web Integration Invalid Advertiser Id:
+  error: "VirtualLinesController::NumberMapper::InvalidAdvertiserId"
+
+Repeatedly failing login attempts:
+  error: "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for 'mcc@mobistreak.com'"

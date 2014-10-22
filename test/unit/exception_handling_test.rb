@@ -78,10 +78,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "support a log_error hook" do
-      ExceptionHandling.post_log_error_hook = method(:log_error_callback)
-      ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
-      assert_equal 1, @fail_count
-      ExceptionHandling.post_log_error_hook = nil
+      begin
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback)
+        ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
+        assert_equal 1, @fail_count
+      ensure
+        ExceptionHandling.post_log_error_hook = nil
+      end
     end
 
     should "support rescue exceptions from a log_error hook" do
@@ -90,6 +93,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_equal 0, @fail_count
       ExceptionHandling.post_log_error_hook = nil
     end
+
+    should "add parameter from filter into exception details" do
+
+
+    end
+
   end
 
   context "Exception Handling" do

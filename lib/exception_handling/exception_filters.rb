@@ -34,11 +34,10 @@ module ExceptionHandling
     end
 
     def load_file
-      # store all strings from YAML file into regex's on initial load, instead of converting to regex on every exception that is logged
       filters = YAML::load_file( @filter_path )
       Hash[ filters.map do |filter_name, regexes|
-        [filter_name, Filter.new( filter_name, regexes )]
-      end ]
+        [filter_name, Filter.new( filter_name, regexes.symbolize_keys )]
+      end ].symbolize_keys
     end
 
     def last_modified_time
