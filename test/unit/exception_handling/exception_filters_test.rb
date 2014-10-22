@@ -15,7 +15,7 @@ module ExceptionHandling
 
       should "load the filter data" do
         stub(File).mtime { incrementing_mtime }
-        @exception_filters = ExceptionFilters.new( ExceptionHandling.filter_list_filename )
+        @exception_filters = ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
         assert_nothing_raised "Loading the exception filter should not raise" do
           @exception_filters.send :load_file
         end
@@ -27,7 +27,7 @@ module ExceptionHandling
     context "with live yaml content" do
       setup do
         @filename = File.expand_path('../../../fixtures/sample_exception_filters.yml',  __FILE__)
-        @exception_filters = ExceptionFilters.new( @filename )
+        @exception_filters = ExceptionCatalog.new( @filename )
         assert_nothing_raised "Loading the exception filter should not raise" do
           @exception_filters.send :load_file
         end

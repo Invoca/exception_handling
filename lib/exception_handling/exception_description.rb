@@ -1,5 +1,5 @@
 module ExceptionHandling
-  class Filter
+  class ExceptionDescription
     MATCH_SECTIONS =  [:error, :request, :session, :environment, :backtrace, :event_response]
 
     CONFIGURATION_SECTIONS = {

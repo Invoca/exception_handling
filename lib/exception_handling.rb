@@ -7,8 +7,8 @@ require 'invoca/utils'
 require "exception_handling/mailer"
 require "exception_handling/methods"
 require "exception_handling/log_stub_error"
-require "exception_handling/filter"
-require "exception_handling/exception_filters"
+require "exception_handling/exception_description"
+require "exception_handling/exception_catalog"
 
 _ = ActiveSupport::HashWithIndifferentAccess
 
@@ -467,7 +467,7 @@ EOF
     end
 
     def exception_filters
-      @exception_filters ||= ExceptionFilters.new( ExceptionHandling.filter_list_filename )
+      @exception_filters ||= ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
     end
 
     def clean_backtrace(exception)

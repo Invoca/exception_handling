@@ -1,5 +1,5 @@
 module ExceptionHandling
-  class ExceptionFilters
+  class ExceptionCatalog
 
     def initialize( filter_path )
       @filter_path = filter_path
@@ -36,7 +36,7 @@ module ExceptionHandling
     def load_file
       filters = YAML::load_file( @filter_path )
       Hash[ filters.map do |filter_name, regexes|
-        [filter_name, Filter.new( filter_name, regexes.symbolize_keys )]
+        [filter_name, ExceptionDescription.new( filter_name, regexes.symbolize_keys )]
       end ].symbolize_keys
     end
 
