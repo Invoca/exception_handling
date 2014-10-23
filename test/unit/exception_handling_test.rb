@@ -98,11 +98,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       ExceptionHandling.post_log_error_hook = nil
     end
 
-    should "add parameter from filter into exception details" do
-
-
-    end
-
   end
 
   context "Exception Handling" do

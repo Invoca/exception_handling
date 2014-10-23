@@ -39,7 +39,7 @@ module ExceptionHandling
 
     context "with live yaml content" do
       setup do
-        @filename = File.expand_path('../../../fixtures/sample_exception_filters.yml',  __FILE__)
+        @filename = File.expand_path('../../../../config/exception_filters.yml',  __FILE__)
         @exception_catalog = ExceptionCatalog.new( @filename )
         assert_nothing_raised "Loading the exception filter should not raise" do
           @exception_catalog.send :load_file

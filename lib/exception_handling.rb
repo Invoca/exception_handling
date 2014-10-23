@@ -109,7 +109,7 @@ EOF
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
 
-    @filter_list_filename = "./config/exception_catalog.yml"
+    @filter_list_filename = "./config/exception_filters.yml"
     @mailer_send_enabled  = true
     @email_environment = ""
     @eventmachine_safe = false
