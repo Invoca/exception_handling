@@ -357,7 +357,7 @@ EOF
       merged_data = exception_description ? ActiveSupport::HashWithIndifferentAccess.new(exception_description.exception_data.merge(data)) : data
 
       if exception_description && !exception_description.send_email
-        ExceptionHandling.logger.warn( "Filtered exception using '#{name}'; not sending email to notify" )
+        ExceptionHandling.logger.warn( "Filtered exception using '#{exception_description.filter_name}'; not sending email to notify" )
       else
         if summarize_exception( merged_data ) != :Summarized
           deliver(ExceptionHandling::Mailer.exception_notification(merged_data))
