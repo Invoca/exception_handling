@@ -9,7 +9,7 @@ module ExceptionHandling
         notes:       nil     # Will be included in exception email if set, used to keep notes and relevant links
     }
 
-    attr_reader :metric_name, :notes, :send_email, :send_metric
+    attr_reader :filter_name, :send_email, :send_metric, :metric_name, :notes
 
     def initialize(filter_name, configuration)
       @filter_name = filter_name
@@ -20,7 +20,7 @@ module ExceptionHandling
       @configuration = CONFIGURATION_SECTIONS.merge(configuration)
       @send_email  = @configuration[:send_email]
       @send_metric = @configuration[:send_metric]
-      @metric_name = (@configuration[:metric_name] || @filter_name ).to_s
+      @metric_name = (@configuration[:metric_name] || @filter_name ).to_s.gsub(" ","_")
       @notes       = @configuration[:notes]
 
       regex_config = @configuration.reject { |k,v| k.in?(CONFIGURATION_SECTIONS.keys) || v.blank? }
@@ -28,6 +28,14 @@ module ExceptionHandling
       @regexes = Hash[regex_config.map { |section, regex| [section, Regexp.new(regex, 'i') ] }]
 
       !@regexes.empty? or raise ArgumentError, "Filter #{filter_name} has all blank regexes: #{configuration.inspect}"
+    end
+
+    def exception_data
+      {
+          "send_metric" => send_metric,
+          "metric_name" => metric_name,
+          "notes"       => notes
+      }
     end
 
     def match?(exception_data)

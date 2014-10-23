@@ -48,7 +48,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   context "configuration" do
-    def append_organization_info(data)
+    def append_organization_info_config(data)
       begin
         data[:user_details]                = {}
         data[:user_details][:username]     = "CaryP"
@@ -58,7 +58,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
-    def log_error_callback(data, ex)
+    def log_error_callback_config(data, ex)
+      @callback_data = data
       @fail_count += 1
     end
 
@@ -71,20 +72,23 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "support a custom_data_hook" do
-      ExceptionHandling.custom_data_hook = method(:append_organization_info)
+      ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
       ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
       assert_match(/Invoca Engineering Dept./, ActionMailer::Base.deliveries[-1].body.to_s)
       ExceptionHandling.custom_data_hook = nil
     end
 
-    should "support a log_error hook" do
+    should "support a log_error hook and pass exception data to it" do
       begin
-        ExceptionHandling.post_log_error_hook = method(:log_error_callback)
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
         assert_equal 1, @fail_count
       ensure
         ExceptionHandling.post_log_error_hook = nil
       end
+
+      assert_equal "this is used by a test", @callback_data["notes"]
+      assert_match(/this is used by a test/, ActionMailer::Base.deliveries[-1].body.to_s)
     end
 
     should "support rescue exceptions from a log_error hook" do

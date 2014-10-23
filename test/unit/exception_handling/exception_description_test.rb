@@ -40,6 +40,11 @@ module ExceptionHandling
         assert_equal "some_other_metric_name", ExceptionDescription.new(:filter1, error: "my error message", metric_name: :some_other_metric_name ).metric_name
       end
 
+      should "replace spaces in metric name" do
+        @f = ExceptionDescription.new(:"filter has spaces", :error => "my error message" )
+        assert_equal "filter_has_spaces", @f.metric_name
+      end
+
       should "allow notes to be recorded" do
         assert_equal nil, ExceptionDescription.new(:filter1, error: "my error message" ).notes
         assert_equal "a long string", ExceptionDescription.new(:filter1, error: "my error message", notes: "a long string" ).notes
@@ -50,6 +55,14 @@ module ExceptionHandling
         assert ExceptionDescription.new(:filter1, error: "my error message", send_metric: false ).match?( :error => "my error message")
         assert ExceptionDescription.new(:filter1, error: "my error message", metric_name: "false" ).match?( :error => "my error message")
         assert ExceptionDescription.new(:filter1, error: "my error message", notes: "hey" ).match?( :error => "my error message")
+      end
+
+      should "provide exception details" do
+        exception_description = ExceptionDescription.new(:filter1, error: "my error message", notes: "hey" )
+
+        expected = {"send_metric" => true, "metric_name" => "filter1", "notes" => "hey"}
+
+        assert_equal expected, exception_description.exception_data
       end
 
     end

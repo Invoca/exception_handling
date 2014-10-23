@@ -109,7 +109,7 @@ EOF
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
 
-    @filter_list_filename = "./config/exception_filters.yml"
+    @filter_list_filename = "./config/exception_catalog.yml"
     @mailer_send_enabled  = true
     @email_environment = ""
     @eventmachine_safe = false
@@ -353,16 +353,18 @@ EOF
 
       SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a? Hash }
 
-      if exception_filters.filtered?( data )
-        return
+      exception_description = exception_catalog.find( data )
+      merged_data = exception_description ? ActiveSupport::HashWithIndifferentAccess.new(exception_description.exception_data.merge(data)) : data
+
+      if exception_description && !exception_description.send_email
+        ExceptionHandling.logger.warn( "Filtered exception using '#{name}'; not sending email to notify" )
+      else
+        if summarize_exception( merged_data ) != :Summarized
+          deliver(ExceptionHandling::Mailer.exception_notification(merged_data))
+        end
       end
 
-      if summarize_exception( data ) != :Summarized
-        deliver(ExceptionHandling::Mailer.exception_notification(data))
-      end
-
-      execute_custom_log_error_callback(data, exc)
-
+      execute_custom_log_error_callback(merged_data, exc)
       nil
     end
 
@@ -466,8 +468,8 @@ EOF
       end.compact ]
     end
 
-    def exception_filters
-      @exception_filters ||= ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
+    def exception_catalog
+      @exception_catalog ||= ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
     end
 
     def clean_backtrace(exception)

@@ -27,6 +27,14 @@
     <br />
     <br />
 
+    <% if @cleaned_data[:notes] %>
+      <b>Exception Notes:</b> (from config/exception.yml)<br />
+        <%= @cleaned_data[:notes].gsub("\n","<br/>\n").gsub(/ {2,}/) { |spaces| '&nbsp;'*spaces.size }.html_safe %>
+      <br />
+      <br />
+    <% end %>
+
+
     <b>User summary:</b><br />
     <% if (user_details = @cleaned_data[:user_details]) && ( user_details[:user] || user_details[:organization] ) %>
       User: <%= user_details[:user] %> (<%= user_details[:username] %>)<br />

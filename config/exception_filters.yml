@@ -1,4 +1,9 @@
 --- !map:HashWithIndifferentAccess
+Test BS:
+  error: "Some BS"
+  send_email: true
+  notes: "this is used by a test"
+
 All script kiddies:
   error: "ScriptKiddie suspected because of HTTP request without a referer"
 
