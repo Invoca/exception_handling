@@ -14,7 +14,7 @@ module ExceptionHandling
     def initialize(filter_name, configuration)
       @filter_name = filter_name
 
-      invalid_sections = configuration.except( *(CONFIGURATION_SECTIONS.keys + MATCH_SECTIONS) )
+      invalid_sections = configuration.except(*(CONFIGURATION_SECTIONS.keys + MATCH_SECTIONS))
       invalid_sections.empty? or raise ArgumentError, "Unknown section: #{invalid_sections.keys.join(",")}"
 
       @configuration = CONFIGURATION_SECTIONS.merge(configuration)
