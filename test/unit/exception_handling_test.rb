@@ -48,7 +48,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   context "configuration" do
-    def append_organization_info(data)
+    def append_organization_info_config(data)
       begin
         data[:user_details]                = {}
         data[:user_details][:username]     = "CaryP"
@@ -58,7 +58,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
-    def log_error_callback(data, ex)
+    def log_error_callback_config(data, ex)
+      @callback_data = data
       @fail_count += 1
     end
 
@@ -71,17 +72,23 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "support a custom_data_hook" do
-      ExceptionHandling.custom_data_hook = method(:append_organization_info)
+      ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
       ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
       assert_match(/Invoca Engineering Dept./, ActionMailer::Base.deliveries[-1].body.to_s)
       ExceptionHandling.custom_data_hook = nil
     end
 
-    should "support a log_error hook" do
-      ExceptionHandling.post_log_error_hook = method(:log_error_callback)
-      ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
-      assert_equal 1, @fail_count
-      ExceptionHandling.post_log_error_hook = nil
+    should "support a log_error hook and pass exception data to it" do
+      begin
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
+        ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
+        assert_equal 1, @fail_count
+      ensure
+        ExceptionHandling.post_log_error_hook = nil
+      end
+
+      assert_equal "this is used by a test", @callback_data["notes"]
+      assert_match(/this is used by a test/, ActionMailer::Base.deliveries[-1].body.to_s)
     end
 
     should "support rescue exceptions from a log_error hook" do
@@ -90,24 +97,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_equal 0, @fail_count
       ExceptionHandling.post_log_error_hook = nil
     end
+
   end
 
   context "Exception Handling" do
     setup do
       ActionMailer::Base.deliveries.clear
       ExceptionHandling.send(:clear_exception_summary)
-    end
-
-    context "exception filter parsing and loading" do
-      should "happen without an error" do
-        stub(File).mtime { incrementing_mtime }
-        exception_filters = ExceptionHandling.send( :exception_filters )
-        assert( exception_filters.is_a?( ExceptionHandling::ExceptionFilters ) )
-        assert_nothing_raised "Loading the exception filter should not raise" do
-          exception_filters.send :load_file
-        end
-        assert !exception_filters.filtered?( "Scott says unlikely to ever match" )
-      end
     end
 
     context "ExceptionHandling.ensure_safe" do
@@ -232,6 +228,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
       end
 
+      def log_error_callback(data, ex)
+        @fail_count += 1
+      end
+
+
       should "include the timestamp when the exception is logged" do
         mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/)
         b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
@@ -252,12 +253,15 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
     end
 
-    should "only send 5 of a repeated error" do
+    should "only send 5 of a repeated error, but call post hook for every exception" do
+      @fail_count = 0
+      ExceptionHandling.post_log_error_hook = method(:log_error_callback)
       assert_emails 5 do
         10.times do
           ExceptionHandling.log_error(exception_1)
         end
       end
+      assert_equal 10, @fail_count
     end
 
     should "only send 5 of a repeated error but don't send summary if 6th is different" do
@@ -668,25 +672,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
       assert_equal 3, logger_stub.logged.size
-    end
-  end
-
-  context "Errplane" do
-    module ErrplaneStub
-    end
-
-    setup do
-      set_test_const('Errplane', ErrplaneStub)
-    end
-
-    should "forward exceptions" do
-      mock(Errplane).transmit(exception_1, anything)
-      ExceptionHandling.log_error(exception_1, "context")
-    end
-
-    should "not forward warnings" do
-      stub(Errplane).transmit.times(0)
-      ExceptionHandling.log_warning("warning message")
     end
   end
 
