@@ -14,4 +14,5 @@ namespace :test do
 
 end
 
-task :default => 'test:unit'
+task :test    => 'test:unit'
+task :default => 'test'

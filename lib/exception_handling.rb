@@ -232,13 +232,7 @@ EOF
     #
     def write_exception_to_log(ex, exception_context, timestamp)
       ActiveSupport::Deprecation.silence do
-        ExceptionHandling.logger.fatal(
-          if ActionView::TemplateError === ex
-            "#{ex} Error:#{timestamp}"
-          else
-            "\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n"
-          end
-        )
+        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
       end
     end
 

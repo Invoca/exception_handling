@@ -107,9 +107,14 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "ExceptionHandling.ensure_safe" do
-      should "log an exception if an exception is raised." do
+      should "log an exception with call stack if an exception is raised." do
         mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
         ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
+      end
+      
+      should "log an exception with call stack if an ActionView template exception is raised." do
+        mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n  <no backtrace>/)
+        ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, {}, ArgumentError.new("blah")) }
       end
 
       should "should not log an exception if an exception is not raised." do
