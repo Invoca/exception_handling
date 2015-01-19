@@ -65,6 +65,15 @@ module ExceptionHandling
         assert_equal expected, exception_description.exception_data
       end
 
+      should "match multiple email addresses" do
+        mobi = "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for 'mcc@mobistreak.com'"
+        credit = "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for 'damon@thecreditpros.com'"
+
+        exception_description = ExceptionDescription.new(:filter1, error: "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for '(mcc\@mobistreak|damon\@thecreditpros).com'" )
+        assert exception_description.match?(error: mobi), "does not match mobi"
+        assert exception_description.match?(error: credit), "does not match credit"
+      end
+
     end
 
   end
