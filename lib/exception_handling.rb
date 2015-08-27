@@ -5,6 +5,7 @@ require 'active_support/core_ext/hash'
 require 'invoca/utils'
 
 require "exception_handling/mailer"
+require "exception_handling/sensu"
 require "exception_handling/methods"
 require "exception_handling/log_stub_error"
 require "exception_handling/exception_description"
@@ -108,12 +109,18 @@ EOF
     attr_accessor :custom_data_hook
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
+    attr_accessor :sensu_host
+    attr_accessor :sensu_port
+    attr_accessor :sensu_prefix
 
     @filter_list_filename = "./config/exception_filters.yml"
     @mailer_send_enabled  = true
     @email_environment = ""
     @eventmachine_safe = false
     @eventmachine_synchrony = false
+    @sensu_host = "127.0.0.1"
+    @sensu_port = 3030
+    @sensu_prefix = ""
 
     # set this for operation within an eventmachine reactor
     def eventmachine_safe=(bool)
@@ -298,6 +305,25 @@ EOF
         yield
       rescue => ex
         escalate_error(ex, email_subject)
+        nil
+      end
+    end
+
+    def sensu_warning(exception_or_string, alert_name)
+      ex = make_exception(exception_or_string)
+      log_error(ex)
+      begin
+        ExceptionHandling::Sensu.generate_event(alert_name, ex.message)
+      rescue => ex
+        log_error(ex)
+      end
+    end
+
+    def ensure_sensu(alert_name)
+      begin
+        yield
+      rescue => ex
+        sensu_warning(ex, alert_name)
         nil
       end
     end
