@@ -42,8 +42,11 @@ class SocketStub
     clear
   end
 
-  def send(message)
+  def send(message, _flags)
     sent << message
+  end
+
+  def close
   end
 
   def clear
