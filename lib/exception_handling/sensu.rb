@@ -21,7 +21,6 @@ module ExceptionHandling
       def send_event(event)
         s = TCPSocket.new(ExceptionHandling.sensu_host, ExceptionHandling.sensu_port)
         s.send(event.to_json, 0)
-      ensure
         s.close
       end
     end

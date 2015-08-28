@@ -36,9 +36,10 @@ require 'exception_handling/testing'
  end
 
 class SocketStub
-  attr_accessor :sent
+  attr_accessor :sent, :connected
 
   def initialize
+    @connected = true
     clear
   end
 
@@ -47,6 +48,7 @@ class SocketStub
   end
 
   def close
+    @connected = false
   end
 
   def clear
