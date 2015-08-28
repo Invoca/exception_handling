@@ -315,7 +315,7 @@ EOF
       begin
         ExceptionHandling::Sensu.generate_event(alert_name, ex.message)
       rescue => send_ex
-        log_error(send_ex)
+        log_error(send_ex, 'ExceptionHandling.sensu_warning')
       end
     end
 
