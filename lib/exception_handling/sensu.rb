@@ -1,7 +1,7 @@
 require "socket"
 
 module ExceptionHandling
-  class Sensu
+  module Sensu
     class << self
       def generate_event(name, message, level = :warning)
         status = case level
