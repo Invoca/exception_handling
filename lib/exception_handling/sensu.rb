@@ -2,16 +2,14 @@ require "socket"
 
 module ExceptionHandling
   module Sensu
+    LEVELS = {
+        warning:  1,
+        critical: 2
+    }
+
     class << self
       def generate_event(name, message, level = :warning)
-        status = case level
-                   when :warning
-                     1
-                   when :critical
-                     2
-                   else
-                     raise "Invalid alert level #{level}"
-                 end
+        status = LEVELS[level] or raise "Invalid alert level #{level}"
 
         event = {name: ExceptionHandling.sensu_prefix + name, output: message, status: status}
 
