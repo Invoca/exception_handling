@@ -314,8 +314,8 @@ EOF
       log_error(ex)
       begin
         ExceptionHandling::Sensu.generate_event(alert_name, ex.message)
-      rescue => ex
-        log_error(ex)
+      rescue => send_ex
+        log_error(send_ex)
       end
     end
 
