@@ -10,10 +10,10 @@ module ExceptionHandling
                    when :critical
                      2
                    else
-                     raise "Invalid alert level #{level.to_s}"
+                     raise "Invalid alert level #{level}"
                  end
 
-        event = {name: "#{ExceptionHandling.sensu_prefix}#{name}", output: message, status: status}
+        event = {name: ExceptionHandling.sensu_prefix + name, output: message, status: status}
 
         send_event(event)
       end
