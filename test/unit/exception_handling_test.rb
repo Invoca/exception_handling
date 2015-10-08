@@ -228,17 +228,17 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
-    context "ExceptionHandling.ensure_sensu" do
+    context "ExceptionHandling.ensure_alert" do
       should "log the exception as usual and fire a sensu event" do
         mock(ExceptionHandling::Sensu).generate_event("Favorite Feature", "blah")
         mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
-        ExceptionHandling.ensure_sensu( "Favorite Feature") { raise ArgumentError.new("blah") }
+        ExceptionHandling.ensure_alert( "Favorite Feature") { raise ArgumentError.new("blah") }
       end
 
       should "should not send sensu event if an exception is not raised." do
         dont_allow(ExceptionHandling.logger).fatal
         dont_allow(ExceptionHandling::Sensu).generate_event
-        ExceptionHandling.ensure_sensu('Ignored') { ; }
+        ExceptionHandling.ensure_alert('Ignored') { ; }
       end
 
       should "log if the sensu event could not be sent" do
@@ -247,7 +247,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           logger.fatal(/first_test_exception/)
           logger.fatal(/Failed to send/)
         end
-        ExceptionHandling.ensure_sensu("Not Used") { raise ArgumentError.new("first_test_exception") }
+        ExceptionHandling.ensure_alert("Not Used") { raise ArgumentError.new("first_test_exception") }
       end
     end
 

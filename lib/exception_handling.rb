@@ -309,21 +309,21 @@ EOF
       end
     end
 
-    def sensu_warning(exception_or_string, alert_name)
+    def alert_warning(exception_or_string, alert_name)
       ex = make_exception(exception_or_string)
       log_error(ex)
       begin
         ExceptionHandling::Sensu.generate_event(alert_name, ex.message)
       rescue => send_ex
-        log_error(send_ex, 'ExceptionHandling.sensu_warning')
+        log_error(send_ex, 'ExceptionHandling.alert_warning')
       end
     end
 
-    def ensure_sensu(alert_name)
+    def ensure_alert(alert_name)
       begin
         yield
       rescue => ex
-        sensu_warning(ex, alert_name)
+        alert_warning(ex, alert_name)
         nil
       end
     end
