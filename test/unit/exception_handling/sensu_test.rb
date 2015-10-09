@@ -26,7 +26,7 @@ module ExceptionHandling
       should "error if an invalid level is supplied" do
         dont_allow(ExceptionHandling::Sensu).send_event
 
-        assert_raise RuntimeError do
+        assert_raise(RuntimeError, "Invalid alert level") do
           ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye", :hair_on_fire)
         end
       end
