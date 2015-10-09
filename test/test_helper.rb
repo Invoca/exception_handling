@@ -55,6 +55,9 @@ class SocketStub
     @sent = []
   end
 
+  def closed?
+    !@connceted
+  end
 end
 
   ExceptionHandling.logger = LoggerStub.new

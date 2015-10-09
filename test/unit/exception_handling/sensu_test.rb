@@ -39,19 +39,11 @@ module ExceptionHandling
       end
 
       should "send event json to sensu client" do
-        mock(TCPSocket).new("127.0.0.1", 3030) { @socket }
+        mock.any_instance_of(Addrinfo).connect.with_any_args { @socket }
 
         ExceptionHandling::Sensu.send_event(@event)
 
         assert_equal @event.to_json, @socket.sent.first
-      end
-
-      should "close the socket after sending" do
-        mock(TCPSocket).new("127.0.0.1", 3030) { @socket }
-
-        ExceptionHandling::Sensu.send_event(@event)
-
-        assert_equal false, @socket.connected
       end
     end
   end

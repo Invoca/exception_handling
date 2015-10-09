@@ -11,15 +11,15 @@ module ExceptionHandling
       def generate_event(name, message, level = :warning)
         status = LEVELS[level] or raise "Invalid alert level #{level}"
 
-        event = {name: ExceptionHandling.sensu_prefix + name, output: message, status: status}
+        event = {name: ExceptionHandling.sensu_prefix.to_s + name, output: message, status: status}
 
         send_event(event)
       end
 
       def send_event(event)
-        s = TCPSocket.new(ExceptionHandling.sensu_host, ExceptionHandling.sensu_port)
-        s.send(event.to_json, 0)
-        s.close
+        Socket.tcp(ExceptionHandling.sensu_host, ExceptionHandling.sensu_port) do |sock|
+          sock.send(event.to_json, 0)
+        end
       end
     end
   end
