@@ -47,6 +47,16 @@ module ExceptionHandling
       end
     end
 
+    def alert_warning(*args)
+      ExceptionHandling.alert_warning(*args)
+    end
+
+    def ensure_alert(*args)
+      ExceptionHandling.ensure_alert(*args) do
+        yield
+      end
+    end
+
     # Store aside the current controller when included
     LONG_REQUEST_SECONDS = (defined?(Rails) && Rails.env == 'test' ? 300 : 30)
     def set_current_controller
