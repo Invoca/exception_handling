@@ -33,7 +33,32 @@ require 'exception_handling/testing'
     def clear
       @logged = []
     end
+ end
+
+class SocketStub
+  attr_accessor :sent, :connected
+
+  def initialize
+    @connected = true
+    clear
   end
+
+  def send(message, _flags)
+    sent << message
+  end
+
+  def close
+    @connected = false
+  end
+
+  def clear
+    @sent = []
+  end
+
+  def closed?
+    !@connceted
+  end
+end
 
   ExceptionHandling.logger = LoggerStub.new
 
@@ -67,6 +92,9 @@ class ActiveSupport::TestCase
     ExceptionHandling.filter_list_filename    = "./config/exception_filters.yml"
     ExceptionHandling.eventmachine_safe       = false
     ExceptionHandling.eventmachine_synchrony  = false
+    ExceptionHandling.sensu_host              = "127.0.0.1"
+    ExceptionHandling.sensu_port              = 3030
+    ExceptionHandling.sensu_prefix            = ""
   end
 
   teardown do

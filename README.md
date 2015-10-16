@@ -36,6 +36,9 @@ For example:
     ExceptionHandling.email_environment       = Rails.env
     ExceptionHandling.eventmachine_safe       = false
     ExceptionHandling.eventmachine_synchrony  = false
+    ExceptionHandling.sensu_host              = "127.0.0.1"
+    ExceptionHandling.sensu_port              = 3030
+    ExceptionHandling.sensu_prefix            = ""
 
 
 ## Usage

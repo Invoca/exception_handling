@@ -228,6 +228,29 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
+    context "ExceptionHandling.ensure_alert" do
+      should "log the exception as usual and fire a sensu event" do
+        mock(ExceptionHandling::Sensu).generate_event("Favorite Feature", "test context\nblah")
+        mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+        ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError.new("blah") }
+      end
+
+      should "should not send sensu event if an exception is not raised." do
+        dont_allow(ExceptionHandling.logger).fatal
+        dont_allow(ExceptionHandling::Sensu).generate_event
+        ExceptionHandling.ensure_alert('Ignored', 'test context') { ; }
+      end
+
+      should "log if the sensu event could not be sent" do
+        mock(ExceptionHandling::Sensu).send_event(anything) { raise "Failed to send" }
+        mock(ExceptionHandling.logger) do |logger|
+          logger.fatal(/first_test_exception/)
+          logger.fatal(/Failed to send/)
+        end
+        ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError.new("first_test_exception") }
+      end
+    end
+
     context "exception timestamp" do
       setup do
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
