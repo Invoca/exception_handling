@@ -493,15 +493,15 @@ EOF
     end
 
     def clean_backtrace(exception)
-      if exception.backtrace.nil?
+      backtrace = if exception.backtrace.nil?
         ['<no backtrace>']
       elsif exception.is_a?(ClientLoggingError)
         exception.backtrace
       elsif defined?(Rails)
         Rails.backtrace_cleaner.clean(exception.backtrace)
-      else
-        exception.backtrace
       end
+
+      backtrace || exception.backtrace
     end
 
     def clear_exception_summary
