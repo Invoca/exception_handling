@@ -632,50 +632,52 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "return entire backtrace if cleaned is emtpy" do
-      backtrace = ["/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/relation/finder_methods.rb:312:in `find_with_ids'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/relation/finder_methods.rb:107:in `find'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/querying.rb:5:in `__send__'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/querying.rb:5:in `find'",
-                   "/Library/Ruby/Gems/1.8/gems/shoulda-context-1.0.2/lib/shoulda/context/context.rb:398:in `call'",
-                   "/Library/Ruby/Gems/1.8/gems/shoulda-context-1.0.2/lib/shoulda/context/context.rb:398:in `test: Exception mapping should return entire backtrace if cleaned is emtpy. '",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/testing/setup_and_teardown.rb:72:in `__send__'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/testing/setup_and_teardown.rb:72:in `run'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:447:in `_run__1913317170__setup__4__callbacks'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:405:in `send'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:405:in `__run_callback'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:385:in `_run_setup_callbacks'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:81:in `send'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:81:in `run_callbacks'",
-                   "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/testing/setup_and_teardown.rb:70:in `run'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/testsuite.rb:34:in `run'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/testsuite.rb:33:in `each'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/testsuite.rb:33:in `run'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/ui/testrunnermediator.rb:46:in `old_run_suite'",
-                   "(eval):12:in `run_suite'",
-                   "/Applications/RubyMine.app/rb/testing/patch/testunit/test/unit/ui/teamcity/testrunner.rb:93:in `send'",
-                   "/Applications/RubyMine.app/rb/testing/patch/testunit/test/unit/ui/teamcity/testrunner.rb:93:in `start_mediator'",
-                   "/Applications/RubyMine.app/rb/testing/patch/testunit/test/unit/ui/teamcity/testrunner.rb:81:in `start'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/ui/testrunnerutilities.rb:29:in `run'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/autorunner.rb:12:in `run'",
-                   "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit.rb:279",
-                   "-e:1"]
+      begin
+        backtrace = ["/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/relation/finder_methods.rb:312:in `find_with_ids'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/relation/finder_methods.rb:107:in `find'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/querying.rb:5:in `__send__'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/querying.rb:5:in `find'",
+                     "/Library/Ruby/Gems/1.8/gems/shoulda-context-1.0.2/lib/shoulda/context/context.rb:398:in `call'",
+                     "/Library/Ruby/Gems/1.8/gems/shoulda-context-1.0.2/lib/shoulda/context/context.rb:398:in `test: Exception mapping should return entire backtrace if cleaned is emtpy. '",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/testing/setup_and_teardown.rb:72:in `__send__'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/testing/setup_and_teardown.rb:72:in `run'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:447:in `_run__1913317170__setup__4__callbacks'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:405:in `send'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:405:in `__run_callback'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:385:in `_run_setup_callbacks'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:81:in `send'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/callbacks.rb:81:in `run_callbacks'",
+                     "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activesupport/lib/active_support/testing/setup_and_teardown.rb:70:in `run'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/testsuite.rb:34:in `run'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/testsuite.rb:33:in `each'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/testsuite.rb:33:in `run'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/ui/testrunnermediator.rb:46:in `old_run_suite'",
+                     "(eval):12:in `run_suite'",
+                     "/Applications/RubyMine.app/rb/testing/patch/testunit/test/unit/ui/teamcity/testrunner.rb:93:in `send'",
+                     "/Applications/RubyMine.app/rb/testing/patch/testunit/test/unit/ui/teamcity/testrunner.rb:93:in `start_mediator'",
+                     "/Applications/RubyMine.app/rb/testing/patch/testunit/test/unit/ui/teamcity/testrunner.rb:81:in `start'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/ui/testrunnerutilities.rb:29:in `run'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/autorunner.rb:12:in `run'",
+                     "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit.rb:279",
+                     "-e:1"]
 
-      module ::Rails
-        class BacktraceCleaner
-          def clean(_backtrace)
-            []
+        module ::Rails
+          class BacktraceCleaner
+            def clean(_backtrace)
+              []
+            end
           end
         end
+
+        mock(Rails).backtrace_cleaner { Rails::BacktraceCleaner.new }
+
+        ex = Exception.new
+        ex.set_backtrace(backtrace)
+        result = ExceptionHandling.send(:clean_backtrace, ex)
+        assert_equal backtrace, result
+      ensure
+        Object.send(:remove_const, :Rails)
       end
-
-      mock(Rails).backtrace_cleaner { Rails::BacktraceCleaner.new }
-
-      ex = Exception.new
-      ex.set_backtrace(backtrace)
-      result = ExceptionHandling.send(:clean_backtrace, ex)
-      assert_equal backtrace, result
-
-      Object.send(:remove_const, :Rails)
     end
 
     should "clean params" do
