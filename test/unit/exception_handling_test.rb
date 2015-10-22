@@ -674,6 +674,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       ex.set_backtrace(backtrace)
       result = ExceptionHandling.send(:clean_backtrace, ex)
       assert_equal backtrace, result
+
+      Object.send(:remove_const, :Rails)
     end
 
     should "clean params" do
