@@ -499,6 +499,8 @@ EOF
         exception.backtrace
       elsif defined?(Rails)
         Rails.backtrace_cleaner.clean(exception.backtrace)
+      else
+        exception.backtrace
       end
 
       # The rails backtrace cleaner returns an empty array for a backtrace if the exception was raised outside the app (inside a gem for instance)
