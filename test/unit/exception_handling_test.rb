@@ -659,6 +659,17 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                    "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit/autorunner.rb:12:in `run'",
                    "/System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/lib/ruby/1.8/test/unit.rb:279",
                    "-e:1"]
+
+      module ::Rails
+        class BacktraceCleaner
+          def clean(_backtrace)
+            []
+          end
+        end
+      end
+
+      mock(Rails).backtrace_cleaner { Rails::BacktraceCleaner.new }
+
       ex = Exception.new
       ex.set_backtrace(backtrace)
       result = ExceptionHandling.send(:clean_backtrace, ex)

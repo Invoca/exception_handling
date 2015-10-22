@@ -501,7 +501,12 @@ EOF
         Rails.backtrace_cleaner.clean(exception.backtrace)
       end
 
-      backtrace || exception.backtrace
+      # The rails backtrace cleaner returns an empty array for a backtrace if the exception was raised outside the app (inside a gem for instance)
+      if backtrace.is_a?(Array) && backtrace.empty?
+        exception.backtrace
+      else
+        backtrace
+      end
     end
 
     def clear_exception_summary
