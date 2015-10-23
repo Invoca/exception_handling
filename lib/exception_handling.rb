@@ -493,7 +493,7 @@ EOF
     end
 
     def clean_backtrace(exception)
-      if exception.backtrace.nil?
+      backtrace = if exception.backtrace.nil?
         ['<no backtrace>']
       elsif exception.is_a?(ClientLoggingError)
         exception.backtrace
@@ -501,6 +501,13 @@ EOF
         Rails.backtrace_cleaner.clean(exception.backtrace)
       else
         exception.backtrace
+      end
+
+      # The rails backtrace cleaner returns an empty array for a backtrace if the exception was raised outside the app (inside a gem for instance)
+      if backtrace.is_a?(Array) && backtrace.empty?
+        exception.backtrace
+      else
+        backtrace
       end
     end
 
