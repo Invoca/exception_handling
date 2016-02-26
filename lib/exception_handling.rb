@@ -171,6 +171,8 @@ EOF
       custom_description = ""
       write_exception_to_log(exception, custom_description, timestamp)
 
+      send_exception_to_honeybadger(exception)
+
       if should_send_email?
         controller = env['action_controller.instance']
         # controller may not exist in some cases (like most 404 errors)
@@ -201,6 +203,8 @@ EOF
         end
 
         write_exception_to_log(ex, exception_context, timestamp)
+
+        send_exception_to_honeybadger(ex)
 
         if treat_as_local
           return
@@ -240,6 +244,15 @@ EOF
     def write_exception_to_log(ex, exception_context, timestamp)
       ActiveSupport::Deprecation.silence do
         ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
+      end
+    end
+
+    #
+    # Log exception to honeybadger.io.
+    #
+    def send_exception_to_honeybadger(ex)
+      if Object.const_defined?('Honeybadger')
+        Honeybadger.notify(ex)
       end
     end
 

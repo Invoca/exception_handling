@@ -360,6 +360,26 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
+    context "Honeybadger integration" do
+      setup do
+        class ::Honeybadger
+          def self.notify(exception)
+            "Honeybadger notify."
+          end
+        end
+      end
+
+      should "invoke send_exception_to_honeybadger when log_error is executed" do
+        ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+        ExceptionHandling.log_error(exception_1)
+      end
+
+      should "send exception to Honeybadger when send_exception_to_honeybadger is executed" do
+        Honeybadger.expects(:notify).times(1)
+        ExceptionHandling.log_error(exception_1)
+      end
+    end
+
     class EventResponse
       def to_s
         "message from to_s!"
