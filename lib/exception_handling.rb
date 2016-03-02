@@ -171,7 +171,10 @@ EOF
       custom_description = ""
       write_exception_to_log(exception, custom_description, timestamp)
 
-      send_exception_to_honeybadger(exception)
+      if honeybadger?
+        honeybadger_filter_exceptions
+        send_exception_to_honeybadger(exception, nil, timestamp)
+      end
 
       if should_send_email?
         controller = env['action_controller.instance']
@@ -204,7 +207,10 @@ EOF
 
         write_exception_to_log(ex, exception_context, timestamp)
 
-        send_exception_to_honeybadger(ex)
+        if honeybadger?
+          honeybadger_filter_exceptions
+          send_exception_to_honeybadger(ex, exception_context, timestamp)
+        end
 
         if treat_as_local
           return
@@ -250,10 +256,27 @@ EOF
     #
     # Log exception to honeybadger.io.
     #
-    def send_exception_to_honeybadger(ex)
-      if Object.const_defined?('Honeybadger')
-        Honeybadger.notify(ex)
+    def send_exception_to_honeybadger(ex, exception_context, timestamp)
+      custom_message = "Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ")
+      Honeybadger.notify(ex, context: { custom_message: custom_message })
+    end
+
+    #
+    # Filter exceptions sent to honeybadger.io.
+    # Only exceptions treated with ExceptionHandling should be sent.
+    #
+    def honeybadger_filter_exceptions
+      Honeybadger.exception_filter do |notice|
+        caller_path = notice.backtrace.to_a[0][:file]
+        File.basename(caller_path) == "exception_handling.rb"
       end
+    end
+
+    #
+    # Check if Honeybadger defined.
+    #
+    def honeybadger?
+      Object.const_defined?("Honeybadger")
     end
 
     #

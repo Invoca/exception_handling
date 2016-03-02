@@ -361,22 +361,24 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "Honeybadger integration" do
-      setup do
-        class ::Honeybadger
-          def self.notify(exception)
-            "Honeybadger notify."
-          end
+      context "with Honeybadger not defined" do
+        should "not send exception to Honeybadger when send_exception_to_honeybadger is executed" do
+          ExceptionHandling.expects(:honeybadger_filter_exceptions).times(0)
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          ExceptionHandling.log_error(exception_1)
         end
       end
 
-      should "invoke send_exception_to_honeybadger when log_error is executed" do
-        ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
-        ExceptionHandling.log_error(exception_1)
-      end
+      context "with Honeybadger defined" do
+        setup do
+          stub(ExceptionHandling).honeybadger? { true }
+        end
 
-      should "send exception to Honeybadger when send_exception_to_honeybadger is executed" do
-        Honeybadger.expects(:notify).times(1)
-        ExceptionHandling.log_error(exception_1)
+        should "invoke send_exception_to_honeybadger when log_error is executed" do
+          ExceptionHandling.expects(:honeybadger_filter_exceptions).times(1)
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          ExceptionHandling.log_error(exception_1)
+        end
       end
     end
 
