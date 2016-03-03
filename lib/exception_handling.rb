@@ -172,7 +172,6 @@ EOF
       write_exception_to_log(exception, custom_description, timestamp)
 
       if honeybadger?
-        honeybadger_filter_exceptions
         send_exception_to_honeybadger(exception, nil, timestamp)
       end
 
@@ -208,7 +207,6 @@ EOF
         write_exception_to_log(ex, exception_context, timestamp)
 
         if honeybadger?
-          honeybadger_filter_exceptions
           send_exception_to_honeybadger(ex, exception_context, timestamp)
         end
 
@@ -257,19 +255,8 @@ EOF
     # Log exception to honeybadger.io.
     #
     def send_exception_to_honeybadger(ex, exception_context, timestamp)
-      custom_message = "Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ")
+      custom_message = "(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}): " + clean_backtrace(ex).join(" ")
       Honeybadger.notify(ex, context: { custom_message: custom_message })
-    end
-
-    #
-    # Filter exceptions sent to honeybadger.io.
-    # Only exceptions treated with ExceptionHandling should be sent.
-    #
-    def honeybadger_filter_exceptions
-      Honeybadger.exception_filter do |notice|
-        caller_path = notice.backtrace.to_a[0][:file]
-        File.basename(caller_path) == "exception_handling.rb"
-      end
     end
 
     #

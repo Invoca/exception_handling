@@ -362,10 +362,14 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     context "Honeybadger integration" do
       context "with Honeybadger not defined" do
-        should "not send exception to Honeybadger when send_exception_to_honeybadger is executed" do
-          ExceptionHandling.expects(:honeybadger_filter_exceptions).times(0)
+        should "not invoke send_exception_to_honeybadger when log_error is executed" do
           ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
           ExceptionHandling.log_error(exception_1)
+        end
+
+        should "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          ExceptionHandling.ensure_safe { raise exception_1 }
         end
       end
 
@@ -375,9 +379,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "invoke send_exception_to_honeybadger when log_error is executed" do
-          ExceptionHandling.expects(:honeybadger_filter_exceptions).times(1)
           ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.log_error(exception_1)
+        end
+
+        should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          ExceptionHandling.ensure_safe { raise exception_1 }
         end
       end
     end
