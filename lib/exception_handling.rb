@@ -171,6 +171,10 @@ EOF
       custom_description = ""
       write_exception_to_log(exception, custom_description, timestamp)
 
+      if honeybadger?
+        send_exception_to_honeybadger(exception, nil, timestamp)
+      end
+
       if should_send_email?
         controller = env['action_controller.instance']
         # controller may not exist in some cases (like most 404 errors)
@@ -201,6 +205,10 @@ EOF
         end
 
         write_exception_to_log(ex, exception_context, timestamp)
+
+        if honeybadger?
+          send_exception_to_honeybadger(ex, exception_context, timestamp)
+        end
 
         if treat_as_local
           return
@@ -241,6 +249,21 @@ EOF
       ActiveSupport::Deprecation.silence do
         ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
       end
+    end
+
+    #
+    # Log exception to honeybadger.io.
+    #
+    def send_exception_to_honeybadger(ex, exception_context, timestamp)
+      custom_message = "(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}): " + clean_backtrace(ex).join(" ")
+      Honeybadger.notify(ex, context: { custom_message: custom_message })
+    end
+
+    #
+    # Check if Honeybadger defined.
+    #
+    def honeybadger?
+      Object.const_defined?("Honeybadger")
     end
 
     #

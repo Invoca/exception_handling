@@ -360,6 +360,36 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
+    context "Honeybadger integration" do
+      context "with Honeybadger not defined" do
+        should "not invoke send_exception_to_honeybadger when log_error is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          ExceptionHandling.log_error(exception_1)
+        end
+
+        should "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          ExceptionHandling.ensure_safe { raise exception_1 }
+        end
+      end
+
+      context "with Honeybadger defined" do
+        setup do
+          stub(ExceptionHandling).honeybadger? { true }
+        end
+
+        should "invoke send_exception_to_honeybadger when log_error is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          ExceptionHandling.log_error(exception_1)
+        end
+
+        should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          ExceptionHandling.ensure_safe { raise exception_1 }
+        end
+      end
+    end
+
     class EventResponse
       def to_s
         "message from to_s!"
