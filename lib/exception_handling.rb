@@ -247,7 +247,7 @@ EOF
     #
     def write_exception_to_log(ex, exception_context, timestamp)
       ActiveSupport::Deprecation.silence do
-        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
+        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
       end
     end
 
@@ -255,7 +255,7 @@ EOF
     # Log exception to honeybadger.io.
     #
     def send_exception_to_honeybadger(ex, exception_context, timestamp)
-      custom_message = "(Error:#{timestamp}) #{ex.class} #{exception_context} (#{ex.message}): " + clean_backtrace(ex).join(" ")
+      custom_message = "(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message)}): " + clean_backtrace(ex).join(" ")
       Honeybadger.notify(ex, context: { custom_message: custom_message })
     end
 
@@ -336,7 +336,7 @@ EOF
       ex = make_exception(exception_or_string)
       log_error(ex, exception_context)
       begin
-        ExceptionHandling::Sensu.generate_event(alert_name, exception_context.to_s + "\n" + ex.message.to_s)
+        ExceptionHandling::Sensu.generate_event(alert_name, exception_context.to_s + "\n" + encode_utf8(ex.message.to_s))
       rescue => send_ex
         log_error(send_ex, 'ExceptionHandling.alert_warning')
       end
@@ -383,7 +383,7 @@ EOF
         ExceptionHandling.custom_data_hook.call(data)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        log_info( "Unable to execute custom custom_data_hook callback. #{ex.message} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+        log_info( "Unable to execute custom custom_data_hook callback. #{encode_utf8(ex.message)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
       end
     end
 
@@ -417,7 +417,7 @@ EOF
         ExceptionHandling.post_log_error_hook.call(exception_data, exception)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        log_info( "Unable to execute custom log_error callback. #{ex.message} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+        log_info( "Unable to execute custom log_error callback. #{encode_utf8(ex.message)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
       end
     end
 
@@ -598,13 +598,13 @@ EOF
     def exception_to_data( exception, exception_context, timestamp )
       data = ActiveSupport::HashWithIndifferentAccess.new
       data[:error_class] = exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{exception.message}"
+      data[:error_string]= "#{data[:error_class]}: #{encode_utf8(exception.message)}"
       data[:timestamp]   = timestamp
       data[:backtrace]   = clean_backtrace(exception)
       if exception_context && exception_context.is_a?(Hash)
         # if we are a hash, then we got called from the DebugExceptions rack middleware filter
         # and we need to do some things different to get the info we want
-        data[:error] = "#{data[:error_class]}: #{exception.message}"
+        data[:error] = "#{data[:error_class]}: #{encode_utf8(exception.message)}"
         data[:session] = exception_context['rack.session']
         data[:environment] = exception_context
       else
@@ -640,6 +640,13 @@ EOF
         end
       end unless h.nil?
       result
+    end
+
+    def encode_utf8(string)
+      string.encode('UTF-8',
+                    replace: '?',
+                    undef:   :replace,
+                    invalid: :replace)
     end
   end
 end
