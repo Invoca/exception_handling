@@ -431,19 +431,23 @@ EOF
         EventMachine.schedule do # in case we're running outside the reactor
           async_send_method = ExceptionHandling.eventmachine_synchrony ? :asend : :send
           smtp_settings = ActionMailer::Base.smtp_settings
-          send_deferrable = EventMachine::Protocols::SmtpClient.__send__(
-              async_send_method,
-              {
-                :host     => smtp_settings[:address],
-                :port     => smtp_settings[:port],
-                :domain   => smtp_settings[:domain],
-                :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
-                :from     => mail_object['from'].to_s,
-                :to       => mail_object['to'].to_s,
-                :content     => "#{mail_object}\r\n.\r\n"
-              }
-          )
-          send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
+          dns_deferrable = EventMachine::DNS::Resolver.resolve(smtp_settings[:address])
+          dns_deferrable.callback do |addrs|
+            send_deferrable = EventMachine::Protocols::SmtpClient.__send__(
+                async_send_method,
+                {
+                  :host     => addrs.first,
+                  :port     => smtp_settings[:port],
+                  :domain   => smtp_settings[:domain],
+                  :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
+                  :from     => mail_object['from'].to_s,
+                  :to       => mail_object['to'].to_s,
+                  :content     => "#{mail_object}\r\n.\r\n"
+                }
+            )
+            send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
+          end
+          dns_deferrable.errback  { |err| ExceptionHandling.logger.fatal("Failed to resolv DNS for #{smtp_settings[:address]}: #{err.inspect}") }
         end
       else
         safe_email_deliver do

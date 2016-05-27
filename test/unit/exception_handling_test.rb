@@ -16,6 +16,25 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
   end
 
+  class DNSResolvStub
+    class << self
+      attr_accessor :callback_block
+      attr_accessor :errback_block
+
+      def resolve(hostname)
+        self
+      end
+
+      def callback(&block)
+        @callback_block = block
+      end
+
+      def errback(&block)
+        @errback_block = block
+      end
+    end
+  end
+
   class SmtpClientStub
     class << self
       attr_reader :block
@@ -550,7 +569,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       EXPECTED_SMTP_HASH =
           {
-              :host   => 'localhost',
+              :host   => '127.0.0.1',
               :domain => 'localhost.localdomain',
               :from   => 'server@example.com',
               :to     => 'exceptions@example.com'
@@ -564,6 +583,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             EventMachineStub.block = nil
             set_test_const('EventMachine', EventMachineStub)
             set_test_const('EventMachine::Protocols', Module.new)
+            set_test_const('EventMachine::DNS', Module.new)
+            set_test_const('EventMachine::DNS::Resolver', DNSResolvStub)
           end
 
           teardown do
@@ -577,6 +598,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             ExceptionHandling.log_error(exception_1)
             assert EventMachineStub.block
             EventMachineStub.block.call
+            assert DNSResolvStub.callback_block
+            DNSResolvStub.callback_block.call ['127.0.0.1']
             assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientStub.send_hash.inspect
             assert_equal((synchrony_flag ? :asend : :send), SmtpClientStub.last_method)
             assert_match(/Exception 1/, SmtpClientStub.send_hash[:content])
@@ -588,6 +611,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             ExceptionHandling.log_error(exception_1)
             assert EventMachineStub.block
             EventMachineStub.block.call
+            assert DNSResolvStub.callback_block
+            DNSResolvStub.callback_block.call ['127.0.0.1']
             assert content = SmtpClientStub.send_hash[:content]
             assert_match(/Content-Transfer-Encoding: 7bit/, content)
             assert_match(/\r\n\.\r\n\z/, content)
@@ -602,9 +627,22 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             ExceptionHandling.log_error(exception_1)
             assert EventMachineStub.block
             EventMachineStub.block.call
+            assert DNSResolvStub.callback_block
+            DNSResolvStub.callback_block.call(['127.0.0.1'])
             SmtpClientErrbackStub.block.call("credential mismatch")
             assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientErrbackStub.send_hash.inspect
             #assert_emails 0, ActionMailer::Base.deliveries.*.to_s
+          end
+
+          should "log fatal on EventMachine dns resolver errback" do
+            assert_emails 0, ActionMailer::Base.deliveries.*.to_s
+            mock(ExceptionHandling.logger).fatal(/Exception 1/)
+            mock(ExceptionHandling.logger).fatal(/Failed to resolv DNS for localhost: "softlayer sucks"/)
+
+            ExceptionHandling.log_error(exception_1)
+            assert EventMachineStub.block
+            EventMachineStub.block.call
+            DNSResolvStub.errback_block.call("softlayer sucks")
           end
         end
       end
