@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', '~> 3.2'
   spec.add_dependency 'actionpack', '~> 3.2'
   spec.add_dependency 'actionmailer', '~> 3.2'
-  spec.add_dependency 'invoca-utils', '~> 0.0.2'
+  spec.add_dependency 'invoca-utils', '0.0.3'
   spec.add_dependency 'hobo_support'
 
   spec.add_development_dependency 'rake', '>=0.9'
