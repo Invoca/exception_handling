@@ -132,8 +132,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
       
       should "log an exception with call stack if an ActionView template exception is raised." do
-        mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n  <no backtrace>/)
-        ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, {}, ArgumentError.new("blah")) }
+        mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /)
+        ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
       end
 
       should "should not log an exception if an exception is not raised." do
