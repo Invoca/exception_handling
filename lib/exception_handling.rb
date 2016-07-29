@@ -172,7 +172,7 @@ EOF
       write_exception_to_log(exception, custom_description, timestamp)
 
       if honeybadger?
-        send_exception_to_honeybadger(exception, nil, timestamp)
+        send_exception_to_honeybadger(ex, exception_data, nil, timestamp)
       end
 
       if should_send_email?
@@ -207,7 +207,7 @@ EOF
         write_exception_to_log(ex, exception_context, timestamp)
 
         if honeybadger?
-          send_exception_to_honeybadger(ex, exception_context, timestamp)
+          send_exception_to_honeybadger(ex, data, exception_context, timestamp)
         end
 
         if treat_as_local
@@ -254,9 +254,13 @@ EOF
     #
     # Log exception to honeybadger.io.
     #
-    def send_exception_to_honeybadger(ex, exception_context, timestamp)
-      custom_message = "(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message)}): " + clean_backtrace(ex).join(" ")
-      Honeybadger.notify(ex, context: { custom_message: custom_message })
+    def send_exception_to_honeybadger(ex, exception_data, exception_context, timestamp)
+      exception_description = exception_catalog.find(exception_data)
+      custom_message = "(Error:#{timestamp}) #{exception_data[:error_class]} #{exception_context} (#{exception_data[:error_string]}): " + exception_data[:backtrace].join(" ")
+      Honeybadger.notify(error_class:   exception_description ? exception_description.filter_name : ex.class.name,
+                         error_message: ex.message,
+                         exception:     ex,
+                         context:       { custom_message: custom_message })
     end
 
     #

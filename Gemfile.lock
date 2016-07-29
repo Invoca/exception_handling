@@ -9,7 +9,7 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (1.2.2)
+    exception_handling (1.2.3)
       actionmailer (~> 4.0.13)
       actionpack (~> 4.0.13)
       activesupport (~> 4.0.13)
