@@ -130,7 +130,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
         ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
       end
-      
+
       should "log an exception with call stack if an ActionView template exception is raised." do
         mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n  <no backtrace>/)
         ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, {}, ArgumentError.new("blah")) }
@@ -400,6 +400,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "invoke send_exception_to_honeybadger when log_error is executed" do
           ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.log_error(exception_1)
+        end
+
+        should "invoke send_exception_to_honeybadger when log_error_rack is executed" do
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          ExceptionHandling.log_error_rack(exception_1, {}, nil)
         end
 
         should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
