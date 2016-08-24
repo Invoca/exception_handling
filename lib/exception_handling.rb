@@ -172,7 +172,7 @@ EOF
       write_exception_to_log(exception, custom_description, timestamp)
 
       if honeybadger?
-        send_exception_to_honeybadger(ex, exception_data, nil, timestamp)
+        send_exception_to_honeybadger(exception, exception_data, nil, timestamp)
       end
 
       if should_send_email?
