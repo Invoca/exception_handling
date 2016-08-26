@@ -599,7 +599,7 @@ EOF
       exception_context = exception_data[:environment]
       exception_or_string = exception_data[:error_string]
       $stderr.puts("ExceptionHandling.log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
-      log_error(ex, "ExceptionHandling::log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}", nil, true)
+      log_info(ex, "ExceptionHandling::log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}", nil, true)
     end
 
     def add_to_s( data_section )
