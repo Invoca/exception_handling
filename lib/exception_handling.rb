@@ -387,7 +387,8 @@ EOF
         ExceptionHandling.custom_data_hook.call(data)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        log_info( "Unable to execute custom custom_data_hook callback. #{encode_utf8(ex.message)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+        traces = ex.backtrace.map{ |l| "#{l}\n" }.join
+        log_info( "Unable to execute custom custom_data_hook callback. #{encode_utf8(ex.message)} #{traces}" )
       end
     end
 
@@ -595,8 +596,10 @@ EOF
         deliver(ExceptionHandling::Mailer.exception_notification(exception_data, first_seen, occurrences))
       end
     rescue StandardError, MailerTimeout => ex
-      $stderr.puts("ExceptionHandling.log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
-      log_error(ex, "ExceptionHandling::log_error_email rescued exception while logging #{exception_context}: #{exception_or_string}", nil, true)
+      original_error = exception_data[:error_string]
+      log_prefix = "ExceptionHandling.log_error_email rescued exception while logging #{original_error}"
+      $stderr.puts("#{log_prefix}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      log_info(log_prefix)
     end
 
     def add_to_s( data_section )

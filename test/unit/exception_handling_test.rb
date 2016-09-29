@@ -66,6 +66,22 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   class SmtpClientErrbackStub < SmtpClientStub
   end
 
+  context "#log_error" do
+    setup do
+      ExceptionHandling.mailer_send_enabled = true
+    end
+
+    should "log the info and not raise another exception when sending email fails" do
+      9.times { ExceptionHandling.log_error('SomeError', 'Error Context') }
+      mock(ExceptionHandling::Mailer).exception_notification(anything, anything, anything) { raise 'An Error' }
+      mock(ExceptionHandling.logger) do |logger|
+        logger.info(/ExceptionHandling.log_error_email rescued exception while logging StandardError: SomeError/)
+      end
+      stub($stderr).puts
+      ExceptionHandling.log_error('SomeError', 'Error Context')
+    end
+  end
+
   context "configuration" do
     def append_organization_info_config(data)
       begin
