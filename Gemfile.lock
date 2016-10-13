@@ -1,18 +1,18 @@
 GIT
   remote: git@github.com:Invoca/hobosupport
-  revision: ca34a7186622d6360491d8d2bc2e0d02ec7217f7
-  ref: ca34a7186622d6360491d8d2bc2e0d02ec7217f7
+  revision: 38006a80d32c594ff765951c4c0552c574b8d9cf
+  ref: 38006a80d32c594ff765951c4c0552c574b8d9cf
   specs:
     hobo_support (2.0.1)
-      rails (~> 4.0.13)
+      rails (~> 4.0)
 
 PATH
   remote: .
   specs:
-    exception_handling (1.2.3)
-      actionmailer (~> 4.0.13)
-      actionpack (~> 4.0.13)
-      activesupport (~> 4.0.13)
+    exception_handling (1.2.5)
+      actionmailer (~> 4.0)
+      actionpack (~> 4.0)
+      activesupport (~> 4.0)
       eventmachine (>= 0.12.10)
       hobo_support
       invoca-utils (~> 0.0.2)
@@ -104,10 +104,6 @@ GEM
       sprockets (>= 2.8, < 4.0)
     thor (0.19.1)
     thread_safe (0.3.5)
-    tilt (1.4.1)
-    treetop (1.4.15)
-      polyglot
-      polyglot (>= 0.3.1)
     tzinfo (0.3.51)
 
 PLATFORMS
@@ -120,3 +116,6 @@ DEPENDENCIES
   rake (>= 0.9)
   rr
   shoulda (= 3.1.1)
+
+BUNDLED WITH
+   1.12.5
