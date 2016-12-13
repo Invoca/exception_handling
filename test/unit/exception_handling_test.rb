@@ -6,6 +6,29 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     true
   end
 
+  def log_error_callback(data, ex)
+    @fail_count += 1
+  end
+
+  def log_error_callback_config(data, ex)
+    @callback_data = data
+    @fail_count += 1
+  end
+
+  def log_error_callback_with_failure(data, ex)
+    raise "this should be rescued"
+  end
+
+  def append_organization_info_config(data)
+    begin
+      data[:user_details]                = {}
+      data[:user_details][:username]     = "CaryP"
+      data[:user_details][:organization] = "Invoca Engineering Dept."
+    rescue Exception => e
+      # don't let these out!
+    end
+  end
+
   module EventMachineStub
     class << self
       attr_accessor :block
@@ -83,25 +106,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   context "configuration" do
-    def append_organization_info_config(data)
-      begin
-        data[:user_details]                = {}
-        data[:user_details][:username]     = "CaryP"
-        data[:user_details][:organization] = "Invoca Engineering Dept."
-      rescue Exception => e
-        # don't let these out!
-      end
-    end
-
-    def log_error_callback_config(data, ex)
-      @callback_data = data
-      @fail_count += 1
-    end
-
-    def log_error_callback_with_failure(data, ex)
-      raise "this should be rescued"
-    end
-
     setup do
       @fail_count = 0
     end
@@ -290,11 +294,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       setup do
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
       end
-
-      def log_error_callback(data, ex)
-        @fail_count += 1
-      end
-
 
       should "include the timestamp when the exception is logged" do
         mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/)

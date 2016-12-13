@@ -1,6 +1,7 @@
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
+require 'rails'
 
 require 'invoca/utils'
 
