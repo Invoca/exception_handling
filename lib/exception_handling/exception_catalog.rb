@@ -22,6 +22,7 @@ module ExceptionHandling
       end
 
     rescue => ex # any exceptions
+      # DO NOT CALL ExceptionHandling.log_error because this method is called from that.  It can loop and cause mayhem.
       ExceptionHandling.write_exception_to_log(ex, "ExceptionRegexes::refresh_filters: #{@filter_path}", Time.now.to_i)
     end
 
