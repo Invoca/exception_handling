@@ -22,7 +22,7 @@ module ExceptionHandling
       end
 
     rescue => ex # any exceptions
-      ExceptionHandling::log_error(ex, "ExceptionRegexes::refresh_filters: #{@filter_path}", nil, true)
+      ExceptionHandling.write_exception_to_log(ex, "ExceptionRegexes::refresh_filters: #{@filter_path}", Time.now.to_i)
     end
 
     def load_file
