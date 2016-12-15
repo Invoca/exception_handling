@@ -58,7 +58,7 @@ module ExceptionHandling
     end
 
     # Store aside the current controller when included
-    LONG_REQUEST_SECONDS = (defined?(Rails) && Rails.env == 'test' ? 300 : 30)
+    LONG_REQUEST_SECONDS = (defined?(Rails) && Rails.respond_to?(:env) && Rails.env == 'test' ? 300 : 30)
     def set_current_controller
       ExceptionHandling.current_controller = self
       result = nil
