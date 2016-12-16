@@ -3,9 +3,6 @@ require File.expand_path('../../../test_helper',  __FILE__)
 module ExceptionHandling
   class MailerTest < ActionMailer::TestCase
 
-    require 'assert_select_compatibility_overrides'
-    include AssertSelectCompatibilityOverrides
-
     if ::Rails.const_defined?(:Dom)
       include ::Rails::Dom::Testing::Assertions::SelectorAssertions
     else
@@ -55,8 +52,8 @@ module ExceptionHandling
           assert_equal_with_diff ['test_escalation@invoca.com'], result.to
           assert_equal ["Test Escalation Mailer <null_escalation@invoca.com>"], result[:from].formatted
           assert_equal "Staging Full Escalation: Your Favorite <b>Feature<b> Failed", result.subject
+          assert_select "title", "Exception Escalation"
           assert_select body_html.root, "html" do
-            assert_select "title", "Exception Escalation"
             assert_select "body br", { :count => 4 }, result.body.to_s # plus 1 for the multiline summary
             assert_select "body h3", "Your Favorite &lt;b&gt;Feature&lt;b&gt; Failed", result.body.to_s
             assert_select "body", /1234567/

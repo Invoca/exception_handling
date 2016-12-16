@@ -6,13 +6,6 @@ GIT
     hobo_support (2.0.1)
       rails (~> 4.0)
 
-GIT
-  remote: git@github.com:Invoca/test_overrides
-  revision: 2e2300348a19e67f9772882a36e495d12dbd7cac
-  ref: 2e2300348a19e67f9772882a36e495d12dbd7cac
-  specs:
-    test_overrides (0.8.13)
-
 PATH
   remote: .
   specs:
@@ -153,7 +146,6 @@ DEPENDENCIES
   rake (>= 0.9)
   rr
   shoulda (= 3.1.1)
-  test_overrides (~> 0.8.13)!
 
 BUNDLED WITH
    1.12.5
