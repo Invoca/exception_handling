@@ -23,9 +23,6 @@ module ExceptionHandling # never included
   SUMMARY_THRESHOLD = 5
   SUMMARY_PERIOD = 60*60 # 1.hour
 
-  SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-  HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response]
-
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION','X-HTTP_AUTHORIZATION','X_HTTP_AUTHORIZATION','REDIRECT_X_HTTP_AUTHORIZATION']
 
   class << self
@@ -201,17 +198,11 @@ module ExceptionHandling # never included
         log_info("Filtered exception using '#{exception_description.filter_name}'; not sending notification to Honeybadger")
         return
       end
-      data = exception_info.enhanced_data
-      context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
-        if data[section].present?
-          context[section] = data[section]
-        end
-        context
-      end
+
       Honeybadger.notify(error_class:   exception_description ? exception_description.filter_name : ex.class.name,
                          error_message: ex.message,
                          exception:     ex,
-                         context:       context_data)
+                         context:       exception_info.honeybadger_context_data)
     end
 
     #
@@ -219,24 +210,6 @@ module ExceptionHandling # never included
     #
     def honeybadger?
       Object.const_defined?("Honeybadger")
-    end
-
-    #
-    # Pull certain fields out of the controller and add to the data hash.
-    #
-    def extract_and_merge_controller_data(controller, data)
-      data[:request] = {
-        :params      => controller.request.parameters.to_hash,
-        :rails_root  => defined?(Rails) ? Rails.root : "Rails.root not defined. Is this a test environment?",
-        :url         => controller.complete_request_uri
-      }
-      data[:environment].merge!(controller.request.env.to_hash)
-
-      controller.session[:fault_in_session]
-      data[:session] = {
-        :key         => controller.request.session_options[:id],
-        :data        => controller.session.dup
-      }
     end
 
     def log_warning( message )
@@ -332,17 +305,6 @@ module ExceptionHandling # never included
       end
     end
 
-    def enhance_exception_data(data)
-      return if ! ExceptionHandling.custom_data_hook
-      begin
-        ExceptionHandling.custom_data_hook.call(data)
-      rescue Exception => ex
-        # can't call log_error here or we will blow the call stack
-        traces = ex.backtrace.map{ |l| "#{l}\n" }.join
-        log_info( "Unable to execute custom custom_data_hook callback. #{encode_utf8(ex.message)} #{traces}" )
-      end
-    end
-
     def encode_utf8(string)
       string.encode('UTF-8',
                     replace: '?',
@@ -398,8 +360,8 @@ module ExceptionHandling # never included
     end
 
     def escalate( email_subject, ex, timestamp )
-      data = exception_to_data( ex, nil, timestamp )
-      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, data))
+      exception_info = ExceptionInfo.new(ex, nil, timestamp)
+      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
     end
 
     def deliver(mail_object)
@@ -439,60 +401,6 @@ module ExceptionHandling # never included
     rescue StandardError, MailerTimeout => ex
       #$stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
-    end
-
-    def clean_exception_data( data )
-      if (as_array = data[:backtrace].to_a).size == 1
-        data[:backtrace] = as_array.first.to_s.split(/\n\s*/)
-      end
-
-      if data[:request].is_a?(Hash) && data[:request][:params].is_a?(Hash)
-        data[:request][:params] = clean_params(data[:request][:params])
-      end
-
-      if data[:environment].is_a?(Hash)
-        data[:environment] = clean_environment(data[:environment])
-      end
-    end
-
-    def normalize_exception_data( data )
-      if data[:location].nil?
-      data[:location] = {}
-        if data[:request] && data[:request].key?( :params )
-          data[:location][:controller] = data[:request][:params]['controller']
-          data[:location][:action]     = data[:request][:params]['action']
-        end
-      end
-      if data[:backtrace] && data[:backtrace].first
-        first_line = data[:backtrace].first
-
-        # template exceptions have the line number and filename as the first element in backtrace
-        if matched = first_line.match( /on line #(\d*) of (.*)/i )
-          backtrace_hash = {}
-          backtrace_hash[:line] = matched[1]
-          backtrace_hash[:file] = matched[2]
-        else
-          backtrace_hash = Hash[* [:file, :line].zip( first_line.split( ':' )[0..1]).flatten ]
-        end
-
-        data[:location].merge!( backtrace_hash )
-      end
-    end
-
-    def clean_params params
-      params.each do |k, v|
-        params[k] = "[FILTERED]" if k =~ /password/
-      end
-    end
-
-    def clean_environment env
-      Hash[ env.map do |k, v|
-        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
-      end.compact ]
-    end
-
-    def exception_catalog
-      @exception_catalog ||= ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
     end
 
     def clear_exception_summary
@@ -554,29 +462,6 @@ module ExceptionHandling # never included
       log_info(log_prefix)
     end
 
-    def add_to_s( data_section )
-      data_section[:to_s] = dump_hash( data_section )
-    end
-
-    def exception_to_data( exception, exception_context, timestamp )
-      data = ActiveSupport::HashWithIndifferentAccess.new
-      data[:error_class] = exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{encode_utf8(exception.message)}"
-      data[:timestamp]   = timestamp
-      data[:backtrace]   = clean_backtrace(exception)
-      if exception_context && exception_context.is_a?(Hash)
-        # if we are a hash, then we got called from the DebugExceptions rack middleware filter
-        # and we need to do some things different to get the info we want
-        data[:error] = "#{data[:error_class]}: #{encode_utf8(exception.message)}"
-        data[:session] = exception_context['rack.session']
-        data[:environment] = exception_context
-      else
-        data[:error]       = "#{data[:error_string]}#{': ' + exception_context.to_s unless exception_context.blank?}"
-        data[:environment] = { :message => exception_context }
-      end
-      data
-    end
-
     def make_exception(exception_or_string)
       if exception_or_string.is_a?(Exception)
         exception_or_string
@@ -588,21 +473,6 @@ module ExceptionHandling # never included
           ex
         end
       end
-    end
-
-    def dump_hash( h, indent_level = 0 )
-      result = ""
-      h.sort { |a, b| a.to_s <=> b.to_s }.each do |key, value|
-        result << ' ' * (2 * indent_level)
-        result << "#{key}:"
-        case value
-        when Hash
-          result << "\n" << dump_hash( value, indent_level + 1 )
-        else
-          result << " #{value}\n"
-        end
-      end unless h.nil?
-      result
     end
   end
 end

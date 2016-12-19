@@ -149,6 +149,10 @@ def assert_equal_with_diff arg1, arg2, msg = ''
   end
 end
 
+def require_test_helper(helper_path)
+  require_relative "helpers/#{helper_path}"
+end
+
 class Time
   class << self
     attr_reader :now_override

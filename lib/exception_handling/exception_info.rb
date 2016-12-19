@@ -1,5 +1,4 @@
 module ExceptionHandling
-
   class ExceptionInfo
 
     ENVIRONMENT_WHITELIST = [
@@ -67,19 +66,20 @@ EOF
       @enhanced_data ||= exception_to_enhanced_data
     end
 
-    def exception_catalog
+    def self.exception_catalog
       @exception_catalog ||= ExceptionCatalog.new(ExceptionHandling.filter_list_filename)
     end
 
     def exception_description
-      @exception_description ||= exception_catalog.find(enhanced_data)
-    end
-
-    def exception_filter_name
+      @exception_description ||= self.class.exception_catalog.find(enhanced_data)
     end
 
     def send_to_honeybadger?
       ExceptionHandling.honeybadger? && (!exception_description || exception_description.send_to_honeybadger)
+    end
+
+    def honeybadger_context_data
+      @honeybadger_context_data ||= enhanced_data_to_honeybadger_context
     end
 
     private
@@ -110,8 +110,9 @@ EOF
       enhance_exception_data(enhanced_data)
       normalize_exception_data(enhanced_data)
       clean_exception_data(enhanced_data)
+      stringify_sections(enhanced_data)
 
-      description = exception_catalog.find(enhanced_data)
+      description = self.class.exception_catalog.find(enhanced_data)
       merged_data = description ? ActiveSupport::HashWithIndifferentAccess.new(description.exception_data.merge(enhanced_data)) : enhanced_data
     end
 
@@ -148,7 +149,6 @@ EOF
 
         data[:location].merge!( backtrace_hash )
       end
-      SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a? Hash }
     end
 
     def clean_exception_data( data )
@@ -209,6 +209,19 @@ EOF
       end
     end
 
+    def stringify_sections(data)
+      SECTIONS.each { |section| add_to_s(data[section]) if data[section].is_a?(Hash) }
+    end
+
+    def unstringify_sections(data)
+      SECTIONS.each do |section|
+        if data[section].is_a?(Hash) && data[section].key?(:to_s)
+          data[section] = data[section].dup
+          data[section].delete(:to_s)
+        end
+      end
+    end
+
     def add_to_s( data_section )
       data_section[:to_s] = dump_hash( data_section )
     end
@@ -226,6 +239,19 @@ EOF
         end
       end unless h.nil?
       result
+    end
+
+    def enhanced_data_to_honeybadger_context
+      data = enhanced_data.dup
+      data[:server] = ExceptionHandling.server_name
+      unstringify_sections(data)
+      context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
+        if data[section].present?
+          context[section] = data[section]
+        end
+        context
+      end
+      context_data
     end
   end
 end

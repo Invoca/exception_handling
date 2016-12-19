@@ -1,11 +1,9 @@
 require File.expand_path('../../../test_helper',  __FILE__)
+require_test_helper 'controller_helpers'
 
 module ExceptionHandling
   class ExceptionInfoTest < ActiveSupport::TestCase
-
-    DummyController = Struct.new(:complete_request_uri, :request, :session)
-
-    DummyRequest = Struct.new(:env, :parameters, :session_options)
+    include ControllerHelpers
 
     context "data" do
       setup do
@@ -112,7 +110,7 @@ module ExceptionHandling
           "location" => { "file" => "<no backtrace>", "line" => nil }
         }
 
-        assert_equal_with_diff expected_data, exception_info.enhanced_data
+        assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
       end
 
       should "include controller data when available" do
@@ -133,7 +131,41 @@ module ExceptionHandling
           "location" => { "controller" => "dummy", "action" => "fail", "file" => "<no backtrace>", "line" => nil }
         }
 
+        assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
+      end
+
+      should "add to_s attribute to specific sections that have their content in hash format" do
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
+        expected_data = {
+          "error_class" => "StandardError",
+          "error_string" => "StandardError: something went wrong",
+          "timestamp" => @timestamp,
+          "backtrace" => ["<no backtrace>"],
+          "error" => "StandardError: something went wrong",
+          "session" => {
+            "key" => "session_key",
+            "data" => { "username" => "jsmith", "id" => "session_key" },
+            "to_s" => "data:\n  id: session_key\n  username: jsmith\nkey: session_key\n" },
+          "environment" => {
+            "SERVER_NAME" => "exceptional.com",
+            "to_s" => "SERVER_NAME: exceptional.com\n" },
+          "request" => {
+            "params" => { "advertiser_id" => 435, "controller" => "dummy", "action" => "fail" },
+            "rails_root" => "Rails.root not defined. Is this a test environment?",
+            "url" => "host/path",
+            "to_s" => "params:\n  action: fail\n  advertiser_id: 435\n  controller: dummy\nrails_root: Rails.root not defined. Is this a test environment?\nurl: host/path\n"
+          },
+          "location" => { "controller" => "dummy", "action" => "fail", "file" => "<no backtrace>", "line" => nil }
+        }
+
         assert_equal_with_diff expected_data, exception_info.enhanced_data
+      end
+
+      should "filter out sensitive parameters like passwords" do
+        @controller.request.parameters[:password] = "super_secret"
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
+        expected_params = { "password" => "[FILTERED]", "advertiser_id" => 435, "controller" => "dummy", "action" => "fail" }
+        assert_equal_with_diff expected_params, exception_info.enhanced_data["request"]["params"]
       end
 
       should "include the changes from the custom data callback" do
@@ -150,7 +182,7 @@ module ExceptionHandling
           "location" => { "file" => "<no backtrace>", "line" => nil }
         }
 
-        assert_equal_with_diff expected_data, exception_info.enhanced_data
+        assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
       end
 
       should "apply the custom_data_hook results" do
@@ -168,16 +200,42 @@ module ExceptionHandling
           "location" => { "file" => "<no backtrace>", "line" => nil }
         }
 
-        assert_equal_with_diff expected_data, exception_info.enhanced_data
+        assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
       end
     end
 
-    should "return the exception description from the global exception filter list" do
-      exception = StandardError.new("No route matches")
-      exception_info = ExceptionInfo.new(exception, {}, Time.now)
-      description = exception_info.exception_description
-      assert_not_nil description
-      assert_equal :NoRoute, description.filter_name
+    context "exception_description" do
+      should "return the exception description from the global exception filter list" do
+        exception = StandardError.new("No route matches")
+        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        description = exception_info.exception_description
+        assert_not_nil description
+        assert_equal :NoRoute, description.filter_name
+      end
+
+      should "find the description when filter criteria includes section in hash format" do
+        env = { server: "fe98" }
+        parameters = { advertiser_id: 435, controller: "sessions", action: "fail" }
+        session = { username: "jsmith", id: "session_key" }
+        request_uri = "host/path"
+        controller = create_dummy_controller(env, parameters, session, request_uri)
+        exception = StandardError.new("Request to click domain rejected")
+        exception_info = ExceptionInfo.new(exception, {}, Time.now, controller)
+        assert_equal true, exception_info.enhanced_data[:request].is_a?(Hash)
+        description = exception_info.exception_description
+        assert_not_nil description
+        assert_equal :"Click Request Rejected", description.filter_name
+      end
+
+      should "return same description object for related errors (avoid reloading exception catalog from disk)" do
+        exception = StandardError.new("No route matches")
+        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        description = exception_info.exception_description
+
+        repeat_ex = StandardError.new("No route matches 2")
+        repeat_ex_info = ExceptionInfo.new(exception, {}, Time.now)
+        assert_equal description.object_id, repeat_ex_info.exception_description.object_id
+      end
     end
 
     context "send_to_honeybadger?" do
@@ -216,9 +274,60 @@ module ExceptionHandling
       end
     end
 
-    def create_dummy_controller(env, parameters, session, request_uri)
-      request = DummyRequest.new(env, parameters, session)
-      DummyController.new(request_uri, request, session)
+    context "honeybadger_context_data" do
+      should "return the error details and relevant context data to be used as honeybadger notification context" do
+        env = { server: "fe98" }
+        parameters = { advertiser_id: 435 }
+        session = { username: "jsmith" }
+        request_uri = "host/path"
+        controller = create_dummy_controller(env, parameters, session, request_uri)
+        stub(ExceptionHandling).server_name { "invoca_fe98" }
+
+        exception = StandardError.new("Some BS")
+        exception.set_backtrace([
+          "test/unit/exception_handling_test.rb:847:in `exception_1'",
+          "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"])
+        exception_context = { "SERVER_NAME" => "exceptional.com" }
+        data_callback = ->(data) do
+          data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
+          data[:user_details] = { username: "jsmith" }
+          data[:event_response] = "Event successfully received"
+          data[:other_section] = "This should not be included in the response"
+        end
+        timestamp = Time.now
+        exception_info = ExceptionInfo.new(exception, exception_context, timestamp, controller, data_callback)
+
+        expected_data = {
+          timestamp: timestamp,
+          error_class: "StandardError",
+          server: "invoca_fe98",
+          scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
+          notes: "this is used by a test",
+          user_details: { "username" => "jsmith" },
+          request: {
+            "params" => { "advertiser_id" => 435 },
+            "rails_root" => "Rails.root not defined. Is this a test environment?",
+            "url" => "host/path" },
+          session: {
+            "key" => nil,
+            "data" => { "username" => "jsmith" } },
+          environment: {
+            "SERVER_NAME" => "exceptional.com" },
+          backtrace: [
+            "test/unit/exception_handling_test.rb:847:in `exception_1'",
+            "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"],
+          event_response: "Event successfully received"
+        }
+        assert_equal_with_diff expected_data, exception_info.honeybadger_context_data
+      end
+    end
+
+    def prepare_data(data)
+      data.each do |key, section|
+        if section.is_a?(Hash)
+          section.delete(:to_s)
+        end
+      end
     end
   end
 end
