@@ -35,6 +35,16 @@ module ExceptionHandling
         end
       end
 
+      should "write errors loading the yaml file directly to the log file" do
+        @exception_catalog = ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
+
+        mock(ExceptionHandling).log_error.never
+        mock(ExceptionHandling).write_exception_to_log(anything(), "ExceptionRegexes::refresh_filters: ./config/exception_filters.yml", anything())
+        mock(@exception_catalog).load_file { raise "noooooo"}
+
+        @exception_catalog.find({})
+      end
+
     end
 
     context "with live yaml content" do
@@ -50,8 +60,6 @@ module ExceptionHandling
         assert !@exception_catalog.find( error: "Scott says unlikely to ever match" )
         assert !@exception_catalog.find( error: "Scott says unlikely to ever match" )
       end
-
-
     end
 
     private
