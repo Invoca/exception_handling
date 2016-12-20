@@ -113,8 +113,7 @@ module ExceptionHandling # never included
     #
     def log_error_rack(exception, env, rack_filter)
       timestamp = set_log_error_timestamp
-      controller = env['action_controller.instance']
-      exception_info = ExceptionInfo.new(exception, env, timestamp, controller)
+      exception_info = ExceptionInfo.new(exception, env, timestamp)
 
       if stub_handler
         return stub_handler.handle_stub_log_error(exception_info.data)
@@ -132,7 +131,7 @@ module ExceptionHandling # never included
 
       if should_send_email?
         # controller may not exist in some cases (like most 404 errors)
-        if controller
+        if (controller = exception_info.controller)
           controller.session["last_exception_timestamp"] = ExceptionHandling.last_exception_timestamp
         end
         log_error_email(exception_info)

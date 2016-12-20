@@ -134,6 +134,28 @@ module ExceptionHandling
         assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
       end
 
+      should "extract controller from rack specific exception context when not provided explicitly" do
+        @exception_context["action_controller.instance"] = @controller
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp)
+        expected_data = {
+          "error_class" => "StandardError",
+          "error_string" => "StandardError: something went wrong",
+          "timestamp" => @timestamp,
+          "backtrace" => ["<no backtrace>"],
+          "error" => "StandardError: something went wrong",
+          "session" => { "key" => "session_key", "data" => { "username" => "jsmith", "id" => "session_key" } },
+          "environment" => { "SERVER_NAME" => "exceptional.com" },
+          "request" => {
+            "params" => { "advertiser_id" => 435, "controller" => "dummy", "action" => "fail" },
+            "rails_root" => "Rails.root not defined. Is this a test environment?",
+            "url" => "host/path"
+          },
+          "location" => { "controller" => "dummy", "action" => "fail", "file" => "<no backtrace>", "line" => nil }
+        }
+
+        assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
+      end
+
       should "add to_s attribute to specific sections that have their content in hash format" do
         exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
         expected_data = {

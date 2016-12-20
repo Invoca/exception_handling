@@ -494,6 +494,22 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           }
           assert_equal_with_diff expected_data, honeybadger_data
         end
+
+        should "not send notification to honeybadger when exception description has the flag turned off" do
+          filter_list = {
+            NoHoneybadger: {
+              error: "suppress Honeybadger notification",
+              send_to_honeybadger: false
+            }
+          }
+          stub(File).mtime { incrementing_mtime }
+          mock(YAML).load_file.with_any_args { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }.at_least(1)
+
+          exception = StandardError.new("suppress Honeybadger notification")
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args.once
+          dont_allow(ExceptionHandling::Honeybadger).notify
+          ExceptionHandling.log_error(exception)
+        end
       end
     end
 

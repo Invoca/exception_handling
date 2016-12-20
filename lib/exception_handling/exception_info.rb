@@ -48,13 +48,13 @@ EOF
     SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
     HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response]
 
-    attr_reader :exception
+    attr_reader :exception, :controller
 
     def initialize(exception, exception_context, timestamp, controller = nil, data_callback = nil)
       @exception = exception
       @exception_context = exception_context
       @timestamp = timestamp
-      @controller = controller
+      @controller = controller || controller_from_context(exception_context)
       @data_callback = data_callback
     end
 
@@ -83,6 +83,10 @@ EOF
     end
 
     private
+
+    def controller_from_context(exception_context)
+      exception_context.is_a?(Hash) ? exception_context["action_controller.instance"] : nil
+    end
 
     def exception_to_data
       data = ActiveSupport::HashWithIndifferentAccess.new
