@@ -5,6 +5,43 @@ module ExceptionHandling
   class ExceptionInfoTest < ActiveSupport::TestCase
     include ControllerHelpers
 
+    context "initialize" do
+      setup do
+        @exception = StandardError.new("something went wrong")
+        @timestamp = Time.now
+        @controller = Object.new
+      end
+
+      context "controller_from_context" do
+        should "extract controller from context when not specified explicitly" do
+          exception_context = {
+            "action_controller.instance" => @controller
+          }
+          exception_info = ExceptionInfo.new(@exception, exception_context, @timestamp)
+          assert_equal @controller, exception_info.controller
+        end
+
+        should "prefer the explicit controller over the one from context" do
+          exception_context = {
+            "action_controller.instance" => Object.new
+          }
+          exception_info = ExceptionInfo.new(@exception, exception_context, @timestamp, @controller)
+          assert_equal @controller, exception_info.controller
+          assert_not_equal exception_context["action_controller.instance"], exception_info.controller
+        end
+
+        should "leave controller unset when not included in the context hash" do
+          exception_info = ExceptionInfo.new(@exception, {}, @timestamp)
+          assert_nil exception_info.controller
+        end
+
+        should "leave controller unset when context is not in hash format" do
+          exception_info = ExceptionInfo.new(@exception, "string context", @timestamp)
+          assert_nil exception_info.controller
+        end
+      end
+    end
+
     context "data" do
       setup do
         @exception = StandardError.new("something went wrong")

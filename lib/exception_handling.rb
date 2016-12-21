@@ -132,7 +132,7 @@ module ExceptionHandling # never included
       if should_send_email?
         # controller may not exist in some cases (like most 404 errors)
         if (controller = exception_info.controller)
-          controller.session["last_exception_timestamp"] = ExceptionHandling.last_exception_timestamp
+          controller.session["last_exception_timestamp"] = last_exception_timestamp
         end
         log_error_email(exception_info)
       end
@@ -241,13 +241,13 @@ module ExceptionHandling # never included
     def escalate_error(exception_or_string, email_subject)
       ex = make_exception(exception_or_string)
       log_error(ex)
-      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+      escalate(email_subject, ex, last_exception_timestamp)
     end
 
     def escalate_warning(message, email_subject)
       ex = Warning.new(message)
       log_error(ex)
-      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+      escalate(email_subject, ex, last_exception_timestamp)
     end
 
     def ensure_escalation(email_subject)
