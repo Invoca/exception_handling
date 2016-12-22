@@ -64,7 +64,7 @@
     <%= "#{ h location[:controller]}##{ h location[:action]}<br />".html_safe if location && location[:controller] -%>
     <%= "#{ h location[:file]}, line #{ h location[:line]}<br />".html_safe   if location && location[:file] -%>
 
-    <% for section in ExceptionHandling::SECTIONS %>
+    <% for section in ExceptionHandling::ExceptionInfo::SECTIONS %>
       <% section_value = @cleaned_data[section] %>
       <% if section_value %>
         <h3><%= section.to_s.capitalize -%>:</h3>

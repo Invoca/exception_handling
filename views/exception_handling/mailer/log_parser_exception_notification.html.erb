@@ -58,7 +58,7 @@
 
 
 
-    <% for section in ExceptionHandling::SECTIONS %>
+    <% for section in ExceptionHandling::ExceptionInfo::SECTIONS %>
       <% section_value = @cleaned_data[section] %>
       <% if section_value %>
         <h3><%= section.to_s.capitalize -%>:</h3>
