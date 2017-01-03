@@ -10,6 +10,7 @@ require "exception_handling/methods"
 require "exception_handling/log_stub_error"
 require "exception_handling/exception_description"
 require "exception_handling/exception_catalog"
+require "exception_handling/exception_info"
 
 _ = ActiveSupport::HashWithIndifferentAccess
 
@@ -21,53 +22,6 @@ module ExceptionHandling # never included
 
   SUMMARY_THRESHOLD = 5
   SUMMARY_PERIOD = 60*60 # 1.hour
-
-  SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-
-  ENVIRONMENT_WHITELIST = [
-/^HTTP_/,
-/^QUERY_/,
-/^REQUEST_/,
-/^SERVER_/
-  ]
-
-  ENVIRONMENT_OMIT =(
-<<EOF
-CONTENT_TYPE: application/x-www-form-urlencoded
-GATEWAY_INTERFACE: CGI/1.2
-HTTP_ACCEPT: */*
-HTTP_ACCEPT: */*, text/javascript, text/html, application/xml, text/xml, */*
-HTTP_ACCEPT_CHARSET: ISO-8859-1,utf-8;q=0.7,*;q=0.7
-HTTP_ACCEPT_ENCODING: gzip, deflate
-HTTP_ACCEPT_ENCODING: gzip,deflate
-HTTP_ACCEPT_LANGUAGE: en-us
-HTTP_CACHE_CONTROL: no-cache
-HTTP_CONNECTION: Keep-Alive
-HTTP_HOST: www.invoca.com
-HTTP_MAX_FORWARDS: 10
-HTTP_UA_CPU: x86
-HTTP_VERSION: HTTP/1.1
-HTTP_X_FORWARDED_HOST: www.invoca.com
-HTTP_X_FORWARDED_SERVER: www2.invoca.com
-HTTP_X_REQUESTED_WITH: XMLHttpRequest
-LANG:
-LANG:
-PATH: /sbin:/usr/sbin:/bin:/usr/bin
-PWD: /
-RAILS_ENV: production
-RAW_POST_DATA: id=500
-REMOTE_ADDR: 10.251.34.225
-SCRIPT_NAME: /
-SERVER_NAME: www.invoca.com
-SERVER_PORT: 80
-SERVER_PROTOCOL: HTTP/1.1
-SERVER_SOFTWARE: Mongrel 1.1.4
-SHLVL: 1
-TERM: linux
-TERM: xterm-color
-_: /usr/bin/mongrel_cluster_ctl
-EOF
-      ).split("\n")
 
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION','X-HTTP_AUTHORIZATION','X_HTTP_AUTHORIZATION','REDIRECT_X_HTTP_AUTHORIZATION']
 
@@ -159,10 +113,10 @@ EOF
     #
     def log_error_rack(exception, env, rack_filter)
       timestamp = set_log_error_timestamp
-      exception_data = exception_to_data(exception, env, timestamp)
+      exception_info = ExceptionInfo.new(exception, env, timestamp)
 
       if stub_handler
-        return stub_handler.handle_stub_log_error(exception_data)
+        return stub_handler.handle_stub_log_error(exception_info.data)
       end
 
       # TODO: add a more interesting custom description, like:
@@ -172,17 +126,15 @@ EOF
       write_exception_to_log(exception, custom_description, timestamp)
 
       if honeybadger?
-        send_exception_to_honeybadger(exception, exception_data, nil, timestamp)
+        send_exception_to_honeybadger(exception_info)
       end
 
       if should_send_email?
-        controller = env['action_controller.instance']
         # controller may not exist in some cases (like most 404 errors)
-        if controller
-          extract_and_merge_controller_data(controller, exception_data)
-          controller.session["last_exception_timestamp"] = ExceptionHandling.last_exception_timestamp
+        if (controller = exception_info.controller)
+          controller.session["last_exception_timestamp"] = last_exception_timestamp
         end
-        log_error_email(exception_data, exception)
+        log_error_email(exception_info)
       end
     end
 
@@ -194,20 +146,20 @@ EOF
     # Functional Test Operation:
     #   Calls into handle_stub_log_error and returns. no log file. no email.
     #
-    def log_error(exception_or_string, exception_context = '', controller = nil, treat_as_local = false)
+    def log_error(exception_or_string, exception_context = '', controller = nil, treat_as_local = false, &data_callback)
       begin
         ex = make_exception(exception_or_string)
         timestamp = set_log_error_timestamp
-        data = exception_to_data(ex, exception_context, timestamp)
+        exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
 
         if stub_handler
-          return stub_handler.handle_stub_log_error(data)
+          return stub_handler.handle_stub_log_error(exception_info.data)
         end
 
         write_exception_to_log(ex, exception_context, timestamp)
 
         if honeybadger?
-          send_exception_to_honeybadger(ex, data, exception_context, timestamp)
+          send_exception_to_honeybadger(exception_info)
         end
 
         if treat_as_local
@@ -215,23 +167,7 @@ EOF
         end
 
         if should_send_email?
-          controller ||= current_controller
-
-          if block_given?
-            # the expectation is that if the caller passed a block then they will be
-            # doing their own merge of hash values into data
-            begin
-              yield data
-            rescue Exception => ex
-              data.merge!(:environment => "Exception in yield: #{ex.class}:#{ex}")
-            end
-          elsif controller
-          # most of the time though, this method will not get passed a block
-          # and additional hash data is extracted from the controller
-            extract_and_merge_controller_data(controller, data)
-          end
-
-          log_error_email(data, ex)
+          log_error_email(exception_info)
         end
 
       rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
@@ -254,13 +190,18 @@ EOF
     #
     # Log exception to honeybadger.io.
     #
-    def send_exception_to_honeybadger(ex, exception_data, exception_context, timestamp)
-      exception_description = exception_catalog.find(exception_data)
-      custom_message = "(Error:#{timestamp}) #{exception_data[:error_class]} #{exception_context} (#{exception_data[:error_string]}): " + exception_data[:backtrace].join(" ")
+    def send_exception_to_honeybadger(exception_info)
+      ex = exception_info.exception
+      exception_description = exception_info.exception_description
+      unless exception_info.send_to_honeybadger?
+        log_info("Filtered exception using '#{exception_description.filter_name}'; not sending notification to Honeybadger")
+        return
+      end
+
       Honeybadger.notify(error_class:   exception_description ? exception_description.filter_name : ex.class.name,
                          error_message: ex.message,
                          exception:     ex,
-                         context:       { custom_message: custom_message })
+                         context:       exception_info.honeybadger_context_data)
     end
 
     #
@@ -268,24 +209,6 @@ EOF
     #
     def honeybadger?
       Object.const_defined?("Honeybadger")
-    end
-
-    #
-    # Pull certain fields out of the controller and add to the data hash.
-    #
-    def extract_and_merge_controller_data(controller, data)
-      data[:request] = {
-        :params      => controller.request.parameters.to_hash,
-        :rails_root  => defined?(Rails) ? Rails.root : "Rails.root not defined. Is this a test environment?",
-        :url         => controller.complete_request_uri
-      }
-      data[:environment].merge!(controller.request.env.to_hash)
-
-      controller.session[:fault_in_session]
-      data[:session] = {
-        :key         => controller.request.session_options[:id],
-        :data        => controller.session.dup
-      }
     end
 
     def log_warning( message )
@@ -318,13 +241,13 @@ EOF
     def escalate_error(exception_or_string, email_subject)
       ex = make_exception(exception_or_string)
       log_error(ex)
-      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+      escalate(email_subject, ex, last_exception_timestamp)
     end
 
     def escalate_warning(message, email_subject)
       ex = Warning.new(message)
       log_error(ex)
-      escalate(email_subject, ex, ExceptionHandling.last_exception_timestamp)
+      escalate(email_subject, ex, last_exception_timestamp)
     end
 
     def ensure_escalation(email_subject)
@@ -381,38 +304,47 @@ EOF
       end
     end
 
-    def enhance_exception_data(data)
-      return if ! ExceptionHandling.custom_data_hook
-      begin
-        ExceptionHandling.custom_data_hook.call(data)
-      rescue Exception => ex
-        # can't call log_error here or we will blow the call stack
-        traces = ex.backtrace.map{ |l| "#{l}\n" }.join
-        log_info( "Unable to execute custom custom_data_hook callback. #{encode_utf8(ex.message)} #{traces}" )
+    def encode_utf8(string)
+      string.encode('UTF-8',
+                    replace: '?',
+                    undef:   :replace,
+                    invalid: :replace)
+    end
+
+    def clean_backtrace(exception)
+      backtrace = if exception.backtrace.nil?
+        ['<no backtrace>']
+      elsif exception.is_a?(ClientLoggingError)
+        exception.backtrace
+      elsif defined?(Rails)
+        Rails.backtrace_cleaner.clean(exception.backtrace)
+      else
+        exception.backtrace
+      end
+
+      # The rails backtrace cleaner returns an empty array for a backtrace if the exception was raised outside the app (inside a gem for instance)
+      if backtrace.is_a?(Array) && backtrace.empty?
+        exception.backtrace
+      else
+        backtrace
       end
     end
 
     private
 
-    def log_error_email( data, exc )
-      enhance_exception_data( data )
-      normalize_exception_data( data )
-      clean_exception_data( data )
-
-      SECTIONS.each { |section| add_to_s( data[section] ) if data[section].is_a? Hash }
-
-      exception_description = exception_catalog.find( data )
-      merged_data = exception_description ? ActiveSupport::HashWithIndifferentAccess.new(exception_description.exception_data.merge(data)) : data
+    def log_error_email(exception_info)
+      data = exception_info.enhanced_data
+      exception_description = exception_info.exception_description
 
       if exception_description && !exception_description.send_email
         ExceptionHandling.logger.warn( "Filtered exception using '#{exception_description.filter_name}'; not sending email to notify" )
       else
-        if summarize_exception( merged_data ) != :Summarized
-          deliver(ExceptionHandling::Mailer.exception_notification(merged_data))
+        if summarize_exception(data) != :Summarized
+          deliver(ExceptionHandling::Mailer.exception_notification(data))
         end
       end
 
-      execute_custom_log_error_callback(merged_data, exc)
+      execute_custom_log_error_callback(data, exception_info.exception)
       nil
     end
 
@@ -427,8 +359,8 @@ EOF
     end
 
     def escalate( email_subject, ex, timestamp )
-      data = exception_to_data( ex, nil, timestamp )
-      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, data))
+      exception_info = ExceptionInfo.new(ex, nil, timestamp)
+      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
     end
 
     def deliver(mail_object)
@@ -468,79 +400,6 @@ EOF
     rescue StandardError, MailerTimeout => ex
       #$stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
-    end
-
-    def clean_exception_data( data )
-      if (as_array = data[:backtrace].to_a).size == 1
-        data[:backtrace] = as_array.first.to_s.split(/\n\s*/)
-      end
-
-      if data[:request].is_a?(Hash) && data[:request][:params].is_a?(Hash)
-        data[:request][:params] = clean_params(data[:request][:params])
-      end
-
-      if data[:environment].is_a?(Hash)
-        data[:environment] = clean_environment(data[:environment])
-      end
-    end
-
-    def normalize_exception_data( data )
-      if data[:location].nil?
-      data[:location] = {}
-        if data[:request] && data[:request].key?( :params )
-          data[:location][:controller] = data[:request][:params]['controller']
-          data[:location][:action]     = data[:request][:params]['action']
-        end
-      end
-      if data[:backtrace] && data[:backtrace].first
-        first_line = data[:backtrace].first
-
-        # template exceptions have the line number and filename as the first element in backtrace
-        if matched = first_line.match( /on line #(\d*) of (.*)/i )
-          backtrace_hash = {}
-          backtrace_hash[:line] = matched[1]
-          backtrace_hash[:file] = matched[2]
-        else
-          backtrace_hash = Hash[* [:file, :line].zip( first_line.split( ':' )[0..1]).flatten ]
-        end
-
-        data[:location].merge!( backtrace_hash )
-      end
-    end
-
-    def clean_params params
-      params.each do |k, v|
-        params[k] = "[FILTERED]" if k =~ /password/
-      end
-    end
-
-    def clean_environment env
-      Hash[ env.map do |k, v|
-        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
-      end.compact ]
-    end
-
-    def exception_catalog
-      @exception_catalog ||= ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
-    end
-
-    def clean_backtrace(exception)
-      backtrace = if exception.backtrace.nil?
-        ['<no backtrace>']
-      elsif exception.is_a?(ClientLoggingError)
-        exception.backtrace
-      elsif defined?(Rails)
-        Rails.backtrace_cleaner.clean(exception.backtrace)
-      else
-        exception.backtrace
-      end
-
-      # The rails backtrace cleaner returns an empty array for a backtrace if the exception was raised outside the app (inside a gem for instance)
-      if backtrace.is_a?(Array) && backtrace.empty?
-        exception.backtrace
-      else
-        backtrace
-      end
     end
 
     def clear_exception_summary
@@ -602,29 +461,6 @@ EOF
       log_info(log_prefix)
     end
 
-    def add_to_s( data_section )
-      data_section[:to_s] = dump_hash( data_section )
-    end
-
-    def exception_to_data( exception, exception_context, timestamp )
-      data = ActiveSupport::HashWithIndifferentAccess.new
-      data[:error_class] = exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{encode_utf8(exception.message)}"
-      data[:timestamp]   = timestamp
-      data[:backtrace]   = clean_backtrace(exception)
-      if exception_context && exception_context.is_a?(Hash)
-        # if we are a hash, then we got called from the DebugExceptions rack middleware filter
-        # and we need to do some things different to get the info we want
-        data[:error] = "#{data[:error_class]}: #{encode_utf8(exception.message)}"
-        data[:session] = exception_context['rack.session']
-        data[:environment] = exception_context
-      else
-        data[:error]       = "#{data[:error_string]}#{': ' + exception_context.to_s unless exception_context.blank?}"
-        data[:environment] = { :message => exception_context }
-      end
-      data
-    end
-
     def make_exception(exception_or_string)
       if exception_or_string.is_a?(Exception)
         exception_or_string
@@ -636,28 +472,6 @@ EOF
           ex
         end
       end
-    end
-
-    def dump_hash( h, indent_level = 0 )
-      result = ""
-      h.sort { |a, b| a.to_s <=> b.to_s }.each do |key, value|
-        result << ' ' * (2 * indent_level)
-        result << "#{key}:"
-        case value
-        when Hash
-          result << "\n" << dump_hash( value, indent_level + 1 )
-        else
-          result << " #{value}\n"
-        end
-      end unless h.nil?
-      result
-    end
-
-    def encode_utf8(string)
-      string.encode('UTF-8',
-                    replace: '?',
-                    undef:   :replace,
-                    invalid: :replace)
     end
   end
 end
