@@ -183,7 +183,7 @@ module ExceptionHandling # never included
     #
     def write_exception_to_log(ex, exception_context, timestamp)
       ActiveSupport::Deprecation.silence do
-        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
+        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
       end
     end
 

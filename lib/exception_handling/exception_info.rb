@@ -91,7 +91,7 @@ EOF
     def exception_to_data
       data = ActiveSupport::HashWithIndifferentAccess.new
       data[:error_class] = @exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(@exception.message)}"
+      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(@exception.message.to_s)}"
       data[:timestamp]   = @timestamp
       data[:backtrace]   = ExceptionHandling.clean_backtrace(@exception)
       if @exception_context && @exception_context.is_a?(Hash)

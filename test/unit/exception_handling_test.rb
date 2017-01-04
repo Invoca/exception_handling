@@ -323,6 +323,14 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
     end
 
+    should "log the error if the exception message is nil" do
+      exception_with_nil_message = RuntimeError.new(nil)
+      stub(exception_with_nil_message).message { nil }
+      ExceptionHandling.log_error(exception_with_nil_message)
+      assert_emails(1)
+      assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
+    end
+
     should "only send 5 of a repeated error, but call post hook for every exception" do
       @fail_count = 0
       ExceptionHandling.post_log_error_hook = method(:log_error_callback)
