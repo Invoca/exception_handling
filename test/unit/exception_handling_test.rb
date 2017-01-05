@@ -121,11 +121,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       raise exception_with_nil_message
     end
 
-
-    setup do
-      @fail_count = 0
-    end
-
     should "support a custom_data_hook" do
       ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
       ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
@@ -135,6 +130,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     should "support a log_error hook and pass exception data to it" do
       begin
+        @fail_count = 0
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
         assert_equal 1, @fail_count
