@@ -199,7 +199,7 @@ module ExceptionHandling # never included
       end
 
       Honeybadger.notify(error_class:   exception_description ? exception_description.filter_name : ex.class.name,
-                         error_message: ex.message,
+                         error_message: ex.message.to_s,
                          exception:     ex,
                          context:       exception_info.honeybadger_context_data)
     end
@@ -354,7 +354,7 @@ module ExceptionHandling # never included
         ExceptionHandling.post_log_error_hook.call(exception_data, exception)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        log_info( "Unable to execute custom log_error callback. #{encode_utf8(ex.message)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+        log_info( "Unable to execute custom log_error callback. #{encode_utf8(ex.message.to_s)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
       end
     end
 
