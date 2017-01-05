@@ -72,6 +72,15 @@ module ExceptionHandling
         assert_equal_with_diff expected_data, exception_info.data
       end
 
+      should "generate exception data appropriately if exception message is nil" do
+        exception_with_nil_message = RuntimeError.new(nil)
+        stub(exception_with_nil_message).message { nil }
+        exception_info = ExceptionInfo.new(exception_with_nil_message, "custom context data", @timestamp)
+        exception_data = exception_info.data
+        assert_equal "RuntimeError: ", exception_data["error_string"]
+        assert_equal "RuntimeError: : custom context data", exception_data["error"]
+      end
+
       should "return a hash with exception specific data including context string" do
         exception_context = "custom context data"
         exception_info = ExceptionInfo.new(@exception, exception_context, @timestamp)
@@ -148,6 +157,15 @@ module ExceptionHandling
         }
 
         assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
+      end
+
+      should "generate exception data appropriately if exception message is nil" do
+        exception_with_nil_message = RuntimeError.new(nil)
+        stub(exception_with_nil_message).message { nil }
+        exception_info = ExceptionInfo.new(exception_with_nil_message, @exception_context, @timestamp)
+        exception_data = exception_info.enhanced_data
+        assert_equal "RuntimeError: ", exception_data["error_string"]
+        assert_equal "RuntimeError: ", exception_data["error"]
       end
 
       should "include controller data when available" do
@@ -260,6 +278,23 @@ module ExceptionHandling
         }
 
         assert_equal_with_diff expected_data, prepare_data(exception_info.enhanced_data)
+      end
+
+      should "log info if the custom data hook results in a nil message exception" do
+        ExceptionHandling.custom_data_hook = lambda do |data|
+          exception_with_nil_message = RuntimeError.new(nil)
+          stub(exception_with_nil_message).message { nil }
+          raise exception_with_nil_message
+        end
+        log_info_messages = []
+        stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+          log_info_messages << message
+        end
+
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp)
+        exception_info.enhanced_data
+        assert log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }
+        ExceptionHandling.custom_data_hook = nil
       end
     end
 

@@ -89,15 +89,16 @@ EOF
     end
 
     def exception_to_data
+      exception_message = @exception.message.to_s
       data = ActiveSupport::HashWithIndifferentAccess.new
       data[:error_class] = @exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(@exception.message.to_s)}"
+      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
       data[:timestamp]   = @timestamp
       data[:backtrace]   = ExceptionHandling.clean_backtrace(@exception)
       if @exception_context && @exception_context.is_a?(Hash)
         # if we are a hash, then we got called from the DebugExceptions rack middleware filter
         # and we need to do some things different to get the info we want
-        data[:error] = "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(@exception.message.to_s)}"
+        data[:error] = "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
         data[:session] = @exception_context['rack.session']
         data[:environment] = @exception_context
       else
