@@ -1,8 +1,10 @@
 require File.expand_path('../../test_helper',  __FILE__)
 require_test_helper 'controller_helpers'
+require_test_helper 'exception_helpers'
 
 class ExceptionHandlingTest < ActiveSupport::TestCase
   include ControllerHelpers
+  include ExceptionHelpers
 
   def dont_stub_log_error
     true
@@ -101,9 +103,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     def custom_data_callback_returns_nil_message_exception(data)
-      exception_with_nil_message = RuntimeError.new(nil)
-      stub(exception_with_nil_message).message { nil }
-      raise exception_with_nil_message
+      raise_exception_with_nil_message
     end
 
     def log_error_callback_config(data, ex)
@@ -116,9 +116,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     def log_error_callback_returns_nil_message_exception(data, ex)
-      exception_with_nil_message = RuntimeError.new(nil)
-      stub(exception_with_nil_message).message { nil }
-      raise exception_with_nil_message
+      raise_exception_with_nil_message
     end
 
     should "support a custom_data_hook" do
@@ -328,10 +326,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "log if the exception message is nil" do
-        exception_with_nil_message = RuntimeError.new(nil)
-        stub(exception_with_nil_message).message { nil }
         mock(ExceptionHandling::Sensu).generate_event("some alert", "test context\n")
-        ExceptionHandling.ensure_alert('some alert', 'test context') { raise exception_with_nil_message }
+        ExceptionHandling.ensure_alert('some alert', 'test context') { raise_exception_with_nil_message }
       end
     end
 
@@ -366,16 +362,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "log the error if the exception message is nil" do
-      exception_with_nil_message = RuntimeError.new(nil)
-      stub(exception_with_nil_message).message { nil }
       ExceptionHandling.log_error(exception_with_nil_message)
       assert_emails(1)
       assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
     end
 
     should "log the error if the exception message is nil and the exception context is a hash" do
-      exception_with_nil_message = RuntimeError.new(nil)
-      stub(exception_with_nil_message).message { nil }
       ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
       assert_emails(1)
       assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
@@ -499,8 +491,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "specify error message as an empty string when notifying honeybadger if exception message is nil" do
-          exception_with_nil_message = RuntimeError.new(nil)
-          stub(exception_with_nil_message).message { nil }
           mock(ExceptionHandling::Honeybadger).notify.with_any_args do |args|
             assert_equal "", args[:error_message]
           end

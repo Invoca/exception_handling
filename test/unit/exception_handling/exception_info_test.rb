@@ -1,9 +1,11 @@
 require File.expand_path('../../../test_helper',  __FILE__)
 require_test_helper 'controller_helpers'
+require_test_helper 'exception_helpers'
 
 module ExceptionHandling
   class ExceptionInfoTest < ActiveSupport::TestCase
     include ControllerHelpers
+    include ExceptionHelpers
 
     context "initialize" do
       setup do
@@ -73,8 +75,6 @@ module ExceptionHandling
       end
 
       should "generate exception data appropriately if exception message is nil" do
-        exception_with_nil_message = RuntimeError.new(nil)
-        stub(exception_with_nil_message).message { nil }
         exception_info = ExceptionInfo.new(exception_with_nil_message, "custom context data", @timestamp)
         exception_data = exception_info.data
         assert_equal "RuntimeError: ", exception_data["error_string"]
@@ -282,9 +282,7 @@ module ExceptionHandling
 
       should "log info if the custom data hook results in a nil message exception" do
         ExceptionHandling.custom_data_hook = lambda do |data|
-          exception_with_nil_message = RuntimeError.new(nil)
-          stub(exception_with_nil_message).message { nil }
-          raise exception_with_nil_message
+          raise_exception_with_nil_message
         end
         log_info_messages = []
         stub(ExceptionHandling.logger).info.with_any_args do |message, _|
