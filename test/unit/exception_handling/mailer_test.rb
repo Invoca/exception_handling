@@ -40,6 +40,12 @@ module ExceptionHandling
       end
 
       context "escalation_notification" do
+        setup do
+          def document_root_element
+            @body_html.root
+          end
+        end
+
         should "send all the information" do
           ExceptionHandling.email_environment = 'Staging Full'
           ExceptionHandling.server_name = 'test-fe3'
@@ -48,16 +54,17 @@ module ExceptionHandling
 
           assert_emails 1
           result = ActionMailer::Base.deliveries.last
-          body_html = HTML::Document.new(result.body.to_s)
+          @body_html = Nokogiri::HTML(result.body.to_s)
           assert_equal_with_diff ['test_escalation@invoca.com'], result.to
           assert_equal ["Test Escalation Mailer <null_escalation@invoca.com>"], result[:from].formatted
           assert_equal "Staging Full Escalation: Your Favorite <b>Feature<b> Failed", result.subject
           assert_select "title", "Exception Escalation"
-          assert_select body_html.root, "html" do
+          assert_select "html" do
             assert_select "body br", { :count => 4 }, result.body.to_s # plus 1 for the multiline summary
-            assert_select "body h3", "Your Favorite &lt;b&gt;Feature&lt;b&gt; Failed", result.body.to_s
+            assert_select "body h3", "Your Favorite <b>Feature<b> Failed", result.body.to_s
             assert_select "body", /1234567/
-            assert_select "body", /It failed because of an error\n &lt;i&gt;More Info&lt;i&gt;/
+            assert_select "body", /It failed because of an error/
+            assert_select "body", /\n <i>More Info<i>/
             assert_select "body", /test-fe3/
             #assert_select "body", /#{Web::Application::GIT_REVISION}/
           end
@@ -65,14 +72,14 @@ module ExceptionHandling
 
         should "use defaults for missing fields" do
           result = ExceptionHandling::Mailer.escalation_notification("Your Favorite Feature Failed", :error_string => "It failed because of an error\n More Info")
-          body_html = HTML::Document.new(result.body.to_s)
+          @body_html = Nokogiri::HTML(result.body.to_s)
 
           assert_equal_with_diff ['test_escalation@invoca.com'], result.to
           assert_equal ["null_escalation@invoca.com"], result.from
           assert_equal 'Test Escalation: Your Favorite Feature Failed', result.subject
-          assert_select body_html.root, "html" do
+          assert_select "html" do
             assert_select "body i", true, result.body.to_s do |is|
-              assert_select is[0], "i", 'no error #'
+              assert_select is, "i", 'no error #'
             end
           end
         end
