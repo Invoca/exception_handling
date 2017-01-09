@@ -57,7 +57,7 @@ class SocketStub
   end
 
   def closed?
-    !@connceted
+    !@connected
   end
 end
 
