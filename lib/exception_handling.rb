@@ -1,7 +1,6 @@
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
-require 'rails'
 
 require 'invoca/utils'
 
@@ -317,7 +316,7 @@ module ExceptionHandling # never included
         ['<no backtrace>']
       elsif exception.is_a?(ClientLoggingError)
         exception.backtrace
-      elsif defined?(Rails)
+      elsif defined?(Rails) && defined?(Rails.backtrace_cleaner)
         Rails.backtrace_cleaner.clean(exception.backtrace)
       else
         exception.backtrace
