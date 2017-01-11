@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'hobo_support'
 
   spec.add_development_dependency 'rake', '>=0.9'
-  spec.add_development_dependency 'shoulda', '=3.1.1'
+  spec.add_development_dependency 'shoulda', '> 3.1.1'
   spec.add_development_dependency 'rr'
   spec.add_development_dependency 'pry'
 end

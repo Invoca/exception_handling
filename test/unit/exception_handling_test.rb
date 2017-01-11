@@ -404,12 +404,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     context "Honeybadger integration" do
       context "with Honeybadger not defined" do
         should "not invoke send_exception_to_honeybadger when log_error is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
           ExceptionHandling.log_error(exception_1)
         end
 
         should "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
           ExceptionHandling.ensure_safe { raise exception_1 }
         end
       end
@@ -425,17 +425,17 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "invoke send_exception_to_honeybadger when log_error is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.log_error(exception_1)
         end
 
         should "invoke send_exception_to_honeybadger when log_error_rack is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.log_error_rack(exception_1, {}, nil)
         end
 
         should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.ensure_safe { raise exception_1 }
         end
 
