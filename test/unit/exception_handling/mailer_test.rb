@@ -3,11 +3,7 @@ require File.expand_path('../../../test_helper',  __FILE__)
 module ExceptionHandling
   class MailerTest < ActionMailer::TestCase
 
-    if ::Rails.const_defined?(:Dom)
-      include ::Rails::Dom::Testing::Assertions::SelectorAssertions
-    else
-      include ActionDispatch::Assertions::SelectorAssertions
-    end
+    include ::Rails::Dom::Testing::Assertions::SelectorAssertions
     tests ExceptionHandling::Mailer
 
     def dont_stub_log_error
