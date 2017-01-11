@@ -1,6 +1,8 @@
 require File.expand_path('../../test_helper',  __FILE__)
+require_test_helper 'controller_helpers'
 
 class ExceptionHandlingTest < ActiveSupport::TestCase
+  include ControllerHelpers
 
   def dont_stub_log_error
     true
@@ -87,6 +89,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   class SmtpClientErrbackStub < SmtpClientStub
+  end
+
+  class HoneybadgerStub
+    def self.notify(data)
+    end
   end
 
   context "#log_error" do
@@ -410,6 +417,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "with Honeybadger defined" do
         setup do
           stub(ExceptionHandling).honeybadger? { true }
+          ExceptionHandling.const_set('Honeybadger', HoneybadgerStub)
+        end
+
+        teardown do
+          ExceptionHandling.send(:remove_const, 'Honeybadger')
         end
 
         should "invoke send_exception_to_honeybadger when log_error is executed" do
@@ -425,6 +437,77 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
           ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.ensure_safe { raise exception_1 }
+        end
+
+        should "send error details and relevant context data to Honeybadger" do
+          Time.now_override = Time.now
+          env = { server: "fe98" }
+          parameters = { advertiser_id: 435 }
+          session = { username: "jsmith" }
+          request_uri = "host/path"
+          controller = create_dummy_controller(env, parameters, session, request_uri)
+          stub(ExceptionHandling).server_name { "invoca_fe98" }
+
+          exception = StandardError.new("Some BS")
+          exception.set_backtrace([
+            "test/unit/exception_handling_test.rb:847:in `exception_1'",
+            "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"])
+          exception_context = { "SERVER_NAME" => "exceptional.com" }
+
+          honeybadger_data = nil
+          mock(ExceptionHandling::Honeybadger).notify.with_any_args do |data|
+            honeybadger_data = data
+          end
+          ExceptionHandling.log_error(exception, exception_context, controller) do |data|
+            data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
+            data[:user_details] = { username: "jsmith" }
+            data[:event_response] = "Event successfully received"
+            data[:other_section] = "This should not be included in the response"
+          end
+
+          expected_data = {
+            error_class: :"Test BS",
+            error_message: "Some BS",
+            exception: exception,
+            context: {
+              timestamp: Time.now.to_i,
+              error_class: "StandardError",
+              server: "invoca_fe98",
+              scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
+              notes: "this is used by a test",
+              user_details: { "username" => "jsmith" },
+              request: {
+                "params" => { "advertiser_id" => 435 },
+                "rails_root" => "Rails.root not defined. Is this a test environment?",
+                "url" => "host/path" },
+              session: {
+                "key" => nil,
+                "data" => { "username" => "jsmith" } },
+              environment: {
+                "SERVER_NAME" => "exceptional.com" },
+              backtrace: [
+                "test/unit/exception_handling_test.rb:847:in `exception_1'",
+                "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"],
+              event_response: "Event successfully received"
+            }
+          }
+          assert_equal_with_diff expected_data, honeybadger_data
+        end
+
+        should "not send notification to honeybadger when exception description has the flag turned off" do
+          filter_list = {
+            NoHoneybadger: {
+              error: "suppress Honeybadger notification",
+              send_to_honeybadger: false
+            }
+          }
+          stub(File).mtime { incrementing_mtime }
+          mock(YAML).load_file.with_any_args { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }.at_least(1)
+
+          exception = StandardError.new("suppress Honeybadger notification")
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args.once
+          dont_allow(ExceptionHandling::Honeybadger).notify
+          ExceptionHandling.log_error(exception)
         end
       end
     end
@@ -766,13 +849,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       ensure
         Object.send(:remove_const, :Rails)
       end
-    end
-
-    should "clean params" do
-      p = {'password' => 'apple', 'username' => 'sam' }
-      ExceptionHandling.send( :clean_params, p )
-      assert_equal "[FILTERED]", p['password']
-      assert_equal 'sam', p['username']
     end
   end
 

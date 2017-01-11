@@ -29,6 +29,12 @@ module ExceptionHandling
         assert !ExceptionDescription.new(:filter1, error: "my error message" ).send_email
       end
 
+      should "allow send_to_honeybadger to be specified and have it enabled by default" do
+        assert !ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: false).send_to_honeybadger
+        assert ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: true).send_to_honeybadger
+        assert ExceptionDescription.new(:filter1, error: "my error message").send_to_honeybadger
+      end
+
       should "allow send_metric to be configured" do
         assert !ExceptionDescription.new(:filter1, error: "my error message", send_metric: false ).send_metric
         assert ExceptionDescription.new(:filter1, error: "my error message", send_email: true ).send_metric
