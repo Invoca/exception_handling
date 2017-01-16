@@ -89,15 +89,16 @@ EOF
     end
 
     def exception_to_data
+      exception_message = @exception.message.to_s
       data = ActiveSupport::HashWithIndifferentAccess.new
       data[:error_class] = @exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(@exception.message)}"
+      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
       data[:timestamp]   = @timestamp
       data[:backtrace]   = ExceptionHandling.clean_backtrace(@exception)
       if @exception_context && @exception_context.is_a?(Hash)
         # if we are a hash, then we got called from the DebugExceptions rack middleware filter
         # and we need to do some things different to get the info we want
-        data[:error] = "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(@exception.message)}"
+        data[:error] = "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
         data[:session] = @exception_context['rack.session']
         data[:environment] = @exception_context
       else
@@ -127,7 +128,7 @@ EOF
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
         traces = ex.backtrace.map { |l| "#{l}\n" }.join
-        ExceptionHandling.log_info("Unable to execute custom custom_data_hook callback. #{ExceptionHandling.encode_utf8(ex.message)} #{traces}")
+        ExceptionHandling.log_info("Unable to execute custom custom_data_hook callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}")
       end
     end
 
