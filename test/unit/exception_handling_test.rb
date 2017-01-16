@@ -1,8 +1,10 @@
 require File.expand_path('../../test_helper',  __FILE__)
 require_test_helper 'controller_helpers'
+require_test_helper 'exception_helpers'
 
 class ExceptionHandlingTest < ActiveSupport::TestCase
   include ControllerHelpers
+  include ExceptionHelpers
 
   def dont_stub_log_error
     true
@@ -100,6 +102,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
+    def custom_data_callback_returns_nil_message_exception(data)
+      raise_exception_with_nil_message
+    end
+
     def log_error_callback_config(data, ex)
       @callback_data = data
       @fail_count += 1
@@ -109,8 +115,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       raise "this should be rescued"
     end
 
-    setup do
-      @fail_count = 0
+    def log_error_callback_returns_nil_message_exception(data, ex)
+      raise_exception_with_nil_message
     end
 
     should "support a custom_data_hook" do
@@ -122,6 +128,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     should "support a log_error hook and pass exception data to it" do
       begin
+        @fail_count = 0
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
         assert_equal 1, @fail_count
@@ -135,9 +142,35 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     should "support rescue exceptions from a log_error hook" do
       ExceptionHandling.post_log_error_hook = method(:log_error_callback_with_failure)
+      log_info_messages = []
+      stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        log_info_messages << message
+      end
       assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
-      assert_equal 0, @fail_count
+      assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
       ExceptionHandling.post_log_error_hook = nil
+    end
+
+    should "handle nil message exceptions resulting from the log_error hook" do
+      ExceptionHandling.post_log_error_hook = method(:log_error_callback_returns_nil_message_exception)
+      log_info_messages = []
+      stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        log_info_messages << message
+      end
+      assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+      assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
+      ExceptionHandling.post_log_error_hook = nil
+    end
+
+    should "handle nil message exceptions resulting from the custom data hook" do
+      ExceptionHandling.custom_data_hook = method(:custom_data_callback_returns_nil_message_exception)
+      log_info_messages = []
+      stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        log_info_messages << message
+      end
+      assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+      assert log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }
+      ExceptionHandling.custom_data_hook = nil
     end
 
   end
@@ -291,6 +324,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
         ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError.new("first_test_exception") }
       end
+
+      should "log if the exception message is nil" do
+        mock(ExceptionHandling::Sensu).generate_event("some alert", "test context\n")
+        ExceptionHandling.ensure_alert('some alert', 'test context') { raise_exception_with_nil_message }
+      end
     end
 
     context "exception timestamp" do
@@ -321,6 +359,18 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_emails 2
       assert_match(/Exception 1/, ActionMailer::Base.deliveries[-2].subject)
       assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
+    end
+
+    should "log the error if the exception message is nil" do
+      ExceptionHandling.log_error(exception_with_nil_message)
+      assert_emails(1)
+      assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
+    end
+
+    should "log the error if the exception message is nil and the exception context is a hash" do
+      ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
+      assert_emails(1)
+      assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
     end
 
     should "only send 5 of a repeated error, but call post hook for every exception" do
@@ -438,6 +488,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
           ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.ensure_safe { raise exception_1 }
+        end
+
+        should "specify error message as an empty string when notifying honeybadger if exception message is nil" do
+          mock(ExceptionHandling::Honeybadger).notify.with_any_args do |args|
+            assert_equal "", args[:error_message]
+          end
+          ExceptionHandling.log_error(exception_with_nil_message)
         end
 
         should "send error details and relevant context data to Honeybadger" do
