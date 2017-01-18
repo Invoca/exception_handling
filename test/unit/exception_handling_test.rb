@@ -10,6 +10,37 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     true
   end
 
+  def append_organization_info_config(data)
+    begin
+      data[:user_details]                = {}
+      data[:user_details][:username]     = "CaryP"
+      data[:user_details][:organization] = "Invoca Engineering Dept."
+    rescue Exception => e
+      # don't let these out!
+    end
+  end
+
+  def custom_data_callback_returns_nil_message_exception(data)
+    raise_exception_with_nil_message
+  end
+
+  def log_error_callback(data, ex)
+    @fail_count += 1
+  end
+
+  def log_error_callback_config(data, ex)
+    @callback_data = data
+    @fail_count += 1
+  end
+
+  def log_error_callback_with_failure(data, ex)
+    raise "this should be rescued"
+  end
+
+  def log_error_callback_returns_nil_message_exception(data, ex)
+    raise_exception_with_nil_message
+  end
+
   module EventMachineStub
     class << self
       attr_accessor :block
@@ -92,33 +123,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   context "configuration" do
-    def append_organization_info_config(data)
-      begin
-        data[:user_details]                = {}
-        data[:user_details][:username]     = "CaryP"
-        data[:user_details][:organization] = "Invoca Engineering Dept."
-      rescue Exception => e
-        # don't let these out!
-      end
-    end
-
-    def custom_data_callback_returns_nil_message_exception(data)
-      raise_exception_with_nil_message
-    end
-
-    def log_error_callback_config(data, ex)
-      @callback_data = data
-      @fail_count += 1
-    end
-
-    def log_error_callback_with_failure(data, ex)
-      raise "this should be rescued"
-    end
-
-    def log_error_callback_returns_nil_message_exception(data, ex)
-      raise_exception_with_nil_message
-    end
-
     should "support a custom_data_hook" do
       ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
       ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
@@ -336,11 +340,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
       end
 
-      def log_error_callback(data, ex)
-        @fail_count += 1
-      end
-
-
       should "include the timestamp when the exception is logged" do
         mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/)
         b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
@@ -455,12 +454,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     context "Honeybadger integration" do
       context "with Honeybadger not defined" do
         should "not invoke send_exception_to_honeybadger when log_error is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
           ExceptionHandling.log_error(exception_1)
         end
 
         should "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
           ExceptionHandling.ensure_safe { raise exception_1 }
         end
       end
@@ -476,17 +475,17 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "invoke send_exception_to_honeybadger when log_error is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.log_error(exception_1)
         end
 
         should "invoke send_exception_to_honeybadger when log_error_rack is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.log_error_rack(exception_1, {}, nil)
         end
 
         should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
-          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
+          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.ensure_safe { raise exception_1 }
         end
 
