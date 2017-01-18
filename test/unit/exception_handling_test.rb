@@ -1,34 +1,13 @@
 require File.expand_path('../../test_helper',  __FILE__)
 require_test_helper 'controller_helpers'
+require_test_helper 'exception_helpers'
 
 class ExceptionHandlingTest < ActiveSupport::TestCase
   include ControllerHelpers
+  include ExceptionHelpers
 
   def dont_stub_log_error
     true
-  end
-
-  def log_error_callback(data, ex)
-    @fail_count += 1
-  end
-
-  def log_error_callback_config(data, ex)
-    @callback_data = data
-    @fail_count += 1
-  end
-
-  def log_error_callback_with_failure(data, ex)
-    raise "this should be rescued"
-  end
-
-  def append_organization_info_config(data)
-    begin
-      data[:user_details]                = {}
-      data[:user_details][:username]     = "CaryP"
-      data[:user_details][:organization] = "Invoca Engineering Dept."
-    rescue Exception => e
-      # don't let these out!
-    end
   end
 
   module EventMachineStub
@@ -113,8 +92,31 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   context "configuration" do
-    setup do
-      @fail_count = 0
+    def append_organization_info_config(data)
+      begin
+        data[:user_details]                = {}
+        data[:user_details][:username]     = "CaryP"
+        data[:user_details][:organization] = "Invoca Engineering Dept."
+      rescue Exception => e
+        # don't let these out!
+      end
+    end
+
+    def custom_data_callback_returns_nil_message_exception(data)
+      raise_exception_with_nil_message
+    end
+
+    def log_error_callback_config(data, ex)
+      @callback_data = data
+      @fail_count += 1
+    end
+
+    def log_error_callback_with_failure(data, ex)
+      raise "this should be rescued"
+    end
+
+    def log_error_callback_returns_nil_message_exception(data, ex)
+      raise_exception_with_nil_message
     end
 
     should "support a custom_data_hook" do
@@ -126,6 +128,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     should "support a log_error hook and pass exception data to it" do
       begin
+        @fail_count = 0
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
         assert_equal 1, @fail_count
@@ -139,9 +142,35 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     should "support rescue exceptions from a log_error hook" do
       ExceptionHandling.post_log_error_hook = method(:log_error_callback_with_failure)
+      log_info_messages = []
+      stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        log_info_messages << message
+      end
       assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
-      assert_equal 0, @fail_count
+      assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
       ExceptionHandling.post_log_error_hook = nil
+    end
+
+    should "handle nil message exceptions resulting from the log_error hook" do
+      ExceptionHandling.post_log_error_hook = method(:log_error_callback_returns_nil_message_exception)
+      log_info_messages = []
+      stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        log_info_messages << message
+      end
+      assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+      assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
+      ExceptionHandling.post_log_error_hook = nil
+    end
+
+    should "handle nil message exceptions resulting from the custom data hook" do
+      ExceptionHandling.custom_data_hook = method(:custom_data_callback_returns_nil_message_exception)
+      log_info_messages = []
+      stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        log_info_messages << message
+      end
+      assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+      assert log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }
+      ExceptionHandling.custom_data_hook = nil
     end
 
   end
@@ -295,12 +324,22 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
         ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError.new("first_test_exception") }
       end
+
+      should "log if the exception message is nil" do
+        mock(ExceptionHandling::Sensu).generate_event("some alert", "test context\n")
+        ExceptionHandling.ensure_alert('some alert', 'test context') { raise_exception_with_nil_message }
+      end
     end
 
     context "exception timestamp" do
       setup do
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
       end
+
+      def log_error_callback(data, ex)
+        @fail_count += 1
+      end
+
 
       should "include the timestamp when the exception is logged" do
         mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/)
@@ -320,6 +359,18 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_emails 2
       assert_match(/Exception 1/, ActionMailer::Base.deliveries[-2].subject)
       assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
+    end
+
+    should "log the error if the exception message is nil" do
+      ExceptionHandling.log_error(exception_with_nil_message)
+      assert_emails(1)
+      assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
+    end
+
+    should "log the error if the exception message is nil and the exception context is a hash" do
+      ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
+      assert_emails(1)
+      assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
     end
 
     should "only send 5 of a repeated error, but call post hook for every exception" do
@@ -404,12 +455,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     context "Honeybadger integration" do
       context "with Honeybadger not defined" do
         should "not invoke send_exception_to_honeybadger when log_error is executed" do
-          dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
           ExceptionHandling.log_error(exception_1)
         end
 
         should "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
-          dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(0)
           ExceptionHandling.ensure_safe { raise exception_1 }
         end
       end
@@ -425,18 +476,25 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "invoke send_exception_to_honeybadger when log_error is executed" do
-          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.log_error(exception_1)
         end
 
         should "invoke send_exception_to_honeybadger when log_error_rack is executed" do
-          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.log_error_rack(exception_1, {}, nil)
         end
 
         should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
-          mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
+          ExceptionHandling.expects(:send_exception_to_honeybadger).times(1)
           ExceptionHandling.ensure_safe { raise exception_1 }
+        end
+
+        should "specify error message as an empty string when notifying honeybadger if exception message is nil" do
+          mock(ExceptionHandling::Honeybadger).notify.with_any_args do |args|
+            assert_equal "", args[:error_message]
+          end
+          ExceptionHandling.log_error(exception_with_nil_message)
         end
 
         should "send error details and relevant context data to Honeybadger" do
