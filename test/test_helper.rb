@@ -1,6 +1,7 @@
 require 'active_support'
 require 'active_support/time'
 require 'active_support/test_case'
+require 'active_model'
 require 'action_mailer'
 require 'action_dispatch'
 require 'hobo_support'
@@ -57,7 +58,7 @@ class SocketStub
   end
 
   def closed?
-    !@connceted
+    !@connected
   end
 end
 

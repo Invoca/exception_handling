@@ -316,7 +316,7 @@ module ExceptionHandling # never included
         ['<no backtrace>']
       elsif exception.is_a?(ClientLoggingError)
         exception.backtrace
-      elsif defined?(Rails)
+      elsif defined?(Rails) && defined?(Rails.backtrace_cleaner)
         Rails.backtrace_cleaner.clean(exception.backtrace)
       else
         exception.backtrace

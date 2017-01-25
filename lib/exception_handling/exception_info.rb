@@ -189,7 +189,7 @@ EOF
       if @controller
         data[:request] = {
           params:      @controller.request.parameters.to_hash,
-          rails_root:  defined?(Rails) ? Rails.root : "Rails.root not defined. Is this a test environment?",
+          rails_root:  defined?(Rails) && defined?(Rails.root) ? Rails.root : "Rails.root not defined. Is this a test environment?",
           url:         @controller.complete_request_uri
         }
         data[:environment].merge!(@controller.request.env.to_hash)
