@@ -392,6 +392,7 @@ module ExceptionHandling
         expected_data = {
           timestamp: timestamp,
           error_class: "StandardError",
+          context: { "SERVER_NAME" => "exceptional.com" },
           server: "invoca_fe98",
           scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
           notes: "this is used by a test",
@@ -411,6 +412,28 @@ module ExceptionHandling
           event_response: "Event successfully received"
         }
         assert_equal_with_diff expected_data, exception_info.honeybadger_context_data
+      end
+
+      [ ['Hash',   { 'cookie' => 'cookie_context' } ],
+        ['String', 'Entering Error State'           ],
+        ['Array',  ['Error1', 'Error2']             ]].each do |klass, value|
+
+          should "extract context from exception_context when it is a #{klass}" do
+            exception = StandardError.new("Exception")
+            exception_context = value
+            exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
+
+            assert_equal klass, value.class.name
+            assert_equal value, exception_info.honeybadger_context_data[:context]
+          end
+      end
+
+      should "omit context if exception_context is empty" do
+        exception = StandardError.new("Exception")
+        exception_context = ""
+        exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
+
+        assert_nil exception_info.honeybadger_context_data[:context]
       end
     end
 
