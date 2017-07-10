@@ -360,6 +360,16 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
     end
 
+    should "not send emails if exception is a warning" do
+      ExceptionHandling.log_error(ExceptionHandling::Warning.new("Don't send email"))
+      assert_emails 0
+    end
+
+    should "not send emails when log_warning is called" do
+      ExceptionHandling.log_warning("Don't send email")
+      assert_emails 0
+    end
+
     should "log the error if the exception message is nil" do
       ExceptionHandling.log_error(exception_with_nil_message)
       assert_emails(1)
@@ -472,6 +482,16 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
         teardown do
           ExceptionHandling.send(:remove_const, 'Honeybadger')
+        end
+
+        should "not send_exception_to_honeybadger when log_warning is executed" do
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          ExceptionHandling.log_warning("This should not go to honeybadger")
+        end
+
+        should "not send_exception_to_honeybadger when log_error is called with a Warning" do
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          ExceptionHandling.log_error(ExceptionHandling::Warning.new("This should not go to honeybadger"))
         end
 
         should "invoke send_exception_to_honeybadger when log_error is executed" do

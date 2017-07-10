@@ -141,7 +141,7 @@ module ExceptionHandling # never included
     #
     # Normal Operation:
     #   Called directly by our code, usually from rescue blocks.
-    #   Does two things: write to log file and send an email
+    #   Does three things: write to log file and send an email, may also send to honeybadger if defined
     #
     # Functional Test Operation:
     #   Calls into handle_stub_log_error and returns. no log file. no email.
@@ -158,16 +158,18 @@ module ExceptionHandling # never included
 
         write_exception_to_log(ex, exception_context, timestamp)
 
-        if honeybadger?
-          send_exception_to_honeybadger(exception_info)
-        end
-
-        if treat_as_local
+        if treat_as_local  #Bail out before sending to honeybadger or email
           return
         end
 
-        if should_send_email?
-          log_error_email(exception_info)
+        if !ex.is_a?(Warning)
+          if honeybadger?
+            send_exception_to_honeybadger(exception_info)
+          end
+
+          if should_send_email?
+            log_error_email(exception_info)
+          end
         end
 
       rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
