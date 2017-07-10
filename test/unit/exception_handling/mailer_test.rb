@@ -20,7 +20,7 @@ module ExceptionHandling
 
       should "deliver" do
         #ActionMailer::Base.delivery_method = :smtp
-        result = ExceptionHandling::Mailer.exception_notification({ :error => "Test Error."}).deliver
+        result = ExceptionHandling::Mailer.exception_notification({ :error => "Test Error."}).deliver_now
         assert_match /Test Error./, result.body.to_s
         assert_equal_with_diff ['test_exception@invoca.com'], result.to
         assert_emails 1
@@ -28,7 +28,7 @@ module ExceptionHandling
 
       context "log_parser_exception_notification" do
         should "send with string" do
-          result = ExceptionHandling::Mailer.log_parser_exception_notification("This is my fake error", "My Fake Subj").deliver
+          result = ExceptionHandling::Mailer.log_parser_exception_notification("This is my fake error", "My Fake Subj").deliver_now
           assert_equal "Test exception: My Fake Subj: This is my fake error", result.subject
           assert_match(/This is my fake error/, result.body.to_s)
           assert_emails 1
@@ -46,7 +46,7 @@ module ExceptionHandling
           ExceptionHandling.email_environment = 'Staging Full'
           ExceptionHandling.server_name = 'test-fe3'
 
-          ExceptionHandling::Mailer.escalation_notification("Your Favorite <b>Feature<b> Failed", :error_string => "It failed because of an error\n <i>More Info<i>", :timestamp => 1234567 ).deliver
+          ExceptionHandling::Mailer.escalation_notification("Your Favorite <b>Feature<b> Failed", :error_string => "It failed because of an error\n <i>More Info<i>", :timestamp => 1234567 ).deliver_now
 
           assert_emails 1
           result = ActionMailer::Base.deliveries.last

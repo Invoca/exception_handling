@@ -4,7 +4,7 @@ module ExceptionHandling
 
     CONFIGURATION_SECTIONS = {
         send_email:           false,  # should email be sent?
-        send_to_honeybadger:  true,   # should be sent to honeybadger?
+        send_to_honeybadger:  false,  # should be sent to honeybadger?
         send_metric:          true,   # should the metric be sent.
         metric_name:          nil,    # Will be derived from section name if not passed
         notes:                nil     # Will be included in exception email if set, used to keep notes and relevant links

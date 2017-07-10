@@ -388,7 +388,7 @@ module ExceptionHandling # never included
         end
       else
         safe_email_deliver do
-          mail_object.deliver
+          mail_object.deliver_now
         end
       end
     end
