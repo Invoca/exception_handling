@@ -3,6 +3,7 @@ Test BS:
   error: "Some BS"
   send_email: true
   notes: "this is used by a test"
+  send_to_honeybadger: true
 
 All script kiddies:
   error: "ScriptKiddie suspected because of HTTP request without a referer"
@@ -48,6 +49,7 @@ InvalidAuth:
 
 NoRoute:
   error: "No route matches"
+  send_to_honeybadger: true
 
 SearchWebPlacementsJson:
   error: "search_web_placement Invalid JSON response from yahoo api"

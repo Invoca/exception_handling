@@ -210,7 +210,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       should "return nil if an exception is raised during an assignment" do
         mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
         b = ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
-        assert_equal nil, b
+        assert_nil b
       end
 
       should "allow a message to be appended to the error when logged." do
@@ -249,7 +249,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       should "return nil if an exception is raised during an assignment" do
         mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/) { nil }
         b = ExceptionHandling.ensure_completely_safe { raise ArgumentError.new("blah") }
-        assert_equal nil, b
+        assert_nil b
       end
 
       should "allow a message to be appended to the error when logged." do
