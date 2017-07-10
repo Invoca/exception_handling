@@ -158,16 +158,18 @@ module ExceptionHandling # never included
 
         write_exception_to_log(ex, exception_context, timestamp)
 
-        if honeybadger? && !ex.is_a?(Warning)
-          send_exception_to_honeybadger(exception_info)
-        end
-
-        if treat_as_local
+        if treat_as_local  #Bail out before sending to honeybadger or email
           return
         end
 
-        if should_send_email?
-          log_error_email(exception_info)
+        if !ex.is_a?(Warning)
+          if honeybadger?
+            send_exception_to_honeybadger(exception_info)
+          end
+
+          if should_send_email?
+            log_error_email(exception_info)
+          end
         end
 
       rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
