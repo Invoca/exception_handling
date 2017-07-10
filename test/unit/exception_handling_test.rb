@@ -474,6 +474,16 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           ExceptionHandling.send(:remove_const, 'Honeybadger')
         end
 
+        should "not send_exception_to_honeybadger when log_warning is executed" do
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          ExceptionHandling.log_warning("This should not go to honeybadger")
+        end
+
+        should "not send_exception_to_honeybadger when log_error is called with a Warning" do
+          dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          ExceptionHandling.log_error(ExceptionHandling::Warning.new("This should not go to honeybadger"))
+        end
+
         should "invoke send_exception_to_honeybadger when log_error is executed" do
           mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
           ExceptionHandling.log_error(exception_1)

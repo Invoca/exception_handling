@@ -52,7 +52,7 @@ module ExceptionHandling
       end
 
       should "allow notes to be recorded" do
-        assert_equal nil, ExceptionDescription.new(:filter1, error: "my error message" ).notes
+        assert_nil ExceptionDescription.new(:filter1, error: "my error message" ).notes
         assert_equal "a long string", ExceptionDescription.new(:filter1, error: "my error message", notes: "a long string" ).notes
       end
 
