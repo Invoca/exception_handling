@@ -157,6 +157,7 @@ module ExceptionHandling # never included
         end
 
         write_exception_to_log(ex, exception_context, timestamp)
+        execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception)
 
         if treat_as_local  #Bail out before sending to honeybadger or email
           return
@@ -345,8 +346,6 @@ module ExceptionHandling # never included
           deliver(ExceptionHandling::Mailer.exception_notification(data))
         end
       end
-
-      execute_custom_log_error_callback(data, exception_info.exception)
       nil
     end
 
