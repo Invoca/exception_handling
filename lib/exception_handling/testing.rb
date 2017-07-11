@@ -58,7 +58,7 @@ module ExceptionHandling
       end
 
       include ExceptionHandling::Methods
-
+      set_long_controller_action_timeout 40
     end
 
   end

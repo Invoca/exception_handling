@@ -1,5 +1,8 @@
+require 'active_support/concern'
+
 module ExceptionHandling
   module Methods # included on models and controllers
+    extend ActiveSupport::Concern
 
     protected
 
@@ -57,23 +60,38 @@ module ExceptionHandling
       end
     end
 
-    # Store aside the current controller when included
-    LONG_REQUEST_SECONDS = (defined?(Rails) && Rails.respond_to?(:env) && Rails.env == 'test' ? 300 : 30)
+    def long_controller_action_timeout
+      if defined?(Rails) && Rails.respond_to?(:env) && Rails.env == 'test'
+        300
+      else
+        30
+      end
+    end
+
     def set_current_controller
       ExceptionHandling.current_controller = self
       result = nil
       time = Benchmark.measure do
         result = yield
       end
-      name = " in #{controller_name}::#{action_name}" rescue " "
-      log_error( "Long controller action detected#{name} %.4fs  " % time.real ) if time.real > LONG_REQUEST_SECONDS && !['development', 'test'].include?(ExceptionHandling.email_environment)
+      if time.real > self.long_controller_action_timeout && !['development', 'test'].include?(ExceptionHandling.email_environment)
+        name = " in #{controller_name}::#{action_name}" rescue " "
+        log_error( "Long controller action detected#{name} %.4fs  " % time.real )
+      end
       result
     ensure
       ExceptionHandling.current_controller = nil
     end
 
-    def self.included( controller )
-      controller.around_filter :set_current_controller if controller.respond_to? :around_filter
+    included do
+      around_filter :set_current_controller if respond_to? :around_filter
+    end
+
+    class_methods do
+      def set_long_controller_action_timeout(timeout)
+        define_method(:long_controller_action_timeout) { timeout }
+        protected :long_controller_action_timeout
+      end
     end
   end
 end

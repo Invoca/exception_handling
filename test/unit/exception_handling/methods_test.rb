@@ -39,19 +39,33 @@ module ExceptionHandling
       end
 
       should "report long running controller action" do
-        # This was the original stub:
-        # Rails.expects(:env).times(2).returns('production')
-        # but this stubbing approach no longer works
-        # Rails is setting the long controller timeout on module load
-        # in exception_handling.rb - that happens before this test ever gets run
-        # we can set Rails.env here, which we do, because it affects part of the real-time
-        # logic check for whether to raise (which we want). To overcome the setting
-        # on the long controller timeout I have set the Time.now_override to 1.day.from_now
-        # instead of 1.hour.from_now
+        assert_equal 40, @controller.send(:long_controller_action_timeout)
         mock(ExceptionHandling).log_error(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/, anything, anything)
         @controller.simulate_around_filter( ) do
-          Time.now_override = 1.day.from_now
+          Time.now_override = 41.second.from_now
         end
+      end
+
+      should "not report long running controller actions if it is less than the timeout" do
+        assert_equal 40, @controller.send(:long_controller_action_timeout)
+        stub(ExceptionHandling).log_error { flunk "Should not timeout" }
+        @controller.simulate_around_filter( ) do
+          Time.now_override = 35.second.from_now
+        end
+      end
+
+      should "default long running controller action(300/30 for test/prod)" do
+        class DummyController
+          include ExceptionHandling::Methods
+        end
+
+        controller = DummyController.new
+
+        Rails.env = 'production'
+        assert_equal 30, controller.send(:long_controller_action_timeout)
+
+        Rails.env = 'test'
+        assert_equal 300, controller.send(:long_controller_action_timeout)
       end
     end
 

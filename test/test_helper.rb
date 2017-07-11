@@ -13,29 +13,29 @@ require 'pry'
 require 'exception_handling'
 require 'exception_handling/testing'
 
- class LoggerStub
-    attr_accessor :logged
+class LoggerStub
+  attr_accessor :logged
 
-    def initialize
-      clear
-    end
+  def initialize
+    clear
+  end
 
-    def info(message)
-      logged << message
-    end
+  def info(message)
+    logged << message
+  end
 
-    def warn(message)
-      logged << message
-    end
+  def warn(message)
+    logged << message
+  end
 
-    def fatal(message)
-      logged << message
-    end
+  def fatal(message)
+    logged << message
+  end
 
-    def clear
-      @logged = []
-    end
- end
+  def clear
+    @logged = []
+  end
+end
 
 class SocketStub
   attr_accessor :sent, :connected
@@ -79,6 +79,18 @@ class ActiveSupport::TestCase
   setup do
     unless @@constant_overrides.nil? || @@constant_overrides.empty?
       raise "Uh-oh! constant_overrides left over: #{@@constant_overrides.inspect}"
+    end
+
+    unless defined?(Rails) && defined?(Rails.env)
+      module ::Rails
+        def self.env
+          @env ||= 'test'
+        end
+
+        def self.env=(mode)
+          @env = mode
+        end
+      end
     end
 
     Time.now_override = nil
