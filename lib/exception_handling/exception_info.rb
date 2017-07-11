@@ -46,7 +46,7 @@ EOF
       ).split("\n")
 
     SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-    HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response]
+    HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response]
 
     attr_reader :exception, :controller
 
@@ -249,6 +249,7 @@ EOF
     def enhanced_data_to_honeybadger_context
       data = enhanced_data.dup
       data[:server] = ExceptionHandling.server_name
+      data[:exception_context] = @exception_context if @exception_context.present?
       unstringify_sections(data)
       context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
         if data[section].present?

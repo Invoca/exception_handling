@@ -550,6 +550,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               timestamp: Time.now.to_i,
               error_class: "StandardError",
               server: "invoca_fe98",
+              exception_context: { "SERVER_NAME" => "exceptional.com" },
               scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
               notes: "this is used by a test",
               user_details: { "username" => "jsmith" },
