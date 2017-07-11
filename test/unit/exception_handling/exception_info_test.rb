@@ -392,7 +392,7 @@ module ExceptionHandling
         expected_data = {
           timestamp: timestamp,
           error_class: "StandardError",
-          context: { "SERVER_NAME" => "exceptional.com" },
+          exception_context: { "SERVER_NAME" => "exceptional.com" },
           server: "invoca_fe98",
           scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
           notes: "this is used by a test",
@@ -424,7 +424,7 @@ module ExceptionHandling
             exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
 
             assert_equal klass, value.class.name
-            assert_equal value, exception_info.honeybadger_context_data[:context]
+            assert_equal value, exception_info.honeybadger_context_data[:exception_context]
           end
       end
 
@@ -433,7 +433,7 @@ module ExceptionHandling
         exception_context = ""
         exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
 
-        assert_nil exception_info.honeybadger_context_data[:context]
+        assert_nil exception_info.honeybadger_context_data[:exception_context]
       end
     end
 
