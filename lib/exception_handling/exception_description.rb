@@ -27,7 +27,7 @@ module ExceptionHandling
 
       regex_config = @configuration.reject { |k,v| k.in?(CONFIGURATION_SECTIONS.keys) || v.blank? }
 
-      @regexes = Hash[regex_config.map { |section, regex| [section, Regexp.new(regex, 'i') ] }]
+      @regexes = Hash[regex_config.map { |section, regex| [section, Regexp.new(regex, Regexp::IGNORECASE | Regexp::MULTILINE) ] }]
 
       !@regexes.empty? or raise ArgumentError, "Filter #{filter_name} has all blank regexes: #{configuration.inspect}"
     end
