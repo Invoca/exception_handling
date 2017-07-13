@@ -19,10 +19,10 @@ module LogErrorStub
 
     @exception_whitelist.each do |pattern, match|
       unless match[:expected] == match[:found]
-        message = "log_error expected #{match[:expected]} times with pattern: '#{pattern.is_a?(Regexp) ? pattern.source : pattern}' #{match[:count]} found #{match[:found]}"
+        message = "log_error expected #{match[:expected]} times with pattern: '#{pattern.is_a?(Regexp) ? pattern.source : pattern}' found #{match[:found]}"
 
-        if defined?(Minitest::Test) && self.is_a?(Minitest::Test)
-          flunk(message)
+        if is_mini_test?
+         flunk(message)
         else
           add_failure(message)
         end
@@ -32,6 +32,10 @@ module LogErrorStub
 
   attr_accessor :exception_whitelist
 
+  # for overriding when testing this module
+  def is_mini_test?
+    defined?(Minitest::Test) && self.is_a?(Minitest::Test)
+  end
   #
   # Call this function in your functional tests - usually first line after a "should" statement
   # once called, you can then call expects_exception

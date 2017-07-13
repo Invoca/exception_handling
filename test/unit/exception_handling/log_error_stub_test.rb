@@ -79,5 +79,28 @@ module ExceptionHandling
       end
     end
 
+    context "teardown_log_error_stub" do
+      should "support MiniTest framework for adding a failure" do
+        expects_exception /foo/
+
+        mock(self).is_mini_test?.returns { true }
+
+        mock(self).flunk("log_error expected 1 times with pattern: 'foo' found 0")
+        teardown_log_error_stub
+
+        self.exception_whitelist = nil
+      end
+
+      should "support Test::Unit framework for adding a failure" do
+        expects_exception /foo/
+
+        mock(self).is_mini_test?.returns { false }
+
+        mock(self).add_failure("log_error expected 1 times with pattern: 'foo' found 0")
+        teardown_log_error_stub
+
+        self.exception_whitelist = nil
+      end
+    end
   end
 end
