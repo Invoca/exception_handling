@@ -15,6 +15,11 @@ module ExceptionHandling
         assert @f.match?( :error => "my error message")
       end
 
+      should "allow wildcards to cross line boundries" do
+        @f = ExceptionDescription.new(:filter1, :error => "my error message.*with multiple lines" )
+        assert @f.match?( :error => "my error message\nwith more than one, with multiple lines")
+      end
+
       should "complain when no regexps have a value" do
         assert_raise(ArgumentError, "has all blank regexe") { ExceptionDescription.new(:filter1, error: nil) }
       end
