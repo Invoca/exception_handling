@@ -11,11 +11,22 @@ module LogErrorStub
     stub_log_error unless respond_to?(:dont_stub_log_error) && dont_stub_log_error
   end
 
+  # if used in Minitest::Test this should be called in `before teardown`
+  # if used in Test::Unit this should be called as the first line of `teardown`
   def teardown_log_error_stub
     ExceptionHandling.stub_handler = nil
     return unless @exception_whitelist
-    @exception_whitelist.each do |item|
-      add_failure("log_error expected #{item[1][:expected]} times with pattern: '#{item[0].is_a?(Regexp) ? item[0].source : item[0]}' #{item[1][:count]} found #{item[1][:found]}") unless item[1][:expected] == item[1][:found]
+
+    @exception_whitelist.each do |pattern, match|
+      unless match[:expected] == match[:found]
+        message = "log_error expected #{match[:expected]} times with pattern: '#{pattern.is_a?(Regexp) ? pattern.source : pattern}' #{match[:count]} found #{match[:found]}"
+
+        if defined?(Minitest::Test) && self.is_a?(Minitest::Test)
+          flunk(message)
+        else
+          add_failure(message)
+        end
+      end
     end
   end
 
