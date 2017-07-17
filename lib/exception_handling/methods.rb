@@ -16,7 +16,9 @@ module ExceptionHandling
     end
 
     def log_warning(message)
-      log_error(Warning.new(message))
+      warning = Warning.new(message)
+      warning.set_backtrace([])
+      log_error(warning)
     end
 
     def log_info(message)

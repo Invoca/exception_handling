@@ -214,8 +214,10 @@ module ExceptionHandling # never included
       Object.const_defined?("Honeybadger")
     end
 
-    def log_warning( message )
-      log_error( Warning.new(message) )
+    def log_warning(message)
+      warning = Warning.new(message)
+      warning.set_backtrace([])
+      log_error(warning)
     end
 
     def log_info( message )

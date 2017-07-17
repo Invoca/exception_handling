@@ -122,6 +122,17 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
   end
 
+
+  context "#log_warning" do
+    should "have empty array as a backtrace" do
+      mock(ExceptionHandling).log_error(is_a(ExceptionHandling::Warning)) do |error|
+        assert_equal ExceptionHandling::Warning, error.class
+        assert_equal [], error.backtrace
+      end
+      ExceptionHandling.log_warning('Now with empty array as a backtrace!')
+    end
+  end
+
   context "configuration" do
     should "support a custom_data_hook" do
       ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
