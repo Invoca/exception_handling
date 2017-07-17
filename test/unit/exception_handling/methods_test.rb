@@ -67,6 +67,17 @@ module ExceptionHandling
         Rails.env = 'test'
         assert_equal 300, controller.send(:long_controller_action_timeout)
       end
+
+      context "#log_warning" do
+        should "be available to the controller" do
+          assert_equal true, @controller.methods.include?(:log_warning)
+        end
+
+        should "call ExceptionHandling#log_warning" do
+          mock(ExceptionHandling).log_warning("Hi mom")
+          @controller.send(:log_warning, "Hi mom")
+        end
+      end
     end
 
   end
