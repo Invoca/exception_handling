@@ -11,6 +11,7 @@ require "exception_handling/log_stub_error"
 require "exception_handling/exception_description"
 require "exception_handling/exception_catalog"
 require "exception_handling/exception_info"
+require "exception_handling/honeybadger_callbacks.rb"
 
 _ = ActiveSupport::HashWithIndifferentAccess
 
@@ -212,6 +213,11 @@ module ExceptionHandling # never included
     #
     def honeybadger?
       Object.const_defined?("Honeybadger")
+    end
+
+    def enable_honeybadger
+      Bundler.require(:honeybadger)
+      HoneybadgerCallbacks.register_callbacks
     end
 
     def log_warning(message)
