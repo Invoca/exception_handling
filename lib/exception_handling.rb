@@ -215,9 +215,10 @@ module ExceptionHandling # never included
       Object.const_defined?("Honeybadger")
     end
 
-    def enable_honeybadger
+    def enable_honeybadger(config = {})
       Bundler.require(:honeybadger)
       HoneybadgerCallbacks.register_callbacks
+      Honeybadger.start(config)
     end
 
     def log_warning(message)
