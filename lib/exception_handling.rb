@@ -250,6 +250,11 @@ module ExceptionHandling # never included
       log_error ex, exception_context
     end
 
+    def escalate_to_production_support(exception_or_string, email_subject)
+      ex = make_exception(exception_or_string)
+      escalate_custom(email_subject, ex, last_exception_timestamp, production_support_recipients)
+    end
+
     def escalate_error(exception_or_string, email_subject)
       ex = make_exception(exception_or_string)
       log_error(ex)
@@ -371,6 +376,10 @@ module ExceptionHandling # never included
     def escalate( email_subject, ex, timestamp )
       exception_info = ExceptionInfo.new(ex, nil, timestamp)
       deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
+    end
+
+    def escalate_custom()
+      # something here escalate_custom (mailer)
     end
 
     def deliver(mail_object)
