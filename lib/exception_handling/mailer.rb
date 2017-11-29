@@ -48,7 +48,7 @@ module ExceptionHandling
            :subject => subject)
     end
 
-    def escalation_custom(summary, data, recipients)
+    def escalate_custom(summary, data, recipients)
       subject       = "#{email_environment} Escalation: #{summary}"
       from          = sender_address.gsub('xception', 'scalation')
       recipients    = recipients

@@ -55,6 +55,7 @@ module ExceptionHandling # never included
     #
     # optional settings
     #
+    attr_accessor :production_support_recipients
     attr_accessor :escalation_recipients
     attr_accessor :email_environment
     attr_accessor :filter_list_filename
@@ -251,6 +252,7 @@ module ExceptionHandling # never included
     end
 
     def escalate_to_production_support(exception_or_string, email_subject)
+      production_support_recipients or raise ArgumentError, "In order to escalate to production support, you must set #{self.name}.production_recipients"
       ex = make_exception(exception_or_string)
       escalate_custom(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
@@ -378,8 +380,9 @@ module ExceptionHandling # never included
       deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
     end
 
-    def escalate_custom()
-      # something here escalate_custom (mailer)
+    def escalate_custom(email_subject, ex, timestamp, recipients)
+      exception_info = ExceptionInfo.new(ex, nil, timestamp)
+      deliver(ExceptionHandling::Mailer.escalate_custom(email_subject, exception_info.data, recipients))
     end
 
     def deliver(mail_object)
