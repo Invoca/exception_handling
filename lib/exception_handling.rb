@@ -48,6 +48,10 @@ module ExceptionHandling # never included
       @exception_recipients or raise ArgumentError, "You must assign a value to #{self.name}.exception_recipients"
     end
 
+    def production_support_recipients
+      @production_support_recipients or raise ArgumentError, "You must assign a value to #{self.name}.production_support_recipients"
+    end
+
     def logger
       @logger or raise ArgumentError, "You must assign a value to #{self.name}.logger"
     end
@@ -55,6 +59,7 @@ module ExceptionHandling # never included
     #
     # optional settings
     #
+    attr_accessor :production_support_recipients
     attr_accessor :escalation_recipients
     attr_accessor :email_environment
     attr_accessor :filter_list_filename
@@ -250,6 +255,12 @@ module ExceptionHandling # never included
       log_error ex, exception_context
     end
 
+    def escalate_to_production_support(exception_or_string, email_subject)
+      ex = make_exception(exception_or_string)
+      log_error(ex)
+      escalate_custom(email_subject, ex, last_exception_timestamp, production_support_recipients)
+    end
+
     def escalate_error(exception_or_string, email_subject)
       ex = make_exception(exception_or_string)
       log_error(ex)
@@ -371,6 +382,11 @@ module ExceptionHandling # never included
     def escalate( email_subject, ex, timestamp )
       exception_info = ExceptionInfo.new(ex, nil, timestamp)
       deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
+    end
+
+    def escalate_custom(email_subject, ex, timestamp, recipients)
+      exception_info = ExceptionInfo.new(ex, nil, timestamp)
+      deliver(ExceptionHandling::Mailer.escalation_custom(email_subject, exception_info.data, recipients))
     end
 
     def deliver(mail_object)
