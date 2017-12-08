@@ -123,7 +123,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
   end
 
-
   context "#log_warning" do
     should "have empty array as a backtrace" do
       mock(ExceptionHandling).log_error(is_a(ExceptionHandling::Warning)) do |error|
@@ -195,6 +194,32 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     setup do
       ActionMailer::Base.deliveries.clear
       ExceptionHandling.send(:clear_exception_summary)
+    end
+
+    context "default_metric_name" do
+      should "return exception_handling.warning when using log warning" do
+        warning = ExceptionHandling::Warning.new('this is a warning')
+        metric  = ExceptionHandling.default_metric_name({}, warning, false)
+        assert_equal 'exception_handling.warning', metric
+      end
+
+      should "return exception_handling.warning when using treat_like_warning" do
+        exception = StandardError.new('this is an exception')
+        metric    = ExceptionHandling.default_metric_name({}, exception, true)
+        assert_equal 'exception_handling.warning', metric
+      end
+
+      should "return exception_handling.exception when using log error" do
+        exception = StandardError.new('this is an exception')
+        metric    = ExceptionHandling.default_metric_name({}, exception, false)
+        assert_equal 'exception_handling.exception', metric
+      end
+
+      should "return special metric when specified in exception filtering" do
+        exception = StandardError.new('this is an exception')
+        metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true)
+        assert_equal 'exception_handling.special_metric', metric
+      end
     end
 
     context "ExceptionHandling.ensure_safe" do

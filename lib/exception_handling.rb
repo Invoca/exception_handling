@@ -52,6 +52,18 @@ module ExceptionHandling # never included
       @logger or raise ArgumentError, "You must assign a value to #{self.name}.logger"
     end
 
+    def default_metric_name(exception_data, exception, treat_like_warning)
+      metric_name = if exception_data['metric_name']
+                      exception_data['metric_name']
+                    elsif exception.is_a?(ExceptionHandling::Warning) || treat_like_warning
+                      "warning"
+                    else
+                      "exception"
+                    end
+
+      "exception_handling.#{metric_name}"
+    end
+
     #
     # optional settings
     #
