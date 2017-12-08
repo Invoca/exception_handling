@@ -24,12 +24,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     raise_exception_with_nil_message
   end
 
-  def log_error_callback(data, ex)
+  def log_error_callback(data, ex, treat_like_warning)
     @fail_count += 1
   end
 
-  def log_error_callback_config(data, ex)
+  def log_error_callback_config(data, ex, treat_like_warning)
     @callback_data = data
+    @treat_like_warning = treat_like_warning
     @fail_count += 1
   end
 
@@ -140,12 +141,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       ExceptionHandling.custom_data_hook = nil
     end
 
-    should "support a log_error hook and pass exception data to it" do
+    should "support a log_error hook and pass exception data and treat like warning to it" do
       begin
         @fail_count = 0
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
         assert_equal 1, @fail_count
+        assert_equal false, @treat_like_warning
       ensure
         ExceptionHandling.post_log_error_hook = nil
       end

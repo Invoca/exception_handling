@@ -158,7 +158,7 @@ module ExceptionHandling # never included
         end
 
         write_exception_to_log(ex, exception_context, timestamp)
-        execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception)
+        execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning)
 
         if treat_like_warning  #Bail out before sending to honeybadger or email
           return
@@ -358,10 +358,10 @@ module ExceptionHandling # never included
       nil
     end
 
-    def execute_custom_log_error_callback(exception_data, exception)
+    def execute_custom_log_error_callback(exception_data, exception, treat_like_warning)
       return if ! ExceptionHandling.post_log_error_hook
       begin
-        ExceptionHandling.post_log_error_hook.call(exception_data, exception)
+        ExceptionHandling.post_log_error_hook.call(exception_data, exception, treat_like_warning)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
         log_info( "Unable to execute custom log_error callback. #{encode_utf8(ex.message.to_s)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
