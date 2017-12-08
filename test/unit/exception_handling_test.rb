@@ -155,6 +155,18 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_match(/this is used by a test/, ActionMailer::Base.deliveries[-1].body.to_s)
     end
 
+    should "plumb treat like warning to log error hook" do
+      begin
+        @fail_count = 0
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
+        ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", treat_like_warning: true)
+        assert_equal 1, @fail_count
+        assert_equal true, @treat_like_warning
+      ensure
+        ExceptionHandling.post_log_error_hook = nil
+      end
+    end
+
     should "support rescue exceptions from a log_error hook" do
       ExceptionHandling.post_log_error_hook = method(:log_error_callback_with_failure)
       log_info_messages = []
