@@ -147,7 +147,7 @@ module ExceptionHandling # never included
     # Functional Test Operation:
     #   Calls into handle_stub_log_error and returns. no log file. no email.
     #
-    def log_error(exception_or_string, exception_context = '', controller = nil, treat_as_local = false, &data_callback)
+    def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, &data_callback)
       begin
         ex = make_exception(exception_or_string)
         timestamp = set_log_error_timestamp
@@ -160,7 +160,7 @@ module ExceptionHandling # never included
         write_exception_to_log(ex, exception_context, timestamp)
         execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception)
 
-        if treat_as_local  #Bail out before sending to honeybadger or email
+        if treat_like_warning  #Bail out before sending to honeybadger or email
           return
         end
 
@@ -409,7 +409,7 @@ module ExceptionHandling # never included
       end
     rescue StandardError, MailerTimeout => ex
       #$stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
-      log_error( ex, "ExceptionHandling::safe_email_deliver", nil, true )
+      log_error(ex, "ExceptionHandling::safe_email_deliver", nil, treat_like_warning: true)
     end
 
     def clear_exception_summary
