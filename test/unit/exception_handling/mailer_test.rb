@@ -79,6 +79,24 @@ module ExceptionHandling
             end
           end
         end
+
+        context "ExceptionHandling.escalate_to_production_support" do
+          setup do
+            Time.now_override = Time.parse('1986-5-21 4:17 am UTC')
+          end
+
+          should "notify production support" do
+            subject = "Runtime Error found!"
+            exception = RuntimeError.new("Test")
+            recipients = ["prodsupport@example.com"]
+
+            ExceptionHandling.production_support_recipients = recipients
+            ExceptionHandling.last_exception_timestamp = Time.now.to_i
+
+            mock(ExceptionHandling).escalate_custom(subject, exception, Time.now.to_i, recipients)
+            ExceptionHandling.escalate_to_production_support(exception, subject)
+          end
+        end
       end
     end
 

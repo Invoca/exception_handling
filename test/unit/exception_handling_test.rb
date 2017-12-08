@@ -345,6 +345,18 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
+    context "ExceptionHandling.escalate_to_production_support" do
+      should "notify production support" do
+        subject = "Runtime Error found!"
+        exception = RuntimeError.new("Test")
+        recipients = ["prodsupport@example.com"]
+
+        mock(ExceptionHandling).production_support_recipients { recipients }.times(2)
+        mock(ExceptionHandling).escalate_custom(subject, exception, ExceptionHandling.last_exception_timestamp, recipients)
+        ExceptionHandling.escalate_to_production_support(exception, subject)
+      end
+    end
+
     context "exception timestamp" do
       setup do
         Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
