@@ -48,6 +48,20 @@ module ExceptionHandling
            :subject => subject)
     end
 
+    def escalate_custom(summary, data, recipients)
+      subject       = "#{email_environment} Escalation: #{summary}"
+      from          = sender_address.gsub('xception', 'scalation')
+      recipients    = recipients
+
+      @summary      = summary
+      @server       = ExceptionHandling.server_name
+      @cleaned_data = data
+
+      mail(:from    => from,
+           :to      => recipients,
+           :subject => subject)
+    end
+
     def log_parser_exception_notification( cleaned_data, key )
       if cleaned_data.is_a?(Hash)
         cleaned_data = cleaned_data.symbolize_keys
