@@ -65,7 +65,7 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (1.2.8)
+    exception_handling (1.2.9)
       actionmailer (~> 4.0)
       actionpack (~> 4.0)
       activesupport (~> 4.0)
@@ -81,7 +81,7 @@ GEM
     coderay (1.1.1)
     concurrent-ruby (1.0.4)
     erubis (2.7.0)
-    eventmachine (1.2.1)
+    eventmachine (1.2.5)
     globalid (0.3.7)
       activesupport (>= 4.1.0)
     i18n (0.7.0)

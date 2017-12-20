@@ -110,6 +110,15 @@ module ExceptionHandling # never included
       @eventmachine_synchrony = bool
     end
 
+    def filter_list_filename=(filename)
+      @filter_list_filename = filename
+      @exception_catalog = nil
+    end
+
+    def exception_catalog
+      @exception_catalog ||= ExceptionCatalog.new(@filter_list_filename)
+    end
+
     #
     # internal settings (don't set directly)
     #

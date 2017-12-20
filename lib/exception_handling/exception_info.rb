@@ -66,12 +66,8 @@ EOF
       @enhanced_data ||= exception_to_enhanced_data
     end
 
-    def self.exception_catalog
-      @exception_catalog ||= ExceptionCatalog.new(ExceptionHandling.filter_list_filename)
-    end
-
     def exception_description
-      @exception_description ||= self.class.exception_catalog.find(enhanced_data)
+      @exception_description ||= ExceptionHandling.exception_catalog.find(enhanced_data)
     end
 
     def send_to_honeybadger?
@@ -117,7 +113,7 @@ EOF
       clean_exception_data(enhanced_data)
       stringify_sections(enhanced_data)
 
-      description = self.class.exception_catalog.find(enhanced_data)
+      description = ExceptionHandling.exception_catalog.find(enhanced_data)
       merged_data = description ? ActiveSupport::HashWithIndifferentAccess.new(description.exception_data.merge(enhanced_data)) : enhanced_data
     end
 

@@ -39,7 +39,7 @@ module ExceptionHandling
         @exception_catalog = ExceptionCatalog.new( ExceptionHandling.filter_list_filename )
 
         mock(ExceptionHandling).log_error.never
-        mock(ExceptionHandling).write_exception_to_log(anything(), "ExceptionRegexes::refresh_filters: ./config/exception_filters.yml", anything())
+        mock(ExceptionHandling).write_exception_to_log(anything(), "ExceptionCatalog#refresh_filters: ./config/exception_filters.yml", anything())
         mock(@exception_catalog).load_file { raise "noooooo"}
 
         @exception_catalog.find({})
@@ -59,6 +59,17 @@ module ExceptionHandling
       should "load the filter data" do
         assert !@exception_catalog.find( error: "Scott says unlikely to ever match" )
         assert !@exception_catalog.find( error: "Scott says unlikely to ever match" )
+      end
+    end
+
+    context "with no yaml content" do
+      setup do
+        @exception_catalog = ExceptionCatalog.new(nil)
+      end
+
+      should "not load filter data" do
+        mock(ExceptionHandling).write_exception_to_log.with_any_args.never
+        @exception_catalog.find( error: "Scott says unlikely to ever match" )
       end
     end
 

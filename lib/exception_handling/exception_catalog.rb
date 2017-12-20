@@ -16,14 +16,14 @@ module ExceptionHandling
 
     def refresh_filters
       mtime = last_modified_time
-      if @filters_last_modified_time.nil? || mtime != @filters_last_modified_time
+      if mtime && (@filters_last_modified_time.nil? || mtime != @filters_last_modified_time)
         ExceptionHandling.logger.info("Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}")
         load_file
       end
 
     rescue => ex # any exceptions
       # DO NOT CALL ExceptionHandling.log_error because this method is called from that.  It can loop and cause mayhem.
-      ExceptionHandling.write_exception_to_log(ex, "ExceptionRegexes::refresh_filters: #{@filter_path}", Time.now.to_i)
+      ExceptionHandling.write_exception_to_log(ex, "ExceptionCatalog#refresh_filters: #{@filter_path}", Time.now.to_i)
     end
 
     def load_file
@@ -35,7 +35,7 @@ module ExceptionHandling
     end
 
     def last_modified_time
-      File.mtime(@filter_path)
+      @filter_path && File.mtime(@filter_path)
     end
   end
 end

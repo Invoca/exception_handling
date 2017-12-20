@@ -794,6 +794,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       assert_emails 1, ActionMailer::Base.deliveries.*.inspect
     end
 
+    should "reload filter file if filename changes" do
+      catalog = ExceptionHandling.exception_catalog
+      ExceptionHandling.filter_list_filename = "./config/other_exception_filters.yml"
+      assert_not_equal catalog, ExceptionHandling.exception_catalog
+    end
+
     context "Exception Handling Mailer" do
       should "create email" do
         ExceptionHandling.log_error(exception_1) do |data|
@@ -1002,26 +1008,28 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "log immediately when we are expected to log" do
-      logger_stub = ExceptionHandling.logger
-
       ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
-      assert_equal 1, logger_stub.logged.size
+      assert_equal 1, logged_excluding_reload_filter.size
 
       Time.now_override = Time.now + 5.minutes
       ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will not be written")
-      assert_equal 1, logger_stub.logged.size
+      assert_equal 1, logged_excluding_reload_filter.size
 
       ExceptionHandling.log_periodically(:test_another_periodic_exception, 30.minutes, "this will be written")
-      assert_equal 2, logger_stub.logged.size
+      assert_equal 2, logged_excluding_reload_filter.size
 
       Time.now_override = Time.now + 26.minutes
 
       ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
-      assert_equal 3, logger_stub.logged.size
+      assert_equal 3, logged_excluding_reload_filter.size
     end
   end
 
   private
+
+  def logged_excluding_reload_filter
+    ExceptionHandling.logger.logged.select { |l| l !~ /Reloading filter list/ }
+  end
 
   def incrementing_mtime
     @mtime ||= Time.now
