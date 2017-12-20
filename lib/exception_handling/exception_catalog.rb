@@ -15,10 +15,11 @@ module ExceptionHandling
     private
 
     def refresh_filters
-      mtime = last_modified_time
-      if mtime && (@filters_last_modified_time.nil? || mtime != @filters_last_modified_time)
-        ExceptionHandling.logger.info("Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}")
-        load_file
+      if (mtime = last_modified_time)
+        if @filters_last_modified_time.nil? || mtime != @filters_last_modified_time
+          ExceptionHandling.logger.info("Reloading filter list from: #{@filter_path}.  Last loaded time: #{@filters_last_modified_time}. Last modified time: #{mtime}")
+          load_file
+        end
       end
 
     rescue => ex # any exceptions
