@@ -15,14 +15,10 @@ module ExceptionHandling
         ExceptionHandling.stub_handler = nil
       end
 
-      teardown do
-        Time.now_override = nil
-      end
-
       should "set the around filter" do
         assert_equal :set_current_controller, Testing::ControllerStub.around_filter_method
         assert_nil ExceptionHandling.current_controller
-        @controller.simulate_around_filter( ) do
+        @controller.simulate_around_filter do
           assert_equal @controller, ExceptionHandling.current_controller
         end
         assert_nil ExceptionHandling.current_controller
@@ -39,18 +35,18 @@ module ExceptionHandling
       end
 
       should "report long running controller action" do
-        assert_equal 40, @controller.send(:long_controller_action_timeout)
+        assert_equal 2, @controller.send(:long_controller_action_timeout)
         mock(ExceptionHandling).log_error(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/, anything, anything)
-        @controller.simulate_around_filter( ) do
-          Time.now_override = 41.second.from_now
+        @controller.simulate_around_filter do
+          sleep(3)
         end
       end
 
       should "not report long running controller actions if it is less than the timeout" do
-        assert_equal 40, @controller.send(:long_controller_action_timeout)
+        assert_equal 2, @controller.send(:long_controller_action_timeout)
         stub(ExceptionHandling).log_error { flunk "Should not timeout" }
-        @controller.simulate_around_filter( ) do
-          Time.now_override = 35.second.from_now
+        @controller.simulate_around_filter do
+          sleep(1)
         end
       end
 
