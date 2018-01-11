@@ -15,7 +15,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       data[:user_details]                = {}
       data[:user_details][:username]     = "CaryP"
       data[:user_details][:organization] = "Invoca Engineering Dept."
-    rescue Exception => e
+    rescue
       # don't let these out!
     end
   end
@@ -810,9 +810,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert mail = ActionMailer::Base.deliveries.last
         assert_equal ['exceptions@example.com'], mail.to
         assert_equal ['server@example.com'].to_s, mail.from.to_s
-        assert_match /Exception 1/, mail.to_s
-        assert_match /key: DECAFE/, mail.to_s
-        assert_match /id: 10993/, mail.to_s
+        assert_match(/Exception 1/, mail.to_s)
+        assert_match(/key: DECAFE/, mail.to_s)
+        assert_match(/id: 10993/, mail.to_s)
       end
 
       EXPECTED_SMTP_HASH =

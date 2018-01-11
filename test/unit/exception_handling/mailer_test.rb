@@ -21,7 +21,7 @@ module ExceptionHandling
       should "deliver" do
         #ActionMailer::Base.delivery_method = :smtp
         result = ExceptionHandling::Mailer.exception_notification({ :error => "Test Error."}).deliver_now
-        assert_match /Test Error./, result.body.to_s
+        assert_match(/Test Error./, result.body.to_s)
         assert_equal_with_diff ['test_exception@invoca.com'], result.to
         assert_emails 1
       end

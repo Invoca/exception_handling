@@ -41,7 +41,7 @@ module ExceptionHandling
         assert_equal exception_pattern, exception_whitelist[0][0]
         begin
           ExceptionHandling.log_error("This is a test error")
-        rescue => ex
+        rescue
           flunk # Shouldn't raise an error in this case
         end
       end
@@ -53,7 +53,7 @@ module ExceptionHandling
         assert_equal exception_pattern, exception_whitelist[0][0]
         begin
           ExceptionHandling.log_error("This is a test error")
-        rescue => ex
+        rescue
           flunk # Shouldn't raise an error in this case
         end
       end
@@ -81,7 +81,7 @@ module ExceptionHandling
 
     context "teardown_log_error_stub" do
       should "support MiniTest framework for adding a failure" do
-        expects_exception /foo/
+        expects_exception(/foo/)
 
         mock(self).is_mini_test?.returns { true }
 
@@ -92,7 +92,7 @@ module ExceptionHandling
       end
 
       should "support Test::Unit framework for adding a failure" do
-        expects_exception /foo/
+        expects_exception(/foo/)
 
         mock(self).is_mini_test?.returns { false }
 

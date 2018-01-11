@@ -325,7 +325,7 @@ module ExceptionHandling
         description = exception_info.exception_description
 
         repeat_ex = StandardError.new("No route matches 2")
-        repeat_ex_info = ExceptionInfo.new(exception, {}, Time.now)
+        repeat_ex_info = ExceptionInfo.new(repeat_ex, {}, Time.now)
         assert_equal description.object_id, repeat_ex_info.exception_description.object_id
       end
     end

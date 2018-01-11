@@ -31,10 +31,10 @@ module ExceptionHandling # never included
     #
     # required settings
     #
-    attr_accessor :server_name
-    attr_accessor :sender_address
-    attr_accessor :exception_recipients
-    attr_accessor :logger
+    attr_writer :server_name
+    attr_writer :sender_address
+    attr_writer :exception_recipients
+    attr_writer :logger
 
     def server_name
       @server_name or raise ArgumentError, "You must assign a value to #{self.name}.server_name"
@@ -70,16 +70,17 @@ module ExceptionHandling # never included
     attr_accessor :production_support_recipients
     attr_accessor :escalation_recipients
     attr_accessor :email_environment
-    attr_accessor :filter_list_filename
     attr_accessor :mailer_send_enabled
-    attr_accessor :eventmachine_safe
-    attr_accessor :eventmachine_synchrony
     attr_accessor :custom_data_hook
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
     attr_accessor :sensu_host
     attr_accessor :sensu_port
     attr_accessor :sensu_prefix
+
+    attr_reader :filter_list_filename
+    attr_reader :eventmachine_safe
+    attr_reader :eventmachine_synchrony
 
     @filter_list_filename = "./config/exception_filters.yml"
     @mailer_send_enabled  = true
@@ -249,22 +250,22 @@ module ExceptionHandling # never included
       log_error(warning)
     end
 
-    def log_info( message )
-      ExceptionHandling.logger.info( message )
+    def log_info(message)
+      ExceptionHandling.logger.info(message)
     end
 
-    def log_debug( message )
-      ExceptionHandling.logger.debug( message )
+    def log_debug(message)
+      ExceptionHandling.logger.debug(message)
     end
 
-    def ensure_safe( exception_context = "" )
+    def ensure_safe(exception_context = "")
       yield
     rescue => ex
       log_error ex, exception_context
       return nil
     end
 
-    def ensure_completely_safe( exception_context = "" )
+    def ensure_completely_safe(exception_context = "")
       yield
     rescue SystemExit, SystemStackError, NoMemoryError, SecurityError, SignalException
       raise
@@ -338,8 +339,8 @@ module ExceptionHandling # never included
     def log_periodically(exception_key, interval, message)
       self.periodic_exception_intervals ||= {}
       last_logged = self.periodic_exception_intervals[exception_key]
-      if !last_logged || ( (last_logged + interval) < Time.now )
-        log_error( message )
+      if !last_logged || ((last_logged + interval) < Time.now)
+        log_error(message)
         self.periodic_exception_intervals[exception_key] = Time.now
       end
     end
@@ -377,7 +378,7 @@ module ExceptionHandling # never included
       exception_description = exception_info.exception_description
 
       if exception_description && !exception_description.send_email
-        ExceptionHandling.logger.warn( "Filtered exception using '#{exception_description.filter_name}'; not sending email to notify" )
+        ExceptionHandling.logger.warn("Filtered exception using '#{exception_description.filter_name}'; not sending email to notify")
       else
         if summarize_exception(data) != :Summarized
           deliver(ExceptionHandling::Mailer.exception_notification(data))
@@ -392,11 +393,11 @@ module ExceptionHandling # never included
         ExceptionHandling.post_log_error_hook.call(exception_data, exception, treat_like_warning)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        log_info( "Unable to execute custom log_error callback. #{encode_utf8(ex.message.to_s)} #{ex.backtrace.each {|l| "#{l}\n"}}" )
+        log_info("Unable to execute custom log_error callback. #{encode_utf8(ex.message.to_s)} #{ex.backtrace.each {|l| "#{l}\n"}}")
       end
     end
 
-    def escalate( email_subject, ex, timestamp )
+    def escalate(email_subject, ex, timestamp)
       exception_info = ExceptionInfo.new(ex, nil, timestamp)
       deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
     end
@@ -450,8 +451,8 @@ module ExceptionHandling # never included
     end
 
     # Returns :Summarized iff exception has been added to summary and therefore should not be sent.
-    def summarize_exception( data )
-      if @last_exception
+    def summarize_exception(data)
+      if defined?(@last_exception) && @last_exception
         same_signature = @last_exception[:backtrace] == data[:backtrace]
 
         case @last_exception[:state]
@@ -493,7 +494,7 @@ module ExceptionHandling # never included
       nil
     end
 
-    def send_exception_summary( exception_data, first_seen, occurrences )
+    def send_exception_summary(exception_data, first_seen, occurrences)
       Timeout::timeout 30, MailerTimeout do
         deliver(ExceptionHandling::Mailer.exception_notification(exception_data, first_seen, occurrences))
       end
