@@ -41,7 +41,7 @@ module ExceptionHandling
         assert_equal exception_pattern, exception_whitelist[0][0]
         begin
           ExceptionHandling.log_error("This is a test error")
-        rescue Exception
+        rescue StandardError
           flunk # Shouldn't raise an error in this case
         end
       end
@@ -53,7 +53,7 @@ module ExceptionHandling
         assert_equal exception_pattern, exception_whitelist[0][0]
         begin
           ExceptionHandling.log_error("This is a test error")
-        rescue Exception
+        rescue StandardError
           flunk # Shouldn't raise an error in this case
         end
       end

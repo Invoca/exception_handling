@@ -14,7 +14,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     data[:user_details]                = {}
     data[:user_details][:username]     = "CaryP"
     data[:user_details][:organization] = "Invoca Engineering Dept."
-  rescue Exception
+  rescue StandardError
     # don't let these out!
   end
 
