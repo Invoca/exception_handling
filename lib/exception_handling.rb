@@ -378,7 +378,9 @@ module ExceptionHandling # never included
       exception_description = exception_info.exception_description
 
       if exception_description && !exception_description.send_email
-        ExceptionHandling.logger.warn("Filtered exception using '#{exception_description.filter_name}'; not sending email to notify")
+        ExceptionHandling.logger.warn(
+          "Filtered exception using '#{exception_description.filter_name}'; not sending email to notify"
+        )
       else
         if summarize_exception(data) != :Summarized
           deliver(ExceptionHandling::Mailer.exception_notification(data))
@@ -393,7 +395,9 @@ module ExceptionHandling # never included
         ExceptionHandling.post_log_error_hook.call(exception_data, exception, treat_like_warning)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        log_info("Unable to execute custom log_error callback. #{encode_utf8(ex.message.to_s)} #{ex.backtrace.each {|l| "#{l}\n"}}")
+        ex_message = encode_utf8(ex.message.to_s)
+        ex_backtrace = ex.backtrace.each { |l| "#{l}\n" }
+        log_info("Unable to execute custom log_error callback. #{ex_message} #{ex_backtrace}")
       end
     end
 

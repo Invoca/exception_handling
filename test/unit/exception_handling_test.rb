@@ -11,13 +11,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   def append_organization_info_config(data)
-    begin
-      data[:user_details]                = {}
-      data[:user_details][:username]     = "CaryP"
-      data[:user_details][:organization] = "Invoca Engineering Dept."
-    rescue
-      # don't let these out!
-    end
+    data[:user_details]                = {}
+    data[:user_details][:username]     = "CaryP"
+    data[:user_details][:organization] = "Invoca Engineering Dept."
+  rescue Exception
+    # don't let these out!
   end
 
   def custom_data_callback_returns_nil_message_exception(data)
