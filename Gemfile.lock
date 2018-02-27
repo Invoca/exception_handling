@@ -1,15 +1,15 @@
 GIT
   remote: git@github.com:Invoca/hobosupport
-  revision: 439111b196472b3e24fc303585dc229462ef7937
-  ref: 439111b196472b3e24fc303585dc229462ef7937
+  revision: b9086322274b474a2b5bae507c4885e55d4aa050
+  ref: b9086322274b474a2b5bae507c4885e55d4aa050
   specs:
     hobo_support (2.0.1)
       rails (~> 4.2.10)
 
 GIT
   remote: git@github.com:Invoca/invoca-utils
-  revision: 817aeb6547b26ac91931560fdbbf409d08163fb9
-  ref: 817aeb6547b26ac91931560fdbbf409d08163fb9
+  revision: 891b8f7e1af0f6324bf85601046907143122e204
+  ref: 891b8f7e1af0f6324bf85601046907143122e204
   specs:
     invoca-utils (0.0.3)
 
@@ -148,4 +148,4 @@ DEPENDENCIES
   shoulda (> 3.1.1)
 
 BUNDLED WITH
-   1.16.0
+   1.16.1
