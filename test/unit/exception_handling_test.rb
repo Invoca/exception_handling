@@ -11,13 +11,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   def append_organization_info_config(data)
-    begin
-      data[:user_details]                = {}
-      data[:user_details][:username]     = "CaryP"
-      data[:user_details][:organization] = "Invoca Engineering Dept."
-    rescue Exception => e
-      # don't let these out!
-    end
+    data[:user_details]                = {}
+    data[:user_details][:username]     = "CaryP"
+    data[:user_details][:organization] = "Invoca Engineering Dept."
+  rescue StandardError
+    # don't let these out!
   end
 
   def custom_data_callback_returns_nil_message_exception(data)
@@ -810,9 +808,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert mail = ActionMailer::Base.deliveries.last
         assert_equal ['exceptions@example.com'], mail.to
         assert_equal ['server@example.com'].to_s, mail.from.to_s
-        assert_match /Exception 1/, mail.to_s
-        assert_match /key: DECAFE/, mail.to_s
-        assert_match /id: 10993/, mail.to_s
+        assert_match(/Exception 1/, mail.to_s)
+        assert_match(/key: DECAFE/, mail.to_s)
+        assert_match(/id: 10993/, mail.to_s)
       end
 
       EXPECTED_SMTP_HASH =

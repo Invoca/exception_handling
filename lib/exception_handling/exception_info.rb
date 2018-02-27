@@ -114,7 +114,7 @@ EOF
       stringify_sections(enhanced_data)
 
       description = ExceptionHandling.exception_catalog.find(enhanced_data)
-      merged_data = description ? ActiveSupport::HashWithIndifferentAccess.new(description.exception_data.merge(enhanced_data)) : enhanced_data
+      description ? ActiveSupport::HashWithIndifferentAccess.new(description.exception_data.merge(enhanced_data)) : enhanced_data
     end
 
     def enhance_exception_data(data)
