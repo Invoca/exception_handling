@@ -193,7 +193,7 @@ EOF
         @controller.session[:fault_in_session]
         data[:session] = {
           key:         @controller.request.session_options[:id],
-          data:        @controller.session.dup
+          data:        @controller.session.to_hash
         }
       end
     end
