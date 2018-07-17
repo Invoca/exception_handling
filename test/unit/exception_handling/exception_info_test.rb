@@ -143,6 +143,12 @@ module ExceptionHandling
         @data_callback = ->(data) { data[:custom_section] = "check this out" }
       end
 
+      should "not return a mutable object for the session" do
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp)
+        exception_info.enhanced_data["session"]["hello"] = "world"
+        assert_nil @controller.session["hello"]
+      end
+
       should "return a hash with generic exception attributes as well as context data" do
         exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp)
         expected_data = {
