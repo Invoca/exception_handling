@@ -3,17 +3,6 @@ require File.expand_path('../../../test_helper',  __FILE__)
 module ExceptionHandling
   class HoneybadgerCallbacksTest < ActiveSupport::TestCase
 
-    class HoneybadgerStub
-      def self.local_variable_filter(&block)
-        @local_variable_filter = Proc.new if block_given?
-        @local_variable_filter
-      end
-
-      def self.call_local_variable_filter(symbol, object, filter_keys)
-        @local_variable_filter.call(symbol, object, filter_keys)
-      end
-    end
-
     class TestPoroWithAttribute
       attr_reader :test_attribute
 
@@ -46,18 +35,9 @@ module ExceptionHandling
     end
 
     context "register_callbacks" do
-      setup do
-        stub(ExceptionHandling).honeybadger? { true }
-        ExceptionHandling.const_set('Honeybadger', HoneybadgerStub)
-      end
-
-      teardown do
-        ExceptionHandling.send(:remove_const, 'Honeybadger')
-      end
-
       should "store the callbacks in the honeybadger object" do
         HoneybadgerCallbacks.register_callbacks
-        result = HoneybadgerStub.call_local_variable_filter(:variable_name, 'test', [])
+        result = Honeybadger.config.local_variable_filter.call(:variable_name, 'test', [])
         assert_equal('test', result)
       end
     end

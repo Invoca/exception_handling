@@ -241,7 +241,11 @@ module ExceptionHandling # never included
     def enable_honeybadger(config = {})
       Bundler.require(:honeybadger)
       HoneybadgerCallbacks.register_callbacks
-      Honeybadger.start(config)
+      Honeybadger.configure do |config_class|
+        config.each do |k, v|
+          config_class.send(:"#{k}=", v)
+        end
+      end
     end
 
     def log_warning(message)
