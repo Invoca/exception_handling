@@ -9,6 +9,7 @@ require 'shoulda'
 require 'rr'
 require 'minitest/autorun'
 require 'pry'
+require 'honeybadger'
 
 require 'exception_handling'
 require 'exception_handling/testing'

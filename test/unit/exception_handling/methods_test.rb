@@ -25,6 +25,7 @@ module ExceptionHandling
       end
 
       should "use the current_controller when available" do
+        mock(Honeybadger).notify(anything)
         mock(ExceptionHandling.logger).fatal(/blah/)
         @controller.simulate_around_filter do
           ExceptionHandling.log_error( ArgumentError.new("blah") )
