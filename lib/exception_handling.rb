@@ -238,12 +238,15 @@ module ExceptionHandling # never included
       Object.const_defined?("Honeybadger")
     end
 
+    #
+    # Expects passed in hash to only include keys which be directly set on the Honeybadger config
+    #
     def enable_honeybadger(config = {})
       Bundler.require(:honeybadger)
       HoneybadgerCallbacks.register_callbacks
-      Honeybadger.configure do |config_class|
+      Honeybadger.configure do |config_klass|
         config.each do |k, v|
-          config_class.send(:"#{k}=", v)
+          config_klass.send(:"#{k}=", v)
         end
       end
     end
