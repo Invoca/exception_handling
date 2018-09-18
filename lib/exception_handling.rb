@@ -183,7 +183,7 @@ module ExceptionHandling # never included
           external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
                                             send_external_notifications(exception_info)
                                           end || {}
-          execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results[:logged_to_honeybadger])
+          execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results)
           nil
         end
       rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
@@ -209,7 +209,7 @@ module ExceptionHandling # never included
     def send_external_notifications(exception_info)
       results = {}
       if honeybadger?
-        results[:logged_to_honeybadger] = send_exception_to_honeybadger(exception_info)
+        results[:honeybadger_status] = send_exception_to_honeybadger(exception_info)
       end
 
       if should_send_email?
@@ -229,15 +229,15 @@ module ExceptionHandling # never included
                                       error_message: exception.message.to_s,
                                       exception:     exception,
                                       context:       exception_info.honeybadger_context_data)
-        !!response
+        response ? :success : :failure
       else
         log_info("Filtered exception using '#{exception_description.filter_name}'; not sending notification to Honeybadger")
-        nil
+        :skipped
       end
     rescue Exception => ex
       $stderr.puts("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}: #{exception}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}: #{exception}", exception_info.timestamp)
-      false
+      :failure
     end
 
     #
@@ -408,8 +408,9 @@ module ExceptionHandling # never included
       write_exception_to_log(ex, "ExceptionHandling.log_error_email rescued exception while logging #{exception_info.exception_context}: #{exception_info.exception}", exception_info.timestamp)
     end
 
-    def execute_custom_log_error_callback(exception_data, exception, treat_like_warning, logged_to_honeybadger)
-      ExceptionHandling.post_log_error_hook&.call(exception_data, exception, treat_like_warning, logged_to_honeybadger)
+    def execute_custom_log_error_callback(exception_data, exception, treat_like_warning, external_notification_results)
+      honeybadger_status = external_notification_results[:honeybadger_status] || :skipped
+      ExceptionHandling.post_log_error_hook&.call(exception_data, exception, treat_like_warning, honeybadger_status)
     rescue Exception => ex
       # can't call log_error here or we will blow the call stack
       ex_message = encode_utf8(ex.message.to_s)
