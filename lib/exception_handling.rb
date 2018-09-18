@@ -181,8 +181,8 @@ module ExceptionHandling # never included
         else
           write_exception_to_log(ex, exception_context, timestamp)
           external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
-            send_external_notifications(exception_info)
-          end || {}
+                                            send_external_notifications(exception_info)
+                                          end || {}
           execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results[:logged_to_honeybadger])
           nil
         end
@@ -409,9 +409,7 @@ module ExceptionHandling # never included
     end
 
     def execute_custom_log_error_callback(exception_data, exception, treat_like_warning, logged_to_honeybadger)
-      if ExceptionHandling.post_log_error_hook
-        ExceptionHandling.post_log_error_hook.call(exception_data, exception, treat_like_warning, logged_to_honeybadger)
-      end
+      ExceptionHandling.post_log_error_hook&.call(exception_data, exception, treat_like_warning, logged_to_honeybadger)
     rescue Exception => ex
       # can't call log_error here or we will blow the call stack
       ex_message = encode_utf8(ex.message.to_s)
