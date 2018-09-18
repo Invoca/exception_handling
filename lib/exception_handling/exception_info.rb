@@ -48,7 +48,7 @@ EOF
     SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
     HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response]
 
-    attr_reader :exception, :controller
+    attr_reader :exception, :controller, :exception_context, :timestamp
 
     def initialize(exception, exception_context, timestamp, controller = nil, data_callback = nil)
       @exception = exception
