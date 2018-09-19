@@ -409,8 +409,11 @@ module ExceptionHandling # never included
     end
 
     def execute_custom_log_error_callback(exception_data, exception, treat_like_warning, external_notification_results)
-      honeybadger_status = external_notification_results[:honeybadger_status] || :skipped
-      ExceptionHandling.post_log_error_hook&.call(exception_data, exception, treat_like_warning, honeybadger_status)
+      if ExceptionHandling.post_log_error_hook
+        honeybadger_status = external_notification_results[:honeybadger_status] || :skipped
+        params = [exception_data, exception, treat_like_warning, honeybadger_status].first(ExceptionHandling.post_log_error_hook.arity.abs)
+        ExceptionHandling.post_log_error_hook.call(*params)
+      end
     rescue Exception => ex
       # can't call log_error here or we will blow the call stack
       ex_message = encode_utf8(ex.message.to_s)

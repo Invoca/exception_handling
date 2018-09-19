@@ -22,7 +22,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     raise_exception_with_nil_message
   end
 
-  def log_error_callback(data, ex, treat_like_warning, logged_to_honeybadger)
+  def legacy_log_error_callback(data, ex, treat_like_warning)
+    @fail_count += 1
+  end
+
+  def log_error_callback(data, ex, treat_like_warning, honeybadger_status)
     @fail_count += 1
   end
 
@@ -166,6 +170,18 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           assert_equal 1, @fail_count
           assert_equal true, @treat_like_warning
           assert_equal :skipped, @honeybadger_status
+        ensure
+          ExceptionHandling.post_log_error_hook = nil
+        end
+      end
+
+      should "support log error hook which does not take all available params" do
+        begin
+          @fail_count = 0
+          @honeybadger_status = nil
+          ExceptionHandling.post_log_error_hook = method(:legacy_log_error_callback)
+          ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", treat_like_warning: true)
+          assert_equal 1, @fail_count
         ensure
           ExceptionHandling.post_log_error_hook = nil
         end
