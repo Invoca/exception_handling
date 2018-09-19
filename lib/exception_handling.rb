@@ -24,7 +24,8 @@ module ExceptionHandling # never included
   SUMMARY_THRESHOLD = 5
   SUMMARY_PERIOD = 60*60 # 1.hour
 
-  AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION','X-HTTP_AUTHORIZATION','X_HTTP_AUTHORIZATION','REDIRECT_X_HTTP_AUTHORIZATION']
+  AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION', 'X-HTTP_AUTHORIZATION', 'X_HTTP_AUTHORIZATION', 'REDIRECT_X_HTTP_AUTHORIZATION'].freeze
+  HONEYBADGER_STATUSES   = [:success, :failure, :skipped].freeze
 
   class << self
 
@@ -62,6 +63,15 @@ module ExceptionHandling # never included
                     end
 
       "exception_handling.#{metric_name}"
+    end
+
+    def default_honeybadger_metric_name(honeybadger_status)
+      metric_name = if honeybadger_status.in?(HONEYBADGER_STATUSES)
+                      honeybadger_status
+                    else
+                      :unknown_status
+                    end
+      "exception_handling.honeybadger.#{metric_name}"
     end
 
     #

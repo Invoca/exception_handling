@@ -253,6 +253,28 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
       end
 
+      context "default_honeybadger_metric_name" do
+        should "return exception_handling.honeybadger.success when status is :success" do
+          metric = ExceptionHandling.default_honeybadger_metric_name(:success)
+          assert_equal 'exception_handling.honeybadger.success', metric
+        end
+
+        should "return exception_handling.honeybadger.failure when status is :failure" do
+          metric = ExceptionHandling.default_honeybadger_metric_name(:failure)
+          assert_equal 'exception_handling.honeybadger.failure', metric
+        end
+
+        should "return exception_handling.honeybadger.skipped when status is :skipped" do
+          metric = ExceptionHandling.default_honeybadger_metric_name(:skipped)
+          assert_equal 'exception_handling.honeybadger.skipped', metric
+        end
+
+        should "return exception_handling.honeybadger.unknown_status when status is not recognized" do
+          metric = ExceptionHandling.default_honeybadger_metric_name(nil)
+          assert_equal 'exception_handling.honeybadger.unknown_status', metric
+        end
+      end
+
       context "ExceptionHandling.ensure_safe" do
         should "log an exception with call stack if an exception is raised." do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
