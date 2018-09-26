@@ -84,12 +84,21 @@ Then tie this in using the `custom_data_hook`:
 
 There is another hook available intended for custom actions after an error email is sent.  This can be used to send information about errors to your alerting subsystem.  For example:
 
-    def log_error_metrics(exception_data, exception)
-      if exception.is_a?(ExceptionHandling::Warning)
+    def log_error_metrics(exception_data, exception, treat_like_warning, honeybadger_status)
+      if treat_like_warning
         Invoca::Metrics::Client.metrics.counter("exception_handling/warning")
       else
         Invoca::Metrics::Client.metrics.counter("exception_handling/exception")
       end
+      
+      case honeybadger_status
+      when :success
+        Invoca::Metrics::Client.metrics.counter("exception_handling.honeybadger.success")
+      when :failure 
+        Invoca::Metrics::Client.metrics.counter("exception_handling.honeybadger.failure")
+      when :skipped
+        Invoca::Metrics::Client.metrics.counter("exception_handling.honeybadger.skipped")
+      end  
     end
     ExceptionHandling.post_log_error_hook = method(:log_error_metrics)
 
