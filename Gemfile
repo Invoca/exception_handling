@@ -7,5 +7,5 @@ gem 'hobo_support',   '2.0.1',      git: 'git@github.com:Invoca/hobosupport',   
 gem 'invoca-utils',                 git: 'git@github.com:Invoca/invoca-utils',   ref: '891b8f7e1af0f6324bf85601046907143122e204'
 
 group :test do
-  gem 'honeybadger', '3.3.1-1', git: 'git@github.com:Invoca/honeybadger-ruby', ref: '28b7560b5de6716304669c1a0e055f2292b4c1ec'
+  gem 'honeybadger', '3.3.1-1', git: 'git@github.com:Invoca/honeybadger-ruby', ref: 'bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6'
 end
