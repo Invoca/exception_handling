@@ -8,8 +8,8 @@ GIT
 
 GIT
   remote: git@github.com:Invoca/honeybadger-ruby
-  revision: 28b7560b5de6716304669c1a0e055f2292b4c1ec
-  ref: 28b7560b5de6716304669c1a0e055f2292b4c1ec
+  revision: bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6
+  ref: bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6
   specs:
     honeybadger (3.3.1.pre.1)
 
@@ -156,4 +156,4 @@ DEPENDENCIES
   shoulda (> 3.1.1)
 
 BUNDLED WITH
-   1.16.1
+   1.16.2
