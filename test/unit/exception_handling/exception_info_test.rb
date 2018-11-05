@@ -448,7 +448,10 @@ module ExceptionHandling
           "two_layers"  => {
             "sensitive_data" => sensitive_data
           },
-          "rack.request.form_vars" => "username=investor%40invoca.com&password=my_special_password&commit=Log+In"
+          "rack.request.form_vars" => "username=investor%40invoca.com&password=my_special_password&commit=Log+In",
+          "example_without_password" => {
+            "rack.request.form_vars" => "username=investor%40invoca.com"
+          }
         }.merge(sensitive_data)
 
         exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
@@ -460,7 +463,10 @@ module ExceptionHandling
           "two_layers"  => {
             "sensitive_data" => expected_sensitive_data
           },
-          "rack.request.form_vars" => "username=investor%40invoca.com&password=[FILTERED]&commit=Log+In"
+          "rack.request.form_vars" => "username=investor%40invoca.com&password=[FILTERED]&commit=Log+In",
+          "example_without_password" => {
+            "rack.request.form_vars" => "username=investor%40invoca.com"
+          }
         }.merge(expected_sensitive_data)
 
         assert_equal_with_diff expected_exception_context, exception_info.honeybadger_context_data[:exception_context]

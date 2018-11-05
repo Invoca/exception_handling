@@ -194,7 +194,7 @@ EOF
     def clean_value_for_exception_context_key(key, value)
       if key =~ /(password|oauth_token)/
         "[FILTERED]"
-      elsif key == "rack.request.form_vars" && (captured_matches = value.match(/(.*)(password=)([^&]+)(.*)/).captures)
+      elsif key == "rack.request.form_vars" && (captured_matches = value.match(/(.*)(password=)([^&]+)(.*)/)&.captures)
         [*captured_matches[0..1], "[FILTERED]", *captured_matches[3..-1]].join
       else
         value
