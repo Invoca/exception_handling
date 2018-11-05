@@ -373,7 +373,7 @@ module ExceptionHandling
     end
 
     context "honeybadger_context_data" do
-      should "return the error details and relevant context data to be used as honeybadger notification context" do
+      should "return the error details and relevant context data to be used as honeybadger notification context while filtering sensitive data" do
         env = { server: "fe98" }
         parameters = { advertiser_id: 435 }
         session = { username: "jsmith" }
@@ -432,6 +432,44 @@ module ExceptionHandling
             assert_equal klass, value.class.name
             assert_equal value, exception_info.honeybadger_context_data[:exception_context]
           end
+      end
+
+      should "filter out sensitive data from exception context such as [password, password_confirmation, oauth_token]" do
+        sensitive_data = {
+          "password"              => "super_secret",
+          "password_confirmation" => "super_secret_confirmation",
+          "oauth_token"           => "super_secret_oauth_token"
+        }
+
+        exception         = StandardError.new("boom")
+        exception_context = {
+          "SERVER_NAME" => "exceptional.com",
+          "one_layer"   => sensitive_data,
+          "two_layers"  => {
+            "sensitive_data" => sensitive_data
+          },
+          "rack.request.form_vars" => "username=investor%40invoca.com&password=my_special_password&commit=Log+In",
+          "example_without_password" => {
+            "rack.request.form_vars" => "username=investor%40invoca.com"
+          }
+        }.merge(sensitive_data)
+
+        exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
+
+        expected_sensitive_data = ["password", "password_confirmation", "oauth_token"].build_hash { |key| [key, "[FILTERED]"] }
+        expected_exception_context = {
+          "SERVER_NAME" => "exceptional.com",
+          "one_layer"   => expected_sensitive_data,
+          "two_layers"  => {
+            "sensitive_data" => expected_sensitive_data
+          },
+          "rack.request.form_vars" => "username=investor%40invoca.com&password=[FILTERED]&commit=Log+In",
+          "example_without_password" => {
+            "rack.request.form_vars" => "username=investor%40invoca.com"
+          }
+        }.merge(expected_sensitive_data)
+
+        assert_equal_with_diff expected_exception_context, exception_info.honeybadger_context_data[:exception_context]
       end
 
       should "omit context if exception_context is empty" do

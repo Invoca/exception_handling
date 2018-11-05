@@ -178,6 +178,29 @@ EOF
       end.compact ]
     end
 
+    def deep_clean_exception_context(exception_context)
+      exception_context.is_a?(Hash) or return exception_context
+      exception_context.build_hash do |k, v|
+        value =
+          if v.is_a?(Hash)
+            deep_clean_exception_context(v)
+          else
+            clean_value_for_exception_context_key(k, v)
+          end
+        [k, value]
+      end
+    end
+
+    def clean_value_for_exception_context_key(key, value)
+      if key =~ /(password|oauth_token)/
+        "[FILTERED]"
+      elsif key == "rack.request.form_vars" && (captured_matches = value.match(/(.*)(password=)([^&]+)(.*)/)&.captures)
+        [*captured_matches[0..1], "[FILTERED]", *captured_matches[3..-1]].join
+      else
+        value
+      end
+    end
+
     #
     # Pull certain fields out of the controller and add to the data hash.
     #
@@ -245,7 +268,7 @@ EOF
     def enhanced_data_to_honeybadger_context
       data = enhanced_data.dup
       data[:server] = ExceptionHandling.server_name
-      data[:exception_context] = @exception_context if @exception_context.present?
+      data[:exception_context] = deep_clean_exception_context(@exception_context) if @exception_context.present?
       unstringify_sections(data)
       context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
         if data[section].present?
