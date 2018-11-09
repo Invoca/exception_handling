@@ -14,15 +14,10 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.version       = ExceptionHandling::VERSION
 
-  spec.add_dependency 'eventmachine', '>=0.12.10'
+  spec.add_dependency 'eventmachine',  '~> 1.0'
   spec.add_dependency 'activesupport', '~> 4.0'
-  spec.add_dependency 'actionpack', '~> 4.0'
-  spec.add_dependency 'actionmailer', '~> 4.0'
-  spec.add_dependency 'invoca-utils', '~> 0.0.2'
+  spec.add_dependency 'actionpack',    '~> 4.0'
+  spec.add_dependency 'actionmailer',  '~> 4.0'
+  spec.add_dependency 'invoca-utils',  '~> 0.0'
   spec.add_dependency 'hobo_support'
-
-  spec.add_development_dependency 'rake', '>=0.9'
-  spec.add_development_dependency 'shoulda', '> 3.1.1'
-  spec.add_development_dependency 'rr'
-  spec.add_development_dependency 'pry'
 end
