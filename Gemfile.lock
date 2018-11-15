@@ -23,13 +23,13 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (2.0.0)
+    exception_handling (2.1.0)
       actionmailer (~> 4.0)
       actionpack (~> 4.0)
       activesupport (~> 4.0)
-      eventmachine (>= 0.12.10)
+      eventmachine (~> 1.0)
       hobo_support
-      invoca-utils (~> 0.0.2)
+      invoca-utils (~> 0.0)
 
 GEM
   remote: https://rubygems.org/
