@@ -10,27 +10,29 @@ require 'rr'
 require 'minitest/autorun'
 require 'pry'
 require 'honeybadger'
+require 'contextual_logger'
 
 require 'exception_handling'
 require 'exception_handling/testing'
 
 class LoggerStub
+  include ContextualLogger
   attr_accessor :logged
 
   def initialize
     clear
   end
 
-  def info(message)
-    logged << message
+  def info(message, **log_context)
+    logged << { message: message, context: log_context }
   end
 
-  def warn(message)
-    logged << message
+  def warn(message, **log_context)
+    logged << { message: message, context: log_context }
   end
 
-  def fatal(message)
-    logged << message
+  def fatal(message, **log_context)
+    logged << { message: message, context: log_context }
   end
 
   def clear
