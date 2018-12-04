@@ -1,6 +1,7 @@
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
+require 'contextual_logger'
 
 require 'invoca/utils'
 
@@ -35,7 +36,6 @@ module ExceptionHandling # never included
     attr_writer :server_name
     attr_writer :sender_address
     attr_writer :exception_recipients
-    attr_writer :logger
 
     def server_name
       @server_name or raise ArgumentError, "You must assign a value to #{self.name}.server_name"
@@ -51,6 +51,10 @@ module ExceptionHandling # never included
 
     def logger
       @logger or raise ArgumentError, "You must assign a value to #{self.name}.logger"
+    end
+
+    def logger=(logger)
+      @logger = logger.is_a?(ContextualLogger) ? logger : ContextualLogger.new(logger)
     end
 
     def default_metric_name(exception_data, exception, treat_like_warning)
@@ -180,7 +184,7 @@ module ExceptionHandling # never included
     # Functional Test Operation:
     #   Calls into handle_stub_log_error and returns. no log file. no email.
     #
-    def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, &data_callback)
+    def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
       begin
         ex = make_exception(exception_or_string)
         timestamp = set_log_error_timestamp
@@ -189,7 +193,7 @@ module ExceptionHandling # never included
         if stub_handler
           stub_handler.handle_stub_log_error(exception_info.data)
         else
-          write_exception_to_log(ex, exception_context, timestamp)
+          write_exception_to_log(ex, exception_context, timestamp, **log_context)
           external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
                                             send_external_notifications(exception_info)
                                           end || {}
@@ -207,9 +211,9 @@ module ExceptionHandling # never included
     #
     # Write an exception out to the log file using our own custom format.
     #
-    def write_exception_to_log(ex, exception_context, timestamp)
+    def write_exception_to_log(ex, exception_context, timestamp, **log_context)
       ActiveSupport::Deprecation.silence do
-        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n")
+        ExceptionHandling.logger.fatal("\n(Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n", **log_context)
       end
     end
 
@@ -270,33 +274,33 @@ module ExceptionHandling # never included
       end
     end
 
-    def log_warning(message)
+    def log_warning(message, **log_context)
       warning = Warning.new(message)
       warning.set_backtrace([])
-      log_error(warning)
+      log_error(warning, **log_context)
     end
 
-    def log_info(message)
-      ExceptionHandling.logger.info(message)
+    def log_info(message, **log_context)
+      ExceptionHandling.logger.info(message, **log_context)
     end
 
-    def log_debug(message)
-      ExceptionHandling.logger.debug(message)
+    def log_debug(message, **log_context)
+      ExceptionHandling.logger.debug(message, **log_context)
     end
 
-    def ensure_safe(exception_context = "")
+    def ensure_safe(exception_context = "", **log_context)
       yield
     rescue => ex
-      log_error ex, exception_context
+      log_error ex, exception_context, **log_context
       return nil
     end
 
-    def ensure_completely_safe(exception_context = "")
+    def ensure_completely_safe(exception_context = "", **log_context)
       yield
     rescue SystemExit, SystemStackError, NoMemoryError, SecurityError, SignalException
       raise
     rescue Exception => ex
-      log_error ex, exception_context
+      log_error ex, exception_context, log_context
     end
 
     def escalate_to_production_support(exception_or_string, email_subject)
@@ -305,30 +309,30 @@ module ExceptionHandling # never included
       escalate_custom(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
 
-    def escalate_error(exception_or_string, email_subject)
+    def escalate_error(exception_or_string, email_subject, **log_context)
       ex = make_exception(exception_or_string)
-      log_error(ex)
+      log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp)
     end
 
-    def escalate_warning(message, email_subject)
+    def escalate_warning(message, email_subject, **log_context)
       ex = Warning.new(message)
-      log_error(ex)
+      log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp)
     end
 
-    def ensure_escalation(email_subject)
+    def ensure_escalation(email_subject, **log_context)
       begin
         yield
       rescue => ex
-        escalate_error(ex, email_subject)
+        escalate_error(ex, email_subject, **log_context)
         nil
       end
     end
 
-    def alert_warning(exception_or_string, alert_name, exception_context)
+    def alert_warning(exception_or_string, alert_name, exception_context, **log_context)
       ex = make_exception(exception_or_string)
-      log_error(ex, exception_context)
+      log_error(ex, exception_context, **log_context)
       begin
         ExceptionHandling::Sensu.generate_event(alert_name, exception_context.to_s + "\n" + encode_utf8(ex.message.to_s))
       rescue => send_ex
@@ -336,11 +340,11 @@ module ExceptionHandling # never included
       end
     end
 
-    def ensure_alert(alert_name, exception_context)
+    def ensure_alert(alert_name, exception_context, **log_context)
       begin
         yield
       rescue => ex
-        alert_warning(ex, alert_name, exception_context)
+        alert_warning(ex, alert_name, exception_context, **log_context)
         nil
       end
     end
@@ -362,11 +366,11 @@ module ExceptionHandling # never included
       result
     end
 
-    def log_periodically(exception_key, interval, message)
+    def log_periodically(exception_key, interval, message, **log_context)
       self.periodic_exception_intervals ||= {}
       last_logged = self.periodic_exception_intervals[exception_key]
       if !last_logged || ((last_logged + interval) < Time.now)
-        log_error(message)
+        log_error(message, **log_context)
         self.periodic_exception_intervals[exception_key] = Time.now
       end
     end

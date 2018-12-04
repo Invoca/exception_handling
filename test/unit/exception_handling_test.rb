@@ -111,11 +111,18 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.mailer_send_enabled = true
       end
 
+      should "take in additional key word args as logging context and pass them to the logger" do
+        ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
+        assert_match /This is an Error/, logged_excluding_reload_filter.last[:message]
+        assert_not_empty logged_excluding_reload_filter.last[:context]
+        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+      end
+
       should "log the info and not raise another exception when sending email fails" do
         9.times { ExceptionHandling.log_error('SomeError', 'Error Context') }
         mock(ExceptionHandling::Mailer).exception_notification(anything, anything, anything) { raise 'An Error' }
         mock(ExceptionHandling.logger) do |logger|
-          logger.info(/ExceptionHandling.log_error_email rescued exception while logging StandardError: SomeError/)
+          logger.info(/ExceptionHandling.log_error_email rescued exception while logging StandardError: SomeError/, anything)
         end
         stub($stderr).puts
         ExceptionHandling.log_error('SomeError', 'Error Context')
@@ -124,10 +131,35 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     context "#log_warning" do
       should "have empty array as a backtrace" do
-        mock(ExceptionHandling).log_error(is_a(ExceptionHandling::Warning)) do |error|
+        mock(ExceptionHandling).log_error(is_a(ExceptionHandling::Warning), anything) do |error|
           assert_equal [], error.backtrace
         end
         ExceptionHandling.log_warning('Now with empty array as a backtrace!')
+      end
+
+      should "take in additional key word args as logging context and pass them to the logger" do
+        ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
+        assert_match /This is a Warning/, logged_excluding_reload_filter.last[:message]
+        assert_not_empty logged_excluding_reload_filter.last[:context]
+        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+      end
+    end
+
+    context "#log_info" do
+      should "take in additional key word args as logging context and pass them to the logger" do
+        ExceptionHandling.log_warning('This is an Info', service_name: 'exception_handling')
+        assert_match /This is an Info/, logged_excluding_reload_filter.last[:message]
+        assert_not_empty logged_excluding_reload_filter.last[:context]
+        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+      end
+    end
+
+    context "#log_debug" do
+      should "take in additional key word args as logging context and pass them to the logger" do
+        ExceptionHandling.log_warning('This is a Debug', service_name: 'exception_handling')
+        assert_match /This is a Debug/, logged_excluding_reload_filter.last[:message]
+        assert_not_empty logged_excluding_reload_filter.last[:context]
+        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
       end
     end
 
@@ -261,12 +293,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       context "ExceptionHandling.ensure_safe" do
         should "log an exception with call stack if an exception is raised." do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
         end
 
         should "log an exception with call stack if an ActionView template exception is raised." do
-          mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /)
+          mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
           ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
         end
 
@@ -282,13 +314,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "return nil if an exception is raised during an assignment" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
           assert_nil b
         end
 
         should "allow a message to be appended to the error when logged." do
-          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
           assert_nil b
         end
@@ -296,7 +328,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "only rescue StandardError and descendents" do
           assert_raise(Exception) { ExceptionHandling.ensure_safe("mooo") { raise Exception } }
 
-          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
 
           b = ExceptionHandling.ensure_safe("mooo") { raise StandardError.new("blah") }
           assert_nil b
@@ -305,7 +337,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       context "ExceptionHandling.ensure_completely_safe" do
         should "log an exception if an exception is raised." do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_completely_safe { raise ArgumentError.new("blah") }
         end
 
@@ -321,19 +353,19 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "return nil if an exception is raised during an assignment" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/) { nil }
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything) { nil }
           b = ExceptionHandling.ensure_completely_safe { raise ArgumentError.new("blah") }
           assert_nil b
         end
 
         should "allow a message to be appended to the error when logged." do
-          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError.new("blah") }
           assert_nil b
         end
 
         should "rescue any instance or child of Exception" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling::ensure_completely_safe { raise Exception.new("blah") }
         end
 
@@ -351,7 +383,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "ExceptionHandling.ensure_escalation" do
         should "log the exception as usual and send the proper email" do
           assert_equal 0, ActionMailer::Base.deliveries.count
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_escalation( "Favorite Feature") { raise ArgumentError.new("blah") }
           assert_equal 2, ActionMailer::Base.deliveries.count
           email = ActionMailer::Base.deliveries.last
@@ -373,8 +405,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             mock(message).deliver { raise RuntimeError.new, "Delivery Error" }
           end
           mock(ExceptionHandling.logger) do |logger|
-            logger.fatal(/first_test_exception/)
-            logger.fatal(/safe_email_deliver .*Delivery Error/)
+            logger.fatal(/first_test_exception/, anything)
+            logger.fatal(/safe_email_deliver .*Delivery Error/, anything)
           end
           ExceptionHandling.ensure_escalation("Not Used") { raise ArgumentError.new("first_test_exception") }
           assert_equal 0, ActionMailer::Base.deliveries.count
@@ -384,7 +416,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "ExceptionHandling.ensure_alert" do
         should "log the exception as usual and fire a sensu event" do
           mock(ExceptionHandling::Sensu).generate_event("Favorite Feature", "test context\nblah")
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError.new("blah") }
         end
 
@@ -397,8 +429,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "log if the sensu event could not be sent" do
           mock(ExceptionHandling::Sensu).send_event(anything) { raise "Failed to send" }
           mock(ExceptionHandling.logger) do |logger|
-            logger.fatal(/first_test_exception/)
-            logger.fatal(/Failed to send/)
+            logger.fatal(/first_test_exception/, anything)
+            logger.fatal(/Failed to send/, anything)
           end
           ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError.new("first_test_exception") }
         end
@@ -427,7 +459,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "include the timestamp when the exception is logged" do
-          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/)
+          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
           assert_nil b
 
@@ -748,6 +780,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     should "rescue exceptions that happen when log_error yields" do
       mock(ExceptionHandling).write_exception_to_log(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['Context message'] },
+                                                     anything,
                                                      anything)
       ExceptionHandling.log_error(ArgumentError.new("Bad argument"), "Context message") { |data| raise 'Error!!!' }
     end
@@ -939,7 +972,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             should "log fatal on EventMachine STMP errback" do
               assert_emails 0, ActionMailer::Base.deliveries.*.to_s
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientErrbackStub)
-              mock(ExceptionHandling.logger).fatal(/Exception 1/)
+              mock(ExceptionHandling.logger).fatal(/Exception 1/, anything)
               mock(ExceptionHandling.logger).fatal(/Failed to email by SMTP: "credential mismatch"/)
 
               ExceptionHandling.log_error(exception_1)
@@ -954,7 +987,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
             should "log fatal on EventMachine dns resolver errback" do
               assert_emails 0, ActionMailer::Base.deliveries.*.to_s
-              mock(ExceptionHandling.logger).fatal(/Exception 1/)
+              mock(ExceptionHandling.logger).fatal(/Exception 1/, anything)
               mock(ExceptionHandling.logger).fatal(/Failed to resolv DNS for localhost: "softlayer sucks"/)
 
               ExceptionHandling.log_error(exception_1)
@@ -1077,6 +1110,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         Time.now_override = nil
       end
 
+      should "take in additional key word args as logging context and pass them to the logger" do
+        ExceptionHandling.log_periodically(:test_context_with_periodic, 30.minutes, "this will be written", service_name: 'exception_handling')
+        assert_not_empty logged_excluding_reload_filter.last[:context]
+        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+      end
+
       should "log immediately when we are expected to log" do
         ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
         assert_equal 1, logged_excluding_reload_filter.size
@@ -1099,7 +1138,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   private
 
   def logged_excluding_reload_filter
-    ExceptionHandling.logger.logged.select { |l| l !~ /Reloading filter list/ }
+    ExceptionHandling.logger.logged.select { |l| l[:message] !~ /Reloading filter list/ }
   end
 
   def incrementing_mtime
