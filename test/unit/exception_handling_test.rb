@@ -250,10 +250,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           assert_equal 'exception_handling.warning', metric
         end
 
-        should "return exception_handling.warning when using treat_like_warning" do
+        should "return exception_handling.exception when using treat_like_warning" do
           exception = StandardError.new('this is an exception')
           metric    = ExceptionHandling.default_metric_name({}, exception, true)
-          assert_equal 'exception_handling.warning', metric
+          assert_equal 'exception_handling.exception', metric
         end
 
         should "return exception_handling.exception when using log error" do
