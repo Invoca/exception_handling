@@ -57,10 +57,10 @@ module ExceptionHandling # never included
       @logger = logger.is_a?(ContextualLogger) ? logger : ContextualLogger.new(logger)
     end
 
-    def default_metric_name(exception_data, exception, treat_like_warning)
+    def default_metric_name(exception_data, exception, _treat_like_warning)
       metric_name = if exception_data['metric_name']
                       exception_data['metric_name']
-                    elsif exception.is_a?(ExceptionHandling::Warning) || treat_like_warning
+                    elsif exception.is_a?(ExceptionHandling::Warning)
                       "warning"
                     else
                       "exception"
