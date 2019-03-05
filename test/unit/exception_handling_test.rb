@@ -268,8 +268,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
           context "when using log error with treat_like_warning" do
             should "return exception_handling.unforwarded_exception when exception not present" do
-              exception = StandardError.new('this is an exception')
-              metric    = ExceptionHandling.default_metric_name({}, nil, true)
+              metric = ExceptionHandling.default_metric_name({}, nil, true)
               assert_equal 'exception_handling.unforwarded_exception', metric
             end
 
