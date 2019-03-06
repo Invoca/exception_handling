@@ -57,11 +57,14 @@ module ExceptionHandling # never included
       @logger = logger.is_a?(ContextualLogger) ? logger : ContextualLogger.new(logger)
     end
 
-    def default_metric_name(exception_data, exception, _treat_like_warning)
+    def default_metric_name(exception_data, exception, treat_like_warning)
       metric_name = if exception_data['metric_name']
                       exception_data['metric_name']
                     elsif exception.is_a?(ExceptionHandling::Warning)
                       "warning"
+                    elsif treat_like_warning
+                      exception_name = "_#{exception.class.name.split('::').last}" if exception.present?
+                      "unforwarded_exception#{exception_name}"
                     else
                       "exception"
                     end

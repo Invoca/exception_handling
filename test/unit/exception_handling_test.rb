@@ -244,28 +244,45 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       context "default_metric_name" do
-        should "return exception_handling.warning when using log warning" do
-          warning = ExceptionHandling::Warning.new('this is a warning')
-          metric  = ExceptionHandling.default_metric_name({}, warning, false)
-          assert_equal 'exception_handling.warning', metric
+
+        context "when metric_name is present in exception_data" do
+          should "include metric_name in resulting metric name" do
+            exception = StandardError.new('this is an exception')
+            metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true)
+            assert_equal 'exception_handling.special_metric', metric
+          end
         end
 
-        should "return exception_handling.exception when using treat_like_warning" do
-          exception = StandardError.new('this is an exception')
-          metric    = ExceptionHandling.default_metric_name({}, exception, true)
-          assert_equal 'exception_handling.exception', metric
-        end
+        context "when metric_name is not present in exception_data" do
+          should "return exception_handling.warning when using log warning" do
+            warning = ExceptionHandling::Warning.new('this is a warning')
+            metric  = ExceptionHandling.default_metric_name({}, warning, false)
+            assert_equal 'exception_handling.warning', metric
+          end
 
-        should "return exception_handling.exception when using log error" do
-          exception = StandardError.new('this is an exception')
-          metric    = ExceptionHandling.default_metric_name({}, exception, false)
-          assert_equal 'exception_handling.exception', metric
-        end
+          should "return exception_handling.exception when using log error" do
+            exception = StandardError.new('this is an exception')
+            metric    = ExceptionHandling.default_metric_name({}, exception, false)
+            assert_equal 'exception_handling.exception', metric
+          end
 
-        should "return special metric when specified in exception filtering" do
-          exception = StandardError.new('this is an exception')
-          metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true)
-          assert_equal 'exception_handling.special_metric', metric
+          context "when using log error with treat_like_warning" do
+            should "return exception_handling.unforwarded_exception when exception not present" do
+              metric = ExceptionHandling.default_metric_name({}, nil, true)
+              assert_equal 'exception_handling.unforwarded_exception', metric
+            end
+
+            should "return exception_handling.unforwarded_exception with exception classname when exception is present" do
+              module SomeModule
+                class SomeException < StandardError
+                end
+              end
+
+              exception = SomeModule::SomeException.new('this is an exception')
+              metric    = ExceptionHandling.default_metric_name({}, exception, true)
+              assert_equal 'exception_handling.unforwarded_exception_SomeException', metric
+            end
+          end
         end
       end
 
