@@ -113,7 +113,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       should "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
-        assert_match /This is an Error/, logged_excluding_reload_filter.last[:message]
+        assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
       end
@@ -139,7 +139,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       should "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
-        assert_match /This is a Warning/, logged_excluding_reload_filter.last[:message]
+        assert_match(/This is a Warning/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
       end
@@ -148,7 +148,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     context "#log_info" do
       should "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_warning('This is an Info', service_name: 'exception_handling')
-        assert_match /This is an Info/, logged_excluding_reload_filter.last[:message]
+        assert_match(/This is an Info/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
       end
@@ -157,7 +157,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     context "#log_debug" do
       should "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_warning('This is a Debug', service_name: 'exception_handling')
-        assert_match /This is a Debug/, logged_excluding_reload_filter.last[:message]
+        assert_match(/This is a Debug/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
       end
@@ -788,7 +788,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     should "rescue exceptions that happen in log_error" do
       stub(ExceptionHandling).make_exception { raise ArgumentError.new("Bad argument") }
       mock(ExceptionHandling).write_exception_to_log(satisfy { |ex| ex.to_s['Bad argument'] },
-                                                     satisfy { |context| context['ExceptionHandling.log_error rescued exception while logging Runtime message'] },
+                                                     satisfy { |context| context['ExceptionHandlingError: log_error rescued exception while logging Runtime message'] },
                                                      anything)
       stub($stderr).puts
       ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
