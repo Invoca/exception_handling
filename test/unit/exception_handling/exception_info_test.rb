@@ -246,8 +246,17 @@ module ExceptionHandling
 
       should "filter out sensitive parameters like passwords" do
         @controller.request.parameters[:password] = "super_secret"
+        @controller.request.parameters[:user] = { "password" => "also super secret", "password_confirmation" => "also super secret" }
         exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
-        expected_params = { "password" => "[FILTERED]", "advertiser_id" => 435, "controller" => "dummy", "action" => "fail" }
+        expected_params = {
+          "password"      => "[FILTERED]",
+          "advertiser_id" => 435, "controller" => "dummy",
+          "action"        => "fail",
+          "user"          => {
+            "password"              => "[FILTERED]",
+            "password_confirmation" => "[FILTERED]"
+          }
+        }
         assert_equal_with_diff expected_params, exception_info.enhanced_data["request"]["params"]
       end
 
