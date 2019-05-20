@@ -158,17 +158,11 @@ EOF
       end
 
       if data[:request].is_a?(Hash) && data[:request][:params].is_a?(Hash)
-        data[:request][:params] = clean_params(data[:request][:params])
+        data[:request][:params] = deep_clean_hash(data[:request][:params])
       end
 
       if data[:environment].is_a?(Hash)
         data[:environment] = clean_environment(data[:environment])
-      end
-    end
-
-    def clean_params(params)
-      params.each do |k, v|
-        params[k] = "[FILTERED]" if k =~ /password/
       end
     end
 
@@ -178,23 +172,19 @@ EOF
       end.compact ]
     end
 
-    def deep_clean_exception_context(exception_context)
-      exception_context.is_a?(Hash) or return exception_context
-      exception_context.build_hash do |k, v|
-        value =
-          if v.is_a?(Hash)
-            deep_clean_exception_context(v)
-          else
-            clean_value_for_exception_context_key(k, v)
-          end
+    def deep_clean_hash(hash)
+      hash.is_a?(Hash) or return hash
+
+      hash.build_hash do |k, v|
+        value = v.is_a?(Hash) ? deep_clean_hash(v) : filter_sensitive_value(k, v)
         [k, value]
       end
     end
 
-    def clean_value_for_exception_context_key(key, value)
+    def filter_sensitive_value(key, value)
       if key =~ /(password|oauth_token)/
         "[FILTERED]"
-      elsif key == "rack.request.form_vars" && (captured_matches = value.match(/(.*)(password=)([^&]+)(.*)/)&.captures)
+      elsif key == "rack.request.form_vars" && value.respond_to?(:match) && (captured_matches = value.match(/(.*)(password=)([^&]+)(.*)/)&.captures)
         [*captured_matches[0..1], "[FILTERED]", *captured_matches[3..-1]].join
       else
         value
@@ -268,7 +258,7 @@ EOF
     def enhanced_data_to_honeybadger_context
       data = enhanced_data.dup
       data[:server] = ExceptionHandling.server_name
-      data[:exception_context] = deep_clean_exception_context(@exception_context) if @exception_context.present?
+      data[:exception_context] = deep_clean_hash(@exception_context) if @exception_context.present?
       unstringify_sections(data)
       context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
         if data[section].present?
