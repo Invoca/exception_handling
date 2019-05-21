@@ -123,8 +123,8 @@ EOF
         ExceptionHandling.custom_data_hook.call(data)
       rescue Exception => ex
         # can't call log_error here or we will blow the call stack
-        traces = ex.backtrace.map { |l| "#{l}\n" }.join
-        ExceptionHandling.log_info("Unable to execute custom custom_data_hook callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}")
+        traces = ex.backtrace.join("\n")
+        ExceptionHandling.log_info("Unable to execute custom custom_data_hook callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}\n")
       end
     end
 
