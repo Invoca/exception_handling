@@ -15,6 +15,8 @@ require 'contextual_logger'
 require 'exception_handling'
 require 'exception_handling/testing'
 
+ActiveSupport::TestCase.test_order = :sorted
+
 class LoggerStub
   include ContextualLogger
   attr_accessor :logged
