@@ -79,7 +79,9 @@ EOF
     end
 
     def controller_name
-      @controller_name ||= (@controller ? @controller.request.parameters.with_indifferent_access[:controller] : nil).to_s
+      @controller_name ||= if @controller
+                             @controller.request.parameters.with_indifferent_access[:controller]
+                           end.to_s
     end
 
     private
