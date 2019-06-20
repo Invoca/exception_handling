@@ -350,11 +350,11 @@ module ExceptionHandling
         @exception = StandardError.new('something went wrong')
         @timestamp = Time.now
         @exception_context = {
-            'rack.session' => {
-                user_id: 23,
-                user_name: 'John'
-            },
-            'SERVER_NAME' => 'exceptional.com'
+          'rack.session' => {
+            user_id: 23,
+            user_name: 'John'
+          },
+          'SERVER_NAME' => 'exceptional.com'
         }
       end
 
