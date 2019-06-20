@@ -649,7 +649,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           should "send error details and relevant context data to Honeybadger" do
             Time.now_override = Time.now
             env = { server: "fe98" }
-            parameters = { advertiser_id: 435 }
+            parameters = { advertiser_id: 435, controller: "some_controller" }
             session = { username: "jsmith" }
             request_uri = "host/path"
             controller = create_dummy_controller(env, parameters, session, request_uri)
@@ -675,6 +675,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             expected_data = {
               error_class: :"Test BS",
               error_message: "Some BS",
+              controller: "some_controller",
               exception: exception,
               context: {
                 timestamp: Time.now.to_i,
@@ -685,7 +686,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                 notes: "this is used by a test",
                 user_details: { "username" => "jsmith" },
                 request: {
-                  "params" => { "advertiser_id" => 435 },
+                  "params" => { "advertiser_id" => 435, "controller" => "some_controller" },
                   "rails_root" => "Rails.root not defined. Is this a test environment?",
                   "url" => "host/path" },
                 session: {

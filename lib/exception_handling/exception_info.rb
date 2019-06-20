@@ -78,6 +78,12 @@ EOF
       @honeybadger_context_data ||= enhanced_data_to_honeybadger_context
     end
 
+    def controller_name
+      @controller_name ||= if @controller
+                             @controller.request.parameters.with_indifferent_access[:controller]
+                           end.to_s
+    end
+
     private
 
     def controller_from_context(exception_context)

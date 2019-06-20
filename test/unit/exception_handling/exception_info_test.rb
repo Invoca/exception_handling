@@ -345,6 +345,37 @@ module ExceptionHandling
       end
     end
 
+    context "controller_name" do
+      setup do
+        @exception = StandardError.new('something went wrong')
+        @timestamp = Time.now
+        @exception_context = {
+          'rack.session' => {
+            user_id: 23,
+            user_name: 'John'
+          },
+          'SERVER_NAME' => 'exceptional.com'
+        }
+      end
+
+      should "return controller_name when controller is present" do
+        env         = { server:     'fe98' }
+        parameters  = { controller: 'some_controller' }
+        session     = { username:   'smith' }
+        request_uri = "host/path"
+        controller  = create_dummy_controller(env, parameters, session, request_uri)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller)
+
+        assert_equal 'some_controller', exception_info.controller_name
+      end
+
+      should "return an empty string when controller is not present" do
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp)
+
+        assert_equal '', exception_info.controller_name
+      end
+    end
+
     context "send_to_honeybadger?" do
       should "be enabled when Honeybadger is defined and exception is not in the filter list" do
         stub(ExceptionHandling).honeybadger? { true }

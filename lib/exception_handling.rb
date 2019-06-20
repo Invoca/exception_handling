@@ -245,7 +245,8 @@ module ExceptionHandling # never included
         response = Honeybadger.notify(error_class:   exception_description ? exception_description.filter_name : exception.class.name,
                                       error_message: exception.message.to_s,
                                       exception:     exception,
-                                      context:       exception_info.honeybadger_context_data)
+                                      context:       exception_info.honeybadger_context_data,
+                                      controller:    exception_info.controller_name)
         response ? :success : :failure
       else
         log_info("Filtered exception using '#{exception_description.filter_name}'; not sending notification to Honeybadger")
