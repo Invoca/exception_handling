@@ -185,7 +185,7 @@ class Time
     attr_reader :now_override
 
     def now_override=(override_time)
-      if ActiveSupport::TimeWithZone === override_time
+      if override_time.is_a?(ActiveSupport::TimeWithZone)
         override_time = override_time.localtime
       else
         override_time.nil? || override_time.is_a?(Time) or raise "override_time should be a Time object, but was a #{override_time.class.name}"
@@ -193,7 +193,7 @@ class Time
       @now_override = override_time
     end
 
-    unless defined? @@_old_now_defined
+    unless defined?(@@_old_now_defined)
       alias old_now now
       @@_old_now_defined = true
     end
