@@ -10,42 +10,40 @@ module ExceptionHandling
       /^SERVER_/
     ].freeze
 
-    ENVIRONMENT_OMIT =
-      <<EOF.unindent
-  CONTENT_TYPE: application/x-www-form-urlencoded
-  GATEWAY_INTERFACE: CGI/1.2
-  HTTP_ACCEPT: */*
-  HTTP_ACCEPT: */*, text/javascript, text/html, application/xml, text/xml, */*
-  HTTP_ACCEPT_CHARSET: ISO-8859-1,utf-8;q=0.7,*;q=0.7
-  HTTP_ACCEPT_ENCODING: gzip, deflate
-  HTTP_ACCEPT_ENCODING: gzip,deflate
-  HTTP_ACCEPT_LANGUAGE: en-us
-  HTTP_CACHE_CONTROL: no-cache
-  HTTP_CONNECTION: Keep-Alive
-  HTTP_HOST: www.invoca.com
-  HTTP_MAX_FORWARDS: 10
-  HTTP_UA_CPU: x86
-  HTTP_VERSION: HTTP/1.1
-  HTTP_X_FORWARDED_HOST: www.invoca.com
-  HTTP_X_FORWARDED_SERVER: www2.invoca.com
-  HTTP_X_REQUESTED_WITH: XMLHttpRequest
-  LANG:
-  PATH: /sbin:/usr/sbin:/bin:/usr/bin
-  PWD: /
-  RAILS_ENV: production
-  RAW_POST_DATA: id=500
-  REMOTE_ADDR: 10.251.34.225
-  SCRIPT_NAME: /
-  SERVER_NAME: www.invoca.com
-  SERVER_PORT: 80
-  SERVER_PROTOCOL: HTTP/1.1
-  SERVER_SOFTWARE: Mongrel 1.1.4
-  SHLVL: 1
-  TERM: linux
-  TERM: xterm-color
-  _: /usr/bin/mongrel_cluster_ctl
-      EOF
-        .split("\n")
+    ENVIRONMENT_OMIT = <<~EOS.split("\n")
+      CONTENT_TYPE: application/x-www-form-urlencoded
+      GATEWAY_INTERFACE: CGI/1.2
+      HTTP_ACCEPT: */*
+      HTTP_ACCEPT: */*, text/javascript, text/html, application/xml, text/xml, */*
+      HTTP_ACCEPT_CHARSET: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+      HTTP_ACCEPT_ENCODING: gzip, deflate
+      HTTP_ACCEPT_ENCODING: gzip,deflate
+      HTTP_ACCEPT_LANGUAGE: en-us
+      HTTP_CACHE_CONTROL: no-cache
+      HTTP_CONNECTION: Keep-Alive
+      HTTP_HOST: www.invoca.com
+      HTTP_MAX_FORWARDS: 10
+      HTTP_UA_CPU: x86
+      HTTP_VERSION: HTTP/1.1
+      HTTP_X_FORWARDED_HOST: www.invoca.com
+      HTTP_X_FORWARDED_SERVER: www2.invoca.com
+      HTTP_X_REQUESTED_WITH: XMLHttpRequest
+      LANG:
+      PATH: /sbin:/usr/sbin:/bin:/usr/bin
+      PWD: /
+      RAILS_ENV: production
+      RAW_POST_DATA: id=500
+      REMOTE_ADDR: 10.251.34.225
+      SCRIPT_NAME: /
+      SERVER_NAME: www.invoca.com
+      SERVER_PORT: 80
+      SERVER_PROTOCOL: HTTP/1.1
+      SERVER_SOFTWARE: Mongrel 1.1.4
+      SHLVL: 1
+      TERM: linux
+      TERM: xterm-color
+      _: /usr/bin/mongrel_cluster_ctl
+    EOS
 
     SECTIONS = [:request, :session, :environment, :backtrace, :event_response].freeze
     HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response].freeze
@@ -250,7 +248,7 @@ module ExceptionHandling
     end
 
     def dump_hash(h, indent_level = 0)
-      result = ""
+      result = +""
       h&.sort { |a, b| a.to_s <=> b.to_s }&.each do |key, value|
           result << ' ' * (2 * indent_level)
           result << "#{key}:"

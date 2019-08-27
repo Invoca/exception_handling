@@ -18,8 +18,17 @@ module ExceptionHandling
       "#{email_environment} exception: "
     end
 
-    def self.reloadable?
-      false
+    class << self
+      def reloadable?
+        false
+      end
+
+      def mailer_method_category
+        {
+          exception_notification: :NetworkOptout,
+          log_parser_exception_notification: :NetworkOptout
+        }
+      end
     end
 
     def exception_notification(cleaned_data, first_seen_at = nil, occurrences = 0)
@@ -87,13 +96,6 @@ module ExceptionHandling
       mail(from: from,
            to: @recipients,
            subject: @subject)
-    end
-
-    def self.mailer_method_category
-      {
-        exception_notification: :NetworkOptout,
-        log_parser_exception_notification: :NetworkOptout
-      }
     end
   end
 end

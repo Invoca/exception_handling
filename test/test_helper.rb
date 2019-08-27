@@ -90,12 +90,14 @@ class ActiveSupport::TestCase
 
     unless defined?(Rails) && defined?(Rails.env)
       module ::Rails
-        def self.env
-          @env ||= 'test'
-        end
+        class << self
+          def env
+            @env ||= 'test'
+          end
 
-        def self.env=(mode)
-          @env = mode
+          def env=(mode)
+            @env = mode
+          end
         end
       end
     end
@@ -186,7 +188,7 @@ class Time
       if ActiveSupport::TimeWithZone === override_time
         override_time = override_time.localtime
       else
-        override_time.nil? || Time === override_time or raise "override_time should be a Time object, but was a #{override_time.class.name}"
+        override_time.nil? || override_time.is_a?(Time) or raise "override_time should be a Time object, but was a #{override_time.class.name}"
       end
       @now_override = override_time
     end
@@ -195,9 +197,9 @@ class Time
       alias old_now now
       @@_old_now_defined = true
     end
-  end
 
-  def self.now
-    now_override ? now_override.dup : old_now
+    def now
+      now_override ? now_override.dup : old_now
+    end
   end
 end

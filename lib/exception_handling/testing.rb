@@ -8,6 +8,7 @@ module ExceptionHandling
 
       class Request
         attr_accessor :parameters, :protocol, :host, :request_uri, :env, :session_options
+
         def initialize
           @parameters  = { id: "1" }
           @protocol    = 'http'
@@ -19,8 +20,13 @@ module ExceptionHandling
       end
 
       attr_accessor :request, :session
+
       class << self
         attr_accessor :around_filter_method
+
+        def around_filter(method)
+          ControllerStub.around_filter_method = method
+        end
       end
 
       def initialize
@@ -48,10 +54,6 @@ module ExceptionHandling
 
       def action_name
         "test_action"
-      end
-
-      def self.around_filter(method)
-        ControllerStub.around_filter_method = method
       end
 
       def complete_request_uri

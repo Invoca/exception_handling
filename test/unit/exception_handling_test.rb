@@ -1171,7 +1171,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   def exception_1
-    @ex1 ||=
+    @exception_1 ||=
       begin
         raise StandardError, "Exception 1"
       rescue => ex
@@ -1180,7 +1180,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   def exception_2
-    @ex2 ||=
+    @exception_2 ||=
       begin
         raise StandardError, "Exception 2"
       rescue => ex
