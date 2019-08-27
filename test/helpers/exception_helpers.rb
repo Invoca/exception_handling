@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ExceptionHelpers
   def raise_exception_with_nil_message
     raise exception_with_nil_message

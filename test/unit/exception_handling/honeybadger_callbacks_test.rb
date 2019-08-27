@@ -1,4 +1,6 @@
-require File.expand_path('../../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../../test_helper',  __dir__)
 
 module ExceptionHandling
   class HoneybadgerCallbacksTest < ActiveSupport::TestCase
@@ -46,9 +48,9 @@ module ExceptionHandling
       should "not inspect String, Hash, Array, Set, Numeric, TrueClass, FalseClass, NilClass" do
         [
           ['test', String],
-          [{a: 1}, Hash],
-          [[1,2], Array],
-          [Set.new([1,2]), Set],
+          [{ a: 1 }, Hash],
+          [[1, 2], Array],
+          [Set.new([1, 2]), Set],
           [4.5, Numeric],
           [true, TrueClass],
           [false, FalseClass],

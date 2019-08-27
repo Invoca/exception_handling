@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 module ControllerHelpers
   DummyController = Struct.new(:complete_request_uri, :request, :session)
   DummyRequest = Struct.new(:env, :parameters, :session_options)
-  
+
   class DummySession
     def initialize(data)
       @data = data

@@ -1,10 +1,12 @@
-require File.expand_path('../../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../../test_helper',  __dir__)
 
 module ExceptionHandling
   class SensuTest < ActiveSupport::TestCase
     context "#generate_event" do
       should "create an event" do
-        mock(ExceptionHandling::Sensu).send_event({ name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1 })
+        mock(ExceptionHandling::Sensu).send_event(name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1)
 
         ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye")
       end
@@ -12,13 +14,13 @@ module ExceptionHandling
       should "add the sensu prefix" do
         ExceptionHandling.sensu_prefix = "cnn_"
 
-        mock(ExceptionHandling::Sensu).send_event({ name: "cnn_world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1 })
+        mock(ExceptionHandling::Sensu).send_event(name: "cnn_world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1)
 
         ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye")
       end
 
       should "allow the level to be set to critical" do
-        mock(ExceptionHandling::Sensu).send_event({ name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 2 })
+        mock(ExceptionHandling::Sensu).send_event(name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 2)
 
         ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye", :critical)
       end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'active_support/concern'
 
 module ExceptionHandling
@@ -20,20 +22,18 @@ module ExceptionHandling
     end
 
     def log_info(message)
-      ExceptionHandling.logger.info( message )
+      ExceptionHandling.logger.info(message)
     end
 
     def log_debug(message)
-      ExceptionHandling.logger.debug( message )
+      ExceptionHandling.logger.debug(message)
     end
 
     def ensure_safe(exception_context = "")
-      begin
-        yield
-      rescue => ex
-        log_error ex, exception_context
-        nil
-      end
+      yield
+    rescue => ex
+      log_error ex, exception_context
+      nil
     end
 
     def escalate_error(exception_or_string, email_subject)
@@ -74,9 +74,13 @@ module ExceptionHandling
       time = Benchmark.measure do
         result = yield
       end
-      if time.real > self.long_controller_action_timeout && !['development', 'test'].include?(ExceptionHandling.email_environment)
-        name = " in #{controller_name}::#{action_name}" rescue " "
-        log_error( "Long controller action detected#{name} %.4fs  " % time.real )
+      if time.real > long_controller_action_timeout && !['development', 'test'].include?(ExceptionHandling.email_environment)
+        name = begin
+                 " in #{controller_name}::#{action_name}"
+               rescue
+                 " "
+               end
+        log_error("Long controller action detected#{name} %.4fs  " % time.real)
       end
       result
     ensure

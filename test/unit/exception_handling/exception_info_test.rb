@@ -1,4 +1,6 @@
-require File.expand_path('../../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../../test_helper',  __dir__)
 require_test_helper 'controller_helpers'
 require_test_helper 'exception_helpers'
 
@@ -228,10 +230,12 @@ module ExceptionHandling
           "session" => {
             "key" => "session_key",
             "data" => { "username" => "jsmith", "id" => "session_key" },
-            "to_s" => "data:\n  id: session_key\n  username: jsmith\nkey: session_key\n" },
+            "to_s" => "data:\n  id: session_key\n  username: jsmith\nkey: session_key\n"
+          },
           "environment" => {
             "SERVER_NAME" => "exceptional.com",
-            "to_s" => "SERVER_NAME: exceptional.com\n" },
+            "to_s" => "SERVER_NAME: exceptional.com\n"
+          },
           "request" => {
             "params" => { "advertiser_id" => 435, "controller" => "dummy", "action" => "fail" },
             "rails_root" => "Rails.root not defined. Is this a test environment?",
@@ -249,11 +253,11 @@ module ExceptionHandling
         @controller.request.parameters[:user] = { "password" => "also super secret", "password_confirmation" => "also super secret" }
         exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
         expected_params = {
-          "password"      => "[FILTERED]",
+          "password" => "[FILTERED]",
           "advertiser_id" => 435, "controller" => "dummy",
-          "action"        => "fail",
-          "user"          => {
-            "password"              => "[FILTERED]",
+          "action" => "fail",
+          "user" => {
+            "password" => "[FILTERED]",
             "password_confirmation" => "[FILTERED]"
           }
         }
@@ -296,7 +300,7 @@ module ExceptionHandling
       end
 
       should "log info if the custom data hook results in a nil message exception" do
-        ExceptionHandling.custom_data_hook = lambda do |data|
+        ExceptionHandling.custom_data_hook = ->(_data) do
           raise_exception_with_nil_message
         end
         log_info_messages = []
@@ -423,8 +427,9 @@ module ExceptionHandling
 
         exception = StandardError.new("Some BS")
         exception.set_backtrace([
-          "test/unit/exception_handling_test.rb:847:in `exception_1'",
-          "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"])
+                                  "test/unit/exception_handling_test.rb:847:in `exception_1'",
+                                  "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                                ])
         exception_context = { "SERVER_NAME" => "exceptional.com" }
         data_callback = ->(data) do
           data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
@@ -446,46 +451,49 @@ module ExceptionHandling
           request: {
             "params" => { "advertiser_id" => 435 },
             "rails_root" => "Rails.root not defined. Is this a test environment?",
-            "url" => "host/path" },
+            "url" => "host/path"
+          },
           session: {
             "key" => nil,
-            "data" => { "username" => "jsmith" } },
+            "data" => { "username" => "jsmith" }
+          },
           environment: {
-            "SERVER_NAME" => "exceptional.com" },
+            "SERVER_NAME" => "exceptional.com"
+          },
           backtrace: [
             "test/unit/exception_handling_test.rb:847:in `exception_1'",
-            "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"],
+            "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+          ],
           event_response: "Event successfully received"
         }
         assert_equal_with_diff expected_data, exception_info.honeybadger_context_data
       end
 
-      [ ['Hash',   { 'cookie' => 'cookie_context' } ],
-        ['String', 'Entering Error State'           ],
-        ['Array',  ['Error1', 'Error2']             ]].each do |klass, value|
+      [['Hash',   { 'cookie' => 'cookie_context' }],
+       ['String', 'Entering Error State'],
+       ['Array',  ['Error1', 'Error2']]].each do |klass, value|
+        should "extract context from exception_context when it is a #{klass}" do
+          exception = StandardError.new("Exception")
+          exception_context = value
+          exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
 
-          should "extract context from exception_context when it is a #{klass}" do
-            exception = StandardError.new("Exception")
-            exception_context = value
-            exception_info = ExceptionInfo.new(exception, exception_context, Time.now)
-
-            assert_equal klass, value.class.name
-            assert_equal value, exception_info.honeybadger_context_data[:exception_context]
-          end
+          assert_equal klass, value.class.name
+          assert_equal value, exception_info.honeybadger_context_data[:exception_context]
+        end
       end
 
       should "filter out sensitive data from exception context such as [password, password_confirmation, oauth_token]" do
         sensitive_data = {
-          "password"              => "super_secret",
+          "password" => "super_secret",
           "password_confirmation" => "super_secret_confirmation",
-          "oauth_token"           => "super_secret_oauth_token"
+          "oauth_token" => "super_secret_oauth_token"
         }
 
         exception         = StandardError.new("boom")
         exception_context = {
           "SERVER_NAME" => "exceptional.com",
-          "one_layer"   => sensitive_data,
-          "two_layers"  => {
+          "one_layer" => sensitive_data,
+          "two_layers" => {
             "sensitive_data" => sensitive_data
           },
           "rack.request.form_vars" => "username=investor%40invoca.com&password=my_special_password&commit=Log+In",
@@ -499,8 +507,8 @@ module ExceptionHandling
         expected_sensitive_data = ["password", "password_confirmation", "oauth_token"].build_hash { |key| [key, "[FILTERED]"] }
         expected_exception_context = {
           "SERVER_NAME" => "exceptional.com",
-          "one_layer"   => expected_sensitive_data,
-          "two_layers"  => {
+          "one_layer" => expected_sensitive_data,
+          "two_layers" => {
             "sensitive_data" => expected_sensitive_data
           },
           "rack.request.form_vars" => "username=investor%40invoca.com&password=[FILTERED]&commit=Log+In",
@@ -522,7 +530,7 @@ module ExceptionHandling
     end
 
     def prepare_data(data)
-      data.each do |key, section|
+      data.each do |_key, section|
         if section.is_a?(Hash)
           section.delete(:to_s)
         end

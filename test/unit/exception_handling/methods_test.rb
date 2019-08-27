@@ -1,4 +1,6 @@
-require File.expand_path('../../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../../test_helper',  __dir__)
 
 require "exception_handling/testing"
 
@@ -28,10 +30,10 @@ module ExceptionHandling
         mock(Honeybadger).notify(anything)
         mock(ExceptionHandling.logger).fatal(/blah/, anything)
         @controller.simulate_around_filter do
-          ExceptionHandling.log_error( ArgumentError.new("blah") )
+          ExceptionHandling.log_error(ArgumentError.new("blah"))
           mail = ActionMailer::Base.deliveries.last
-          assert_match( @controller.request.request_uri, mail.body.to_s )
-        # assert_match( Username.first.username.to_s, mail.body.to_s ) if defined?(Username)
+          assert_match(@controller.request.request_uri, mail.body.to_s)
+          # assert_match( Username.first.username.to_s, mail.body.to_s ) if defined?(Username)
         end
       end
 

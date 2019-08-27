@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ExceptionHandling
   class ExceptionInfo
 
@@ -6,47 +8,47 @@ module ExceptionHandling
       /^QUERY_/,
       /^REQUEST_/,
       /^SERVER_/
-    ]
+    ].freeze
 
-    ENVIRONMENT_OMIT =(
-<<EOF
-CONTENT_TYPE: application/x-www-form-urlencoded
-GATEWAY_INTERFACE: CGI/1.2
-HTTP_ACCEPT: */*
-HTTP_ACCEPT: */*, text/javascript, text/html, application/xml, text/xml, */*
-HTTP_ACCEPT_CHARSET: ISO-8859-1,utf-8;q=0.7,*;q=0.7
-HTTP_ACCEPT_ENCODING: gzip, deflate
-HTTP_ACCEPT_ENCODING: gzip,deflate
-HTTP_ACCEPT_LANGUAGE: en-us
-HTTP_CACHE_CONTROL: no-cache
-HTTP_CONNECTION: Keep-Alive
-HTTP_HOST: www.invoca.com
-HTTP_MAX_FORWARDS: 10
-HTTP_UA_CPU: x86
-HTTP_VERSION: HTTP/1.1
-HTTP_X_FORWARDED_HOST: www.invoca.com
-HTTP_X_FORWARDED_SERVER: www2.invoca.com
-HTTP_X_REQUESTED_WITH: XMLHttpRequest
-LANG:
-PATH: /sbin:/usr/sbin:/bin:/usr/bin
-PWD: /
-RAILS_ENV: production
-RAW_POST_DATA: id=500
-REMOTE_ADDR: 10.251.34.225
-SCRIPT_NAME: /
-SERVER_NAME: www.invoca.com
-SERVER_PORT: 80
-SERVER_PROTOCOL: HTTP/1.1
-SERVER_SOFTWARE: Mongrel 1.1.4
-SHLVL: 1
-TERM: linux
-TERM: xterm-color
-_: /usr/bin/mongrel_cluster_ctl
-EOF
-      ).split("\n")
+    ENVIRONMENT_OMIT =
+      <<EOF.unindent
+  CONTENT_TYPE: application/x-www-form-urlencoded
+  GATEWAY_INTERFACE: CGI/1.2
+  HTTP_ACCEPT: */*
+  HTTP_ACCEPT: */*, text/javascript, text/html, application/xml, text/xml, */*
+  HTTP_ACCEPT_CHARSET: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+  HTTP_ACCEPT_ENCODING: gzip, deflate
+  HTTP_ACCEPT_ENCODING: gzip,deflate
+  HTTP_ACCEPT_LANGUAGE: en-us
+  HTTP_CACHE_CONTROL: no-cache
+  HTTP_CONNECTION: Keep-Alive
+  HTTP_HOST: www.invoca.com
+  HTTP_MAX_FORWARDS: 10
+  HTTP_UA_CPU: x86
+  HTTP_VERSION: HTTP/1.1
+  HTTP_X_FORWARDED_HOST: www.invoca.com
+  HTTP_X_FORWARDED_SERVER: www2.invoca.com
+  HTTP_X_REQUESTED_WITH: XMLHttpRequest
+  LANG:
+  PATH: /sbin:/usr/sbin:/bin:/usr/bin
+  PWD: /
+  RAILS_ENV: production
+  RAW_POST_DATA: id=500
+  REMOTE_ADDR: 10.251.34.225
+  SCRIPT_NAME: /
+  SERVER_NAME: www.invoca.com
+  SERVER_PORT: 80
+  SERVER_PROTOCOL: HTTP/1.1
+  SERVER_SOFTWARE: Mongrel 1.1.4
+  SHLVL: 1
+  TERM: linux
+  TERM: xterm-color
+  _: /usr/bin/mongrel_cluster_ctl
+      EOF
+        .split("\n")
 
-    SECTIONS = [:request, :session, :environment, :backtrace, :event_response]
-    HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response]
+    SECTIONS = [:request, :session, :environment, :backtrace, :event_response].freeze
+    HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response].freeze
 
     attr_reader :exception, :controller, :exception_context, :timestamp
 
@@ -94,10 +96,10 @@ EOF
       exception_message = @exception.message.to_s
       data = ActiveSupport::HashWithIndifferentAccess.new
       data[:error_class] = @exception.class.name
-      data[:error_string]= "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
+      data[:error_string] = "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
       data[:timestamp]   = @timestamp
       data[:backtrace]   = ExceptionHandling.clean_backtrace(@exception)
-      if @exception_context && @exception_context.is_a?(Hash)
+      if @exception_context&.is_a?(Hash)
         # if we are a hash, then we got called from the DebugExceptions rack middleware filter
         # and we need to do some things different to get the info we want
         data[:error] = "#{data[:error_class]}: #{ExceptionHandling.encode_utf8(exception_message)}"
@@ -124,7 +126,8 @@ EOF
     end
 
     def enhance_exception_data(data)
-      return if ! ExceptionHandling.custom_data_hook
+      return if !ExceptionHandling.custom_data_hook
+
       begin
         ExceptionHandling.custom_data_hook.call(data)
       rescue Exception => ex
@@ -137,28 +140,28 @@ EOF
     def normalize_exception_data(data)
       if data[:location].nil?
         data[:location] = {}
-        if data[:request] && data[:request].key?(:params)
+        if data[:request]&.key?(:params)
           data[:location][:controller] = data[:request][:params]['controller']
           data[:location][:action]     = data[:request][:params]['action']
         end
       end
-      if data[:backtrace] && data[:backtrace].first
+      if data[:backtrace]&.first
         first_line = data[:backtrace].first
 
         # template exceptions have the line number and filename as the first element in backtrace
-        if matched = first_line.match( /on line #(\d*) of (.*)/i )
+        if matched = first_line.match(/on line #(\d*) of (.*)/i)
           backtrace_hash = {}
           backtrace_hash[:line] = matched[1]
           backtrace_hash[:file] = matched[2]
         else
-          backtrace_hash = Hash[* [:file, :line].zip( first_line.split( ':' )[0..1]).flatten ]
+          backtrace_hash = Hash[* [:file, :line].zip(first_line.split(':')[0..1]).flatten]
         end
 
-        data[:location].merge!( backtrace_hash )
+        data[:location].merge!(backtrace_hash)
       end
     end
 
-    def clean_exception_data( data )
+    def clean_exception_data(data)
       if (as_array = data[:backtrace].to_a).size == 1
         data[:backtrace] = as_array.first.to_s.split(/\n\s*/)
       end
@@ -203,16 +206,16 @@ EOF
     def extract_and_merge_controller_data(data)
       if @controller
         data[:request] = {
-          params:      @controller.request.parameters.to_hash,
-          rails_root:  defined?(Rails) && defined?(Rails.root) ? Rails.root : "Rails.root not defined. Is this a test environment?",
-          url:         @controller.complete_request_uri
+          params: @controller.request.parameters.to_hash,
+          rails_root: defined?(Rails) && defined?(Rails.root) ? Rails.root : "Rails.root not defined. Is this a test environment?",
+          url: @controller.complete_request_uri
         }
         data[:environment].merge!(@controller.request.env.to_hash)
 
         @controller.session[:fault_in_session]
         data[:session] = {
-          key:         @controller.request.session_options[:id],
-          data:        @controller.session.to_hash
+          key: @controller.request.session_options[:id],
+          data: @controller.session.to_hash
         }
       end
     end
@@ -242,22 +245,22 @@ EOF
       end
     end
 
-    def add_to_s( data_section )
-      data_section[:to_s] = dump_hash( data_section )
+    def add_to_s(data_section)
+      data_section[:to_s] = dump_hash(data_section)
     end
 
-    def dump_hash( h, indent_level = 0 )
+    def dump_hash(h, indent_level = 0)
       result = ""
-      h.sort { |a, b| a.to_s <=> b.to_s }.each do |key, value|
-        result << ' ' * (2 * indent_level)
-        result << "#{key}:"
-        case value
-        when Hash
-          result << "\n" << dump_hash( value, indent_level + 1 )
-        else
-          result << " #{value}\n"
+      h&.sort { |a, b| a.to_s <=> b.to_s }&.each do |key, value|
+          result << ' ' * (2 * indent_level)
+          result << "#{key}:"
+          case value
+          when Hash
+            result << "\n" << dump_hash(value, indent_level + 1)
+          else
+            result << " #{value}\n"
+          end
         end
-      end unless h.nil?
       result
     end
 

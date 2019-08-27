@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 module ExceptionHandling
   class ExceptionCatalog
 
     def initialize(filter_path)
       @filter_path = filter_path
-      @filters = { }
+      @filters = {}
       @filters_last_modified_time = nil
     end
 
@@ -21,7 +23,6 @@ module ExceptionHandling
           load_file
         end
       end
-
     rescue => ex # any exceptions
       # DO NOT CALL ExceptionHandling.log_error because this method is called from that.  It can loop and cause mayhem.
       ExceptionHandling.write_exception_to_log(ex, "ExceptionCatalog#refresh_filters: #{@filter_path}", Time.now.to_i)
@@ -30,9 +31,9 @@ module ExceptionHandling
     def load_file
       @filters_last_modified_time = last_modified_time # make race condition fall on the side of reloading unnecessarily next time rather than missing a set of changes
 
-      filters = YAML::load_file(@filter_path)
+      filters = YAML.load_file(@filter_path)
       filter_hash_values = filters.map { |filter_name, regexes|  [filter_name.to_sym, ExceptionDescription.new(filter_name.to_sym, regexes.symbolize_keys)] }
-      @filters = Hash[ filter_hash_values ]
+      @filters = Hash[filter_hash_values]
     end
 
     def last_modified_time

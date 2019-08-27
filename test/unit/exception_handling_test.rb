@@ -1,4 +1,6 @@
-require File.expand_path('../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../test_helper',  __dir__)
 require_test_helper 'controller_helpers'
 require_test_helper 'exception_helpers'
 
@@ -18,26 +20,26 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     # don't let these out!
   end
 
-  def custom_data_callback_returns_nil_message_exception(data)
+  def custom_data_callback_returns_nil_message_exception(_data)
     raise_exception_with_nil_message
   end
 
-  def log_error_callback(data, ex, treat_like_warning, honeybadger_status)
+  def log_error_callback(_data, _ex, _treat_like_warning, _honeybadger_status)
     @fail_count += 1
   end
 
-  def log_error_callback_config(data, ex, treat_like_warning, honeybadger_status)
+  def log_error_callback_config(data, _ex, treat_like_warning, honeybadger_status)
     @callback_data = data
     @treat_like_warning = treat_like_warning
     @fail_count += 1
     @honeybadger_status = honeybadger_status
   end
 
-  def log_error_callback_with_failure(data, ex)
+  def log_error_callback_with_failure(_data, _ex)
     raise "this should be rescued"
   end
 
-  def log_error_callback_returns_nil_message_exception(data, ex)
+  def log_error_callback_returns_nil_message_exception(_data, _ex)
     raise_exception_with_nil_message
   end
 
@@ -56,7 +58,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       attr_accessor :callback_block
       attr_accessor :errback_block
 
-      def resolve(hostname)
+      def resolve(_hostname)
         self
       end
 
@@ -115,7 +117,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
         assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
 
       should "log the info and not raise another exception when sending email fails" do
@@ -141,7 +143,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
         assert_match(/This is a Warning/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
     end
 
@@ -150,7 +152,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.log_warning('This is an Info', service_name: 'exception_handling')
         assert_match(/This is an Info/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
     end
 
@@ -159,7 +161,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.log_warning('This is a Debug', service_name: 'exception_handling')
         assert_match(/This is a Debug/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
     end
 
@@ -244,7 +246,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       context "default_metric_name" do
-
         context "when metric_name is present in exception_data" do
           should "include metric_name in resulting metric name" do
             exception = StandardError.new('this is an exception')
@@ -311,7 +312,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "ExceptionHandling.ensure_safe" do
         should "log an exception with call stack if an exception is raised." do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
-          ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
+          ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
         end
 
         should "log an exception with call stack if an ActionView template exception is raised." do
@@ -332,13 +333,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
         should "return nil if an exception is raised during an assignment" do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
-          b = ExceptionHandling.ensure_safe { raise ArgumentError.new("blah") }
+          b = ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
           assert_nil b
         end
 
         should "allow a message to be appended to the error when logged." do
           mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
-          b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
+          b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
           assert_nil b
         end
 
@@ -347,7 +348,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
           mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
 
-          b = ExceptionHandling.ensure_safe("mooo") { raise StandardError.new("blah") }
+          b = ExceptionHandling.ensure_safe("mooo") { raise StandardError, "blah" }
           assert_nil b
         end
       end
@@ -355,7 +356,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "ExceptionHandling.ensure_completely_safe" do
         should "log an exception if an exception is raised." do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
-          ExceptionHandling.ensure_completely_safe { raise ArgumentError.new("blah") }
+          ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
         end
 
         should "should not log an exception if an exception is not raised." do
@@ -371,26 +372,26 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
         should "return nil if an exception is raised during an assignment" do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything) { nil }
-          b = ExceptionHandling.ensure_completely_safe { raise ArgumentError.new("blah") }
+          b = ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
           assert_nil b
         end
 
         should "allow a message to be appended to the error when logged." do
           mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
-          b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError.new("blah") }
+          b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError, "blah" }
           assert_nil b
         end
 
         should "rescue any instance or child of Exception" do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
-          ExceptionHandling::ensure_completely_safe { raise Exception.new("blah") }
+          ExceptionHandling.ensure_completely_safe { raise Exception, "blah" }
         end
 
         should "not rescue the special exceptions that Ruby uses" do
           [SystemExit, SystemStackError, NoMemoryError, SecurityError].each do |exception|
             assert_raise exception do
               ExceptionHandling.ensure_completely_safe do
-                raise exception.new
+                raise exception
               end
             end
           end
@@ -401,7 +402,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "log the exception as usual and send the proper email" do
           assert_equal 0, ActionMailer::Base.deliveries.count
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
-          ExceptionHandling.ensure_escalation( "Favorite Feature") { raise ArgumentError.new("blah") }
+          ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
           assert_equal 2, ActionMailer::Base.deliveries.count
           email = ActionMailer::Base.deliveries.last
           assert_equal "#{ExceptionHandling.email_environment} Escalation: Favorite Feature", email.subject
@@ -425,7 +426,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             logger.fatal(/first_test_exception/, anything)
             logger.fatal(/safe_email_deliver .*Delivery Error/, anything)
           end
-          ExceptionHandling.ensure_escalation("Not Used") { raise ArgumentError.new("first_test_exception") }
+          ExceptionHandling.ensure_escalation("Not Used") { raise ArgumentError, "first_test_exception" }
           assert_equal 0, ActionMailer::Base.deliveries.count
         end
       end
@@ -434,7 +435,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "log the exception as usual and fire a sensu event" do
           mock(ExceptionHandling::Sensu).generate_event("Favorite Feature", "test context\nblah")
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
-          ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError.new("blah") }
+          ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError, "blah" }
         end
 
         should "should not send sensu event if an exception is not raised." do
@@ -449,7 +450,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             logger.fatal(/first_test_exception/, anything)
             logger.fatal(/Failed to send/, anything)
           end
-          ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError.new("first_test_exception") }
+          ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError, "first_test_exception" }
         end
 
         should "log if the exception message is nil" do
@@ -472,15 +473,15 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       context "exception timestamp" do
         setup do
-          Time.now_override = Time.parse( '1986-5-21 4:17 am UTC' )
+          Time.now_override = Time.parse('1986-5-21 4:17 am UTC')
         end
 
         should "include the timestamp when the exception is logged" do
           mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
-          b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError.new("blah") }
+          b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
           assert_nil b
 
-          assert_equal 517033020, ExceptionHandling.last_exception_timestamp
+          assert_equal 517_033_020, ExceptionHandling.last_exception_timestamp
 
           assert_emails 1
           assert_match(/517033020/, ActionMailer::Base.deliveries[-1].body.to_s)
@@ -541,7 +542,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       should "send the summary when the error is encountered an hour after the first occurrence" do
         assert_emails 5 do # 5 exceptions, 4 summarized
-          9.times do |t|
+          9.times do |_t|
             ExceptionHandling.log_error(exception_1)
           end
         end
@@ -657,8 +658,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
             exception = StandardError.new("Some BS")
             exception.set_backtrace([
-              "test/unit/exception_handling_test.rb:847:in `exception_1'",
-              "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"])
+                                      "test/unit/exception_handling_test.rb:847:in `exception_1'",
+                                      "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                                    ])
             exception_context = { "SERVER_NAME" => "exceptional.com" }
 
             honeybadger_data = nil
@@ -688,15 +690,19 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                 request: {
                   "params" => { "advertiser_id" => 435, "controller" => "some_controller" },
                   "rails_root" => "Rails.root not defined. Is this a test environment?",
-                  "url" => "host/path" },
+                  "url" => "host/path"
+                },
                 session: {
                   "key" => nil,
-                  "data" => { "username" => "jsmith" } },
+                  "data" => { "username" => "jsmith" }
+                },
                 environment: {
-                  "SERVER_NAME" => "exceptional.com" },
+                  "SERVER_NAME" => "exceptional.com"
+                },
                 backtrace: [
                   "test/unit/exception_handling_test.rb:847:in `exception_1'",
-                  "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"],
+                  "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                ],
                 event_response: "Event successfully received"
               }
             }
@@ -779,7 +785,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       should "allow sections to have data with just a to_s method" do
         ExceptionHandling.log_error("This is my RingSwitch example.  Log, don't email!") do |data|
-          data.merge!(:event_response => EventResponse.new)
+          data.merge!(event_response: EventResponse.new)
         end
         assert_emails 1
         assert_match(/message from to_s!/, ActionMailer::Base.deliveries.last.body.to_s)
@@ -787,7 +793,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     should "rescue exceptions that happen in log_error" do
-      stub(ExceptionHandling).make_exception { raise ArgumentError.new("Bad argument") }
+      stub(ExceptionHandling).make_exception { raise ArgumentError, "Bad argument" }
       mock(ExceptionHandling).write_exception_to_log(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['ExceptionHandlingError: log_error rescued exception while logging Runtime message'] },
                                                      anything)
@@ -800,13 +806,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                                                      satisfy { |context| context['Context message'] },
                                                      anything,
                                                      anything)
-      ExceptionHandling.log_error(ArgumentError.new("Bad argument"), "Context message") { |data| raise 'Error!!!' }
+      ExceptionHandling.log_error(ArgumentError.new("Bad argument"), "Context message") { |_data| raise 'Error!!!' }
     end
 
     context "Exception Filtering" do
       setup do
-        filter_list = { :exception1 => { 'error' => "my error message" },
-                        :exception2 => { 'error' => "some other message", :session => "misc data" } }
+        filter_list = { exception1: { 'error' => "my error message" },
+                        exception2: { 'error' => "some other message", :session => "misc data" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
 
         # bump modified time up to get the above filter loaded
@@ -814,104 +820,104 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "handle case where filter list is not found" do
-        stub(YAML).load_file { raise Errno::ENOENT.new("File not found") }
+        stub(YAML).load_file { raise Errno::ENOENT, "File not found" }
 
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "My error message is in list" )
+        ExceptionHandling.log_error("My error message is in list")
         assert_emails 1
       end
 
       should "log exception and suppress email when exception is on filter list" do
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "Error message is not in list" )
+        ExceptionHandling.log_error("Error message is not in list")
         assert_emails 1
 
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "My error message is in list" )
+        ExceptionHandling.log_error("My error message is in list")
         assert_emails 0
       end
 
       should "allow filtering exception on any text in exception data" do
-        filters = { :exception1 => { :session => "data: my extra session data" } }
+        filters = { exception1: { session: "data: my extra session data" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filters) }
 
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "No match here" ) do |data|
+        ExceptionHandling.log_error("No match here") do |data|
           data[:session] = {
-              :key         => "@session_id",
-              :data        => "my extra session data"
-            }
+            key: "@session_id",
+            data: "my extra session data"
+          }
         end
         assert_emails 0
 
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "No match here" ) do |data|
+        ExceptionHandling.log_error("No match here") do |data|
           data[:session] = {
-              :key         => "@session_id",
-              :data        => "my extra session <no match!> data"
-            }
+            key: "@session_id",
+            data: "my extra session <no match!> data"
+          }
         end
         assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
       end
 
       should "reload filter list on the next exception if file was modified" do
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "Error message is not in list" )
+        ExceptionHandling.log_error("Error message is not in list")
         assert_emails 1
 
-        filter_list = { :exception1 => { 'error' => "Error message is not in list" } }
+        filter_list = { exception1: { 'error' => "Error message is not in list" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
         stub(File).mtime { incrementing_mtime }
 
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "Error message is not in list" )
+        ExceptionHandling.log_error("Error message is not in list")
         assert_emails 0, ActionMailer::Base.deliveries.*.body.*.inspect
       end
 
       should "not consider filter if both error message and body do not match" do
         # error message matches, but not full text
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "some other message" )
+        ExceptionHandling.log_error("some other message")
         assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
 
         # now both match
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "some other message" ) do |data|
-          data[:session] = {:some_random_key => "misc data"}
+        ExceptionHandling.log_error("some other message") do |data|
+          data[:session] = { some_random_key: "misc data" }
         end
         assert_emails 0, ActionMailer::Base.deliveries.*.body.*.inspect
       end
 
       should "skip environment keys not on whitelist" do
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "some message" ) do |data|
-          data[:environment] = { :SERVER_PROTOCOL => "HTTP/1.0", :RAILS_SECRETS_YML_CONTENTS => 'password: VERY_SECRET_PASSWORD' }
+        ExceptionHandling.log_error("some message") do |data|
+          data[:environment] = { SERVER_PROTOCOL: "HTTP/1.0", RAILS_SECRETS_YML_CONTENTS: 'password: VERY_SECRET_PASSWORD' }
         end
         assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
         mail = ActionMailer::Base.deliveries.last
         assert_nil mail.body.to_s["RAILS_SECRETS_YML_CONTENTS"], mail.body.to_s # this is not on whitelist
-        assert     mail.body.to_s["SERVER_PROTOCOL: HTTP/1.0" ], mail.body.to_s # this is
+        assert     mail.body.to_s["SERVER_PROTOCOL: HTTP/1.0"], mail.body.to_s # this is
       end
 
       should "omit environment defaults" do
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "some message" ) do |data|
-          data[:environment] = {:SERVER_PORT => '80', :SERVER_PROTOCOL => "HTTP/1.0"}
+        ExceptionHandling.log_error("some message") do |data|
+          data[:environment] = { SERVER_PORT: '80', SERVER_PROTOCOL: "HTTP/1.0" }
         end
         assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
         mail = ActionMailer::Base.deliveries.last
-        assert_nil mail.body.to_s["SERVER_PORT"              ], mail.body.to_s # this was default
+        assert_nil mail.body.to_s["SERVER_PORT"], mail.body.to_s # this was default
         assert     mail.body.to_s["SERVER_PROTOCOL: HTTP/1.0"], mail.body.to_s # this was not
       end
 
       should "reject the filter file if any contain all empty regexes" do
-        filter_list = { :exception1 => { 'error' => "", :session => "" },
-                        :exception2 => { 'error' => "is not in list", :session => "" } }
+        filter_list = { exception1: { 'error' => "", :session => "" },
+                        exception2: { 'error' => "is not in list", :session => "" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
         stub(File).mtime { incrementing_mtime }
 
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error( "Error message is not in list" )
+        ExceptionHandling.log_error("Error message is not in list")
         assert_emails 1, ActionMailer::Base.deliveries.*.inspect
       end
 
@@ -924,8 +930,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "Exception Handling Mailer" do
         should "create email" do
           ExceptionHandling.log_error(exception_1) do |data|
-            data[:request] = { :params => {:id => 10993}, :url => "www.ringrevenue.com" }
-            data[:session] = { :key => "DECAFE" }
+            data[:request] = { params: { id: 10993 }, url: "www.ringrevenue.com" }
+            data[:session] = { key: "DECAFE" }
           end
           assert_emails 1, ActionMailer::Base.deliveries.*.inspect
           assert mail = ActionMailer::Base.deliveries.last
@@ -937,12 +943,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         EXPECTED_SMTP_HASH =
-            {
-                :host   => '127.0.0.1',
-                :domain => 'localhost.localdomain',
-                :from   => 'server@example.com',
-                :to     => 'exceptions@example.com'
-            }
+          {
+            host: '127.0.0.1',
+            domain: 'localhost.localdomain',
+            from: 'server@example.com',
+            to: 'exceptions@example.com'
+          }.freeze
 
         [[true, false], [true, true]].each do |em_flag, synchrony_flag|
           context "eventmachine_safe = #{em_flag} && eventmachine_synchrony = #{synchrony_flag}" do
@@ -969,7 +975,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               EventMachineStub.block.call
               assert DNSResolvStub.callback_block
               DNSResolvStub.callback_block.call ['127.0.0.1']
-              assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientStub.send_hash.inspect
+              assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }, SmtpClientStub.send_hash.inspect
               assert_equal((synchrony_flag ? :asend : :send), SmtpClientStub.last_method)
               assert_match(/Exception 1/, SmtpClientStub.send_hash[:content])
               assert_emails 0, ActionMailer::Base.deliveries.*.to_s
@@ -999,8 +1005,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               assert DNSResolvStub.callback_block
               DNSResolvStub.callback_block.call(['127.0.0.1'])
               SmtpClientErrbackStub.block.call("credential mismatch")
-              assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |k,v| v.to_s }, SmtpClientErrbackStub.send_hash.inspect
-              #assert_emails 0, ActionMailer::Base.deliveries.*.to_s
+              assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }, SmtpClientErrbackStub.send_hash.inspect
+              # assert_emails 0, ActionMailer::Base.deliveries.*.to_s
             end
 
             should "log fatal on EventMachine dns resolver errback" do
@@ -1023,38 +1029,38 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         begin
           raise text
         rescue => ex
-          ExceptionHandling.log_error( ex )
+          ExceptionHandling.log_error(ex)
         end
         assert_emails 1, ActionMailer::Base.deliveries.*.inspect
         mail = ActionMailer::Base.deliveries.last
         subject = "#{ExceptionHandling.email_environment} exception: RuntimeError: " + text
-        assert_equal subject[0,300], mail.subject
+        assert_equal subject[0, 300], mail.subject
       end
     end
 
     context "Exception mapping" do
       setup do
         @data = {
-          :environment=>{
+          environment: {
             'HTTP_HOST' => "localhost",
             'HTTP_REFERER' => "http://localhost/action/controller/instance",
           },
-          :session=>{
-            :data=>{
-              :affiliate_id=> defined?(Affiliate) ? Affiliate.first.id : '1',
-              :edit_mode=> true,
-              :advertiser_id=> defined?(Advertiser) ? Advertiser.first.id : '1',
-              :username_id=> defined?(Username) ? Username.first.id : '1',
-              :user_id=> defined?(User) ? User.first.id : '1',
-              :flash=>{},
-              :impersonated_organization_pk=> 'Advertiser_1'
+          session: {
+            data: {
+              affiliate_id: defined?(Affiliate) ? Affiliate.first.id : '1',
+              edit_mode: true,
+              advertiser_id: defined?(Advertiser) ? Advertiser.first.id : '1',
+              username_id: defined?(Username) ? Username.first.id : '1',
+              user_id: defined?(User) ? User.first.id : '1',
+              flash: {},
+              impersonated_organization_pk: 'Advertiser_1'
             }
           },
-          :request=>{},
-          :backtrace=>["[GEM_ROOT]/gems/actionpack-2.1.0/lib/action_controller/filters.rb:580:in `call_filters'", "[GEM_ROOT]/gems/actionpack-2.1.0/lib/action_controller/filters.rb:601:in `run_before_filters'"],
-          :api_key=>"none",
-          :error_class=>"StandardError",
-          :error=>'Some error message'
+          request: {},
+          backtrace: ["[GEM_ROOT]/gems/actionpack-2.1.0/lib/action_controller/filters.rb:580:in `call_filters'", "[GEM_ROOT]/gems/actionpack-2.1.0/lib/action_controller/filters.rb:601:in `run_before_filters'"],
+          api_key: "none",
+          error_class: "StandardError",
+          error: 'Some error message'
         }
       end
 
@@ -1131,7 +1137,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       should "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_periodically(:test_context_with_periodic, 30.minutes, "this will be written", service_name: 'exception_handling')
         assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], { service_name: 'exception_handling' }
+        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
 
       should "log immediately when we are expected to log" do

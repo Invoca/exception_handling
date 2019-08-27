@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'timeout'
 require 'active_support'
 require 'active_support/core_ext/hash'
@@ -17,13 +19,12 @@ require "exception_handling/honeybadger_callbacks.rb"
 _ = ActiveSupport::HashWithIndifferentAccess
 
 module ExceptionHandling # never included
-
   class Warning < StandardError; end
   class MailerTimeout < Timeout::Error; end
   class ClientLoggingError < StandardError; end
 
   SUMMARY_THRESHOLD = 5
-  SUMMARY_PERIOD = 60*60 # 1.hour
+  SUMMARY_PERIOD = 60 * 60 # 1.hour
 
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION', 'X-HTTP_AUTHORIZATION', 'X_HTTP_AUTHORIZATION', 'REDIRECT_X_HTTP_AUTHORIZATION'].freeze
   HONEYBADGER_STATUSES   = [:success, :failure, :skipped].freeze
@@ -38,19 +39,19 @@ module ExceptionHandling # never included
     attr_writer :exception_recipients
 
     def server_name
-      @server_name or raise ArgumentError, "You must assign a value to #{self.name}.server_name"
+      @server_name or raise ArgumentError, "You must assign a value to #{name}.server_name"
     end
 
     def sender_address
-      @sender_address or raise ArgumentError, "You must assign a value to #{self.name}.sender_address"
+      @sender_address or raise ArgumentError, "You must assign a value to #{name}.sender_address"
     end
 
     def exception_recipients
-      @exception_recipients or raise ArgumentError, "You must assign a value to #{self.name}.exception_recipients"
+      @exception_recipients or raise ArgumentError, "You must assign a value to #{name}.exception_recipients"
     end
 
     def logger
-      @logger or raise ArgumentError, "You must assign a value to #{self.name}.logger"
+      @logger or raise ArgumentError, "You must assign a value to #{name}.logger"
     end
 
     def logger=(logger)
@@ -111,8 +112,9 @@ module ExceptionHandling # never included
     # set this for operation within an eventmachine reactor
     def eventmachine_safe=(bool)
       if bool != true && bool != false
-        raise ArgumentError, "#{self.name}.eventmachine_safe must be a boolean."
+        raise ArgumentError, "#{name}.eventmachine_safe must be a boolean."
       end
+
       if bool
         require 'eventmachine'
         require 'em/protocols/smtpclient'
@@ -123,8 +125,9 @@ module ExceptionHandling # never included
     # set this for EM::Synchrony async operation
     def eventmachine_synchrony=(bool)
       if bool != true && bool != false
-        raise ArgumentError, "#{self.name}.eventmachine_synchrony must be a boolean."
+        raise ArgumentError, "#{name}.eventmachine_synchrony must be a boolean."
       end
+
       @eventmachine_synchrony = bool
     end
 
@@ -152,7 +155,7 @@ module ExceptionHandling # never included
     #
     # but not during functional tests, when rack middleware is not used
     #
-    def log_error_rack(exception, env, rack_filter)
+    def log_error_rack(exception, env, _rack_filter)
       timestamp = set_log_error_timestamp
       exception_info = ExceptionInfo.new(exception, env, timestamp)
 
@@ -188,27 +191,25 @@ module ExceptionHandling # never included
     #   Calls into handle_stub_log_error and returns. no log file. no email.
     #
     def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
-      begin
-        ex = make_exception(exception_or_string)
-        timestamp = set_log_error_timestamp
-        exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
+      ex = make_exception(exception_or_string)
+      timestamp = set_log_error_timestamp
+      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
 
-        if stub_handler
-          stub_handler.handle_stub_log_error(exception_info.data)
-        else
-          write_exception_to_log(ex, exception_context, timestamp, **log_context)
-          external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
-                                            send_external_notifications(exception_info)
-                                          end || {}
-          execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results)
-          nil
-        end
-      rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
-        raise
-      rescue Exception => ex
-        $stderr.puts("ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
-        write_exception_to_log(ex, "ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
+      if stub_handler
+        stub_handler.handle_stub_log_error(exception_info.data)
+      else
+        write_exception_to_log(ex, exception_context, timestamp, **log_context)
+        external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
+                                          send_external_notifications(exception_info)
+                                        end || {}
+        execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results)
+        nil
       end
+    rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
+      raise
+    rescue Exception => ex
+      warn("ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
+      write_exception_to_log(ex, "ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
     end
 
     #
@@ -242,7 +243,7 @@ module ExceptionHandling # never included
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
       if exception_info.send_to_honeybadger?
-        response = Honeybadger.notify(error_class:   exception_description ? exception_description.filter_name : exception.class.name,
+        response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
                                       error_message: exception.message.to_s,
                                       exception:     exception,
                                       context:       exception_info.honeybadger_context_data,
@@ -253,7 +254,7 @@ module ExceptionHandling # never included
         :skipped
       end
     rescue Exception => ex
-      $stderr.puts("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
+      warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
       :failure
     end
@@ -296,7 +297,7 @@ module ExceptionHandling # never included
       yield
     rescue => ex
       log_error ex, exception_context, **log_context
-      return nil
+      nil
     end
 
     def ensure_completely_safe(exception_context = "", **log_context)
@@ -308,7 +309,7 @@ module ExceptionHandling # never included
     end
 
     def escalate_to_production_support(exception_or_string, email_subject)
-      production_support_recipients or raise ArgumentError, "In order to escalate to production support, you must set #{self.name}.production_recipients"
+      production_support_recipients or raise ArgumentError, "In order to escalate to production support, you must set #{name}.production_recipients"
       ex = make_exception(exception_or_string)
       escalate_custom(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
@@ -326,12 +327,10 @@ module ExceptionHandling # never included
     end
 
     def ensure_escalation(email_subject, **log_context)
-      begin
-        yield
-      rescue => ex
-        escalate_error(ex, email_subject, **log_context)
-        nil
-      end
+      yield
+    rescue => ex
+      escalate_error(ex, email_subject, **log_context)
+      nil
     end
 
     def alert_warning(exception_or_string, alert_name, exception_context, **log_context)
@@ -339,18 +338,16 @@ module ExceptionHandling # never included
       log_error(ex, exception_context, **log_context)
       begin
         ExceptionHandling::Sensu.generate_event(alert_name, exception_context.to_s + "\n" + encode_utf8(ex.message.to_s))
-      rescue => send_ex
-        log_error(send_ex, 'ExceptionHandling.alert_warning')
+      rescue => ex
+        log_error(ex, 'ExceptionHandling.alert_warning')
       end
     end
 
     def ensure_alert(alert_name, exception_context, **log_context)
-      begin
-        yield
-      rescue => ex
-        alert_warning(ex, alert_name, exception_context, **log_context)
-        nil
-      end
+      yield
+    rescue => ex
+      alert_warning(ex, alert_name, exception_context, **log_context)
+      nil
     end
 
     def set_log_error_timestamp
@@ -382,19 +379,19 @@ module ExceptionHandling # never included
     def encode_utf8(string)
       string.encode('UTF-8',
                     replace: '?',
-                    undef:   :replace,
+                    undef: :replace,
                     invalid: :replace)
     end
 
     def clean_backtrace(exception)
       backtrace = if exception.backtrace.nil?
-        ['<no backtrace>']
-      elsif exception.is_a?(ClientLoggingError)
-        exception.backtrace
-      elsif defined?(Rails) && defined?(Rails.backtrace_cleaner)
-        Rails.backtrace_cleaner.clean(exception.backtrace)
-      else
-        exception.backtrace
+                    ['<no backtrace>']
+                  elsif exception.is_a?(ClientLoggingError)
+                    exception.backtrace
+                  elsif defined?(Rails) && defined?(Rails.backtrace_cleaner)
+                    Rails.backtrace_cleaner.clean(exception.backtrace)
+                  else
+                    exception.backtrace
       end
 
       # The rails backtrace cleaner returns an empty array for a backtrace if the exception was raised outside the app (inside a gem for instance)
@@ -422,7 +419,7 @@ module ExceptionHandling # never included
       end
       nil
     rescue Exception => ex
-      $stderr.puts("ExceptionHandling.log_error_email rescued exception while logging #{exception_info.exception_context}: #{exception_info.exception}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      warn("ExceptionHandling.log_error_email rescued exception while logging #{exception_info.exception_context}: #{exception_info.exception}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.log_error_email rescued exception while logging #{exception_info.exception_context}: #{exception_info.exception}", exception_info.timestamp)
     end
 
@@ -456,16 +453,14 @@ module ExceptionHandling # never included
           dns_deferrable = EventMachine::DNS::Resolver.resolve(smtp_settings[:address])
           dns_deferrable.callback do |addrs|
             send_deferrable = EventMachine::Protocols::SmtpClient.__send__(
-                async_send_method,
-                {
-                  :host     => addrs.first,
-                  :port     => smtp_settings[:port],
-                  :domain   => smtp_settings[:domain],
-                  :auth     => {:type=>:plain, :username=>smtp_settings[:user_name], :password=>smtp_settings[:password]},
-                  :from     => mail_object['from'].to_s,
-                  :to       => mail_object['to'].to_s,
-                  :content     => "#{mail_object}\r\n.\r\n"
-                }
+              async_send_method,
+              host: addrs.first,
+              port: smtp_settings[:port],
+              domain: smtp_settings[:domain],
+              auth: { type: :plain, username: smtp_settings[:user_name], password: smtp_settings[:password] },
+              from: mail_object['from'].to_s,
+              to: mail_object['to'].to_s,
+              content: "#{mail_object}\r\n.\r\n"
             )
             send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
           end
@@ -479,11 +474,11 @@ module ExceptionHandling # never included
     end
 
     def safe_email_deliver
-      Timeout::timeout 30, MailerTimeout do
+      Timeout.timeout 30, MailerTimeout do
         yield
       end
     rescue StandardError, MailerTimeout => ex
-      #$stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      # $stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error(ex, "ExceptionHandling::safe_email_deliver", nil, treat_like_warning: true)
     end
 
@@ -502,7 +497,7 @@ module ExceptionHandling # never included
           if same_signature
             @last_exception[:count] += 1
             if @last_exception[:count] >= SUMMARY_THRESHOLD
-              @last_exception.merge! :state => :Summarized, :first_seen => Time.now, :count => 0
+              @last_exception.merge! state: :Summarized, first_seen: Time.now, count: 0
             end
             return nil
           end
@@ -512,7 +507,7 @@ module ExceptionHandling # never included
             @last_exception[:count] += 1
             if Time.now - @last_exception[:first_seen] > SUMMARY_PERIOD
               send_exception_summary(data, @last_exception[:first_seen], @last_exception[:count])
-              @last_exception.merge! :first_seen => Time.now, :count => 0
+              @last_exception.merge! first_seen: Time.now, count: 0
             end
             return :Summarized
           elsif @last_exception[:count] > 0 # send the left-over, if any
@@ -526,23 +521,23 @@ module ExceptionHandling # never included
 
       # New signature we haven't seen before.  Not summarized yet--we're just starting the count.
       @last_exception = {
-        :data       => data,
-        :count      => 1,
-        :first_seen => Time.now,
-        :backtrace  => data[:backtrace],
-        :state      => :NotSummarized
+        data: data,
+        count: 1,
+        first_seen: Time.now,
+        backtrace: data[:backtrace],
+        state: :NotSummarized
       }
       nil
     end
 
     def send_exception_summary(exception_data, first_seen, occurrences)
-      Timeout::timeout 30, MailerTimeout do
+      Timeout.timeout 30, MailerTimeout do
         deliver(ExceptionHandling::Mailer.exception_notification(exception_data, first_seen, occurrences))
       end
     rescue StandardError, MailerTimeout => ex
       original_error = exception_data[:error_string]
       log_prefix = "ExceptionHandling.log_error_email rescued exception while logging #{original_error}"
-      $stderr.puts("#{log_prefix}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
+      warn("#{log_prefix}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_info(log_prefix)
     end
 

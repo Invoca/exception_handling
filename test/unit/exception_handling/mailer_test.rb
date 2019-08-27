@@ -1,4 +1,6 @@
-require File.expand_path('../../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../../test_helper',  __dir__)
 
 module ExceptionHandling
   class MailerTest < ActionMailer::TestCase
@@ -19,8 +21,8 @@ module ExceptionHandling
       end
 
       should "deliver" do
-        #ActionMailer::Base.delivery_method = :smtp
-        result = ExceptionHandling::Mailer.exception_notification({ :error => "Test Error."}).deliver_now
+        # ActionMailer::Base.delivery_method = :smtp
+        result = ExceptionHandling::Mailer.exception_notification(error: "Test Error.").deliver_now
         assert_match(/Test Error./, result.body.to_s)
         assert_equal_with_diff ['test_exception@invoca.com'], result.to
         assert_emails 1
@@ -46,7 +48,7 @@ module ExceptionHandling
           ExceptionHandling.email_environment = 'Staging Full'
           ExceptionHandling.server_name = 'test-fe3'
 
-          ExceptionHandling::Mailer.escalation_notification("Your Favorite <b>Feature<b> Failed", :error_string => "It failed because of an error\n <i>More Info<i>", :timestamp => 1234567 ).deliver_now
+          ExceptionHandling::Mailer.escalation_notification("Your Favorite <b>Feature<b> Failed", error_string: "It failed because of an error\n <i>More Info<i>", timestamp: 1234567).deliver_now
 
           assert_emails 1
           result = ActionMailer::Base.deliveries.last
@@ -56,18 +58,18 @@ module ExceptionHandling
           assert_equal "Staging Full Escalation: Your Favorite <b>Feature<b> Failed", result.subject
           assert_select "title", "Exception Escalation"
           assert_select "html" do
-            assert_select "body br", { :count => 4 }, result.body.to_s # plus 1 for the multiline summary
+            assert_select "body br", { count: 4 }, result.body.to_s # plus 1 for the multiline summary
             assert_select "body h3", "Your Favorite <b>Feature<b> Failed", result.body.to_s
             assert_select "body", /1234567/
             assert_select "body", /It failed because of an error/
             assert_select "body", /\n <i>More Info<i>/
             assert_select "body", /test-fe3/
-            #assert_select "body", /#{Web::Application::GIT_REVISION}/
+            # assert_select "body", /#{Web::Application::GIT_REVISION}/
           end
         end
 
         should "use defaults for missing fields" do
-          result = ExceptionHandling::Mailer.escalation_notification("Your Favorite Feature Failed", :error_string => "It failed because of an error\n More Info")
+          result = ExceptionHandling::Mailer.escalation_notification("Your Favorite Feature Failed", error_string: "It failed because of an error\n More Info")
           @body_html = Nokogiri::HTML(result.body.to_s)
 
           assert_equal_with_diff ['test_escalation@invoca.com'], result.to

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'active_support'
 require 'active_support/time'
 require 'active_support/test_case'
@@ -67,11 +69,11 @@ class SocketStub
   end
 end
 
-  ExceptionHandling.logger = LoggerStub.new
+ExceptionHandling.logger = LoggerStub.new
 
-  def dont_stub_log_error
-    true
-  end
+def dont_stub_log_error
+  true
+end
 
 ActionMailer::Base.delivery_method = :test
 
@@ -117,7 +119,7 @@ class ActiveSupport::TestCase
   end
 
   teardown do
-    @@constant_overrides && @@constant_overrides.reverse.each do |parent_module, k, v|
+    @@constant_overrides&.reverse&.each do |parent_module, k, v|
       ExceptionHandling.ensure_safe "constant cleanup #{k.inspect}, #{parent_module}(#{parent_module.class})::#{v.inspect}(#{v.class})" do
         silence_warnings do
           if v == :never_defined
@@ -141,7 +143,11 @@ class ActiveSupport::TestCase
         parent_module == :never_defined and raise "You need to set each parent constant earlier! #{nested_const_name}"
         final_parent_module = parent_module
         final_const_name    = nested_const_name
-        parent_module.const_get(nested_const_name) rescue :never_defined
+        begin
+          parent_module.const_get(nested_const_name)
+        rescue
+          :never_defined
+        end
       end
 
     @@constant_overrides << [final_parent_module, final_const_name, original_value]
@@ -156,11 +162,11 @@ class ActiveSupport::TestCase
     else
       original_count = 0
     end
-    assert_equal expected, ActionMailer::Base.deliveries.size - original_count, "wrong number of emails#{ ': ' + message.to_s if message}"
+    assert_equal expected, ActionMailer::Base.deliveries.size - original_count, "wrong number of emails#{': ' + message.to_s if message}"
   end
 end
 
-def assert_equal_with_diff arg1, arg2, msg = ''
+def assert_equal_with_diff(arg1, arg2, msg = '')
   if arg1 == arg2
     assert true # To keep the assertion count accurate
   else
@@ -176,7 +182,7 @@ class Time
   class << self
     attr_reader :now_override
 
-    def now_override= override_time
+    def now_override=(override_time)
       if ActiveSupport::TimeWithZone === override_time
         override_time = override_time.localtime
       else

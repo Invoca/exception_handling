@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # Used by functional tests to track exceptions.
 #
@@ -22,7 +24,7 @@ module LogErrorStub
         message = "log_error expected #{match[:expected]} times with pattern: '#{pattern.is_a?(Regexp) ? pattern.source : pattern}' found #{match[:found]}"
 
         if is_mini_test?
-         flunk(message)
+          flunk(message)
         else
           add_failure(message)
         end
@@ -34,8 +36,9 @@ module LogErrorStub
 
   # for overriding when testing this module
   def is_mini_test?
-    defined?(Minitest::Test) && self.is_a?(Minitest::Test)
+    defined?(Minitest::Test) && is_a?(Minitest::Test)
   end
+
   #
   # Call this function in your functional tests - usually first line after a "should" statement
   # once called, you can then call expects_exception
@@ -60,7 +63,7 @@ module LogErrorStub
   # Did the calling code call expects_exception on this exception?
   #
   def exception_filtered?(exception_data)
-    @exception_whitelist && @exception_whitelist.any? do |expectation|
+    @exception_whitelist&.any? do |expectation|
       if expectation[0] === exception_data[:error]
         expectation[1][:found] += 1
         true
@@ -74,8 +77,8 @@ module LogErrorStub
   def expects_exception(pattern, options = {})
     @exception_whitelist ||= []
     expected_count = options[:count] || 1
-    options = {:expected => expected_count, :found => 0}
-    if to_increment = @exception_whitelist.find {|ex| ex[0] == pattern}
+    options = { expected: expected_count, found: 0 }
+    if to_increment = @exception_whitelist.find { |ex| ex[0] == pattern }
       to_increment[1][:expected] += expected_count
     else
       @exception_whitelist << [pattern, options]
@@ -90,10 +93,9 @@ module LogErrorStub
 
   def raise_unexpected_exception(exception_data)
     raise(UnexpectedExceptionLogged,
-          exception_data[:error] + "\n" +
+          exception_data[:error] + "\n" \
           "---original backtrace---\n" +
-          exception_data[:backtrace].join("\n") + "\n" +
+          exception_data[:backtrace].join("\n") + "\n" \
           "------")
   end
-
 end

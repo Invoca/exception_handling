@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ExceptionHandling
   module HoneybadgerCallbacks
     def self.register_callbacks
@@ -8,7 +10,7 @@ module ExceptionHandling
 
     private
 
-    def self.local_variable_filter(symbol, object, filter_keys)
+    def self.local_variable_filter(_symbol, object, filter_keys)
       case object
       # Honeybadger will filter these data types for us
       when String, Hash, Array, Set, Numeric, TrueClass, FalseClass, NilClass

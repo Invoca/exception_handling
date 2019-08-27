@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 # some useful test objects
 
@@ -8,12 +9,12 @@ module ExceptionHandling
       class Request
         attr_accessor :parameters, :protocol, :host, :request_uri, :env, :session_options
         def initialize
-          @parameters  = {:id => "1"}
+          @parameters  = { id: "1" }
           @protocol    = 'http'
           @host        = 'localhost'
           @request_uri = "/fun/testing.html?foo=bar"
-          @env         = {:HOST => "local"}
-          @session_options = { :id => '93951506217301' }
+          @env         = { HOST: "local" }
+          @session_options = { id: '93951506217301' }
         end
       end
 
@@ -26,19 +27,19 @@ module ExceptionHandling
         @request = Request.new
         @session_id = "ZKL95"
         @session =
-            if defined?(Username)
-              {
-                :login_count => 22,
-                :username_id => Username.first.id,
-                :user_id     => User.first.id,
-              }
-            else
-              { }
-            end
+          if defined?(Username)
+            {
+              login_count: 22,
+              username_id: Username.first.id,
+              user_id: User.first.id,
+            }
+          else
+            {}
+          end
       end
 
-      def simulate_around_filter( &block )
-        set_current_controller( &block )
+      def simulate_around_filter(&block)
+        set_current_controller(&block)
       end
 
       def controller_name
@@ -49,7 +50,7 @@ module ExceptionHandling
         "test_action"
       end
 
-      def self.around_filter( method )
+      def self.around_filter(method)
         ControllerStub.around_filter_method = method
       end
 
@@ -60,6 +61,5 @@ module ExceptionHandling
       include ExceptionHandling::Methods
       set_long_controller_action_timeout 2
     end
-
   end
 end

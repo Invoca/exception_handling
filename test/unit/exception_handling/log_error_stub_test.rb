@@ -1,4 +1,6 @@
-require File.expand_path('../../../test_helper',  __FILE__)
+# frozen_string_literal: true
+
+require File.expand_path('../../test_helper',  __dir__)
 
 module ExceptionHandling
   class LogErrorStubTest < ActiveSupport::TestCase
@@ -18,7 +20,7 @@ module ExceptionHandling
         begin
           ExceptionHandling.log_error("Something happened")
           flunk
-        rescue Exception => ex #LogErrorStub::UnexpectedExceptionLogged => ex
+        rescue Exception => ex # LogErrorStub::UnexpectedExceptionLogged => ex
           assert ex.to_s.starts_with?("StandardError: Something happened"), ex.to_s
         end
 
@@ -28,8 +30,8 @@ module ExceptionHandling
         rescue => ex
           begin
             ExceptionHandling.log_error(ex)
-          rescue LogErrorStub::UnexpectedExceptionLogged => ex_inner
-            assert ex_inner.to_s.starts_with?("RaisedError: This should raise"), ex_inner.to_s
+          rescue LogErrorStub::UnexpectedExceptionLogged => ex
+            assert ex.to_s.starts_with?("RaisedError: This should raise"), ex.to_s
           end
         end
       end
