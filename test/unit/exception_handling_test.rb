@@ -126,7 +126,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         mock(ExceptionHandling.logger) do |logger|
           logger.info(/ExceptionHandling.log_error_email rescued exception while logging StandardError: SomeError/, anything)
         end
-        stub($stderr).puts
         ExceptionHandling.log_error('SomeError', 'Error Context')
       end
     end
@@ -600,7 +599,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       context "Honeybadger integration" do
         context "with Honeybadger not defined" do
           setup do
-            stub(ExceptionHandling).honeybadger? { false }
+            stub(ExceptionHandling).honeybadger_defined? { false }
           end
 
           should "not invoke send_exception_to_honeybadger when log_error is executed" do
@@ -738,7 +737,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-              stub($stderr).puts
               mock(Honeybadger).notify.with_any_args { raise "Honeybadger Notification Failure" }
               ExceptionHandling.log_error(exception_1)
               assert_equal :failure, @honeybadger_status
@@ -752,7 +750,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-              stub($stderr).puts
               mock(Honeybadger).notify.with_any_args { false }
               ExceptionHandling.log_error(exception_1)
               assert_equal :failure, @honeybadger_status
@@ -766,7 +763,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-              stub($stderr).puts
               mock(Honeybadger).notify.with_any_args { '06220c5a-b471-41e5-baeb-de247da45a56' }
               ExceptionHandling.log_error(exception_1)
               assert_equal :success, @honeybadger_status
@@ -797,7 +793,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       mock(ExceptionHandling).write_exception_to_log(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['ExceptionHandlingError: log_error rescued exception while logging Runtime message'] },
                                                      anything)
-      stub($stderr).puts
       ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
     end
 

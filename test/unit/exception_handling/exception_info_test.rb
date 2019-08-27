@@ -382,7 +382,7 @@ module ExceptionHandling
 
     context "send_to_honeybadger?" do
       should "be enabled when Honeybadger is defined and exception is not in the filter list" do
-        stub(ExceptionHandling).honeybadger? { true }
+        stub(ExceptionHandling).honeybadger_defined? { true }
         exception = StandardError.new("something went wrong")
         exception_info = ExceptionInfo.new(exception, {}, Time.now)
         assert_nil exception_info.exception_description
@@ -390,7 +390,7 @@ module ExceptionHandling
       end
 
       should "be enabled when Honeybadger is defined and exception is on the filter list with the flag turned on" do
-        stub(ExceptionHandling).honeybadger? { true }
+        stub(ExceptionHandling).honeybadger_defined? { true }
         exception = StandardError.new("No route matches")
         exception_info = ExceptionInfo.new(exception, {}, Time.now)
         assert_not_nil exception_info.exception_description
@@ -399,7 +399,7 @@ module ExceptionHandling
       end
 
       should "be disabled when Honeybadger is defined and exception is on the filter list with the flag turned off" do
-        stub(ExceptionHandling).honeybadger? { true }
+        stub(ExceptionHandling).honeybadger_defined? { true }
         exception = StandardError.new("No route matches")
         exception_info = ExceptionInfo.new(exception, {}, Time.now)
         assert_not_nil exception_info.exception_description
@@ -408,7 +408,7 @@ module ExceptionHandling
       end
 
       should "be disabled when Honeybadger is not defined" do
-        stub(ExceptionHandling).honeybadger? { false }
+        stub(ExceptionHandling).honeybadger_defined? { false }
         exception = StandardError.new("something went wrong")
         exception_info = ExceptionInfo.new(exception, {}, Time.now)
         assert_nil exception_info.exception_description

@@ -71,7 +71,7 @@ module ExceptionHandling
     end
 
     def send_to_honeybadger?
-      ExceptionHandling.honeybadger? && (!exception_description || exception_description.send_to_honeybadger)
+      ExceptionHandling.honeybadger_defined? && (!exception_description || exception_description.send_to_honeybadger)
     end
 
     def honeybadger_context_data

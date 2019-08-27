@@ -4,7 +4,7 @@ module ExceptionHandling
   module HoneybadgerCallbacks
     class << self
       def register_callbacks
-        if ExceptionHandling.honeybadger?
+        if ExceptionHandling.honeybadger_defined?
           Honeybadger.local_variable_filter(&method(:local_variable_filter))
         end
       end

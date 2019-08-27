@@ -169,7 +169,7 @@ module ExceptionHandling # never included
       custom_description = ""
       write_exception_to_log(exception, custom_description, timestamp)
 
-      if honeybadger?
+      if honeybadger_defined?
         send_exception_to_honeybadger(exception_info)
       end
 
@@ -226,7 +226,7 @@ module ExceptionHandling # never included
     #
     def send_external_notifications(exception_info)
       results = {}
-      if honeybadger?
+      if honeybadger_defined?
         results[:honeybadger_status] = send_exception_to_honeybadger(exception_info)
       end
 
@@ -262,7 +262,7 @@ module ExceptionHandling # never included
     #
     # Check if Honeybadger defined.
     #
-    def honeybadger?
+    def honeybadger_defined?
       Object.const_defined?("Honeybadger")
     end
 
@@ -478,7 +478,6 @@ module ExceptionHandling # never included
         yield
       end
     rescue StandardError, MailerTimeout => ex
-      # $stderr.puts("ExceptionHandling::safe_email_deliver rescued: #{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
       log_error(ex, "ExceptionHandling::safe_email_deliver", nil, treat_like_warning: true)
     end
 
