@@ -14,6 +14,7 @@ group :development do
   gem 'shoulda', '> 3.1.1'
   gem 'rr'
   gem 'pry'
+  gem 'rubocop'
 end
 
 group :test do
