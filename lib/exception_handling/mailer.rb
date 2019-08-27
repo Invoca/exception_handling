@@ -31,13 +31,13 @@ module ExceptionHandling
       end
     end
 
-    def exception_notification(cleaned_data, first_seen_at = nil, occurrences = 0)
+    def exception_notification(cleaned_data)
       if cleaned_data.is_a?(Hash)
-        cleaned_data.merge!(occurrences: occurrences, first_seen_at: first_seen_at) if first_seen_at
         cleaned_data.merge!(server: server_name)
       end
 
-      subject       = "#{email_prefix}#{"[#{occurrences} SUMMARIZED]" if first_seen_at}#{cleaned_data[:error]}"[0, 300]
+      untrimmed_subject = "#{email_prefix}#{cleaned_data[:error]}"
+      subject       = untrimmed_subject[0, 300]
       recipients    = exception_recipients
       from          = sender_address
       @cleaned_data = cleaned_data

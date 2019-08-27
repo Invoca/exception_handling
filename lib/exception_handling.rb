@@ -217,6 +217,7 @@ module ExceptionHandling # never included
     #
     def write_exception_to_log(ex, exception_context, timestamp, **log_context)
       ActiveSupport::Deprecation.silence do
+
         ExceptionHandling.logger.fatal("\nExceptionHandlingError (Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n", **log_context)
       end
     end
@@ -413,9 +414,7 @@ module ExceptionHandling # never included
           "Filtered exception using '#{exception_description.filter_name}'; not sending email to notify"
         )
       else
-        if summarize_exception(data) != :Summarized
-          deliver(ExceptionHandling::Mailer.exception_notification(data))
-        end
+        deliver(ExceptionHandling::Mailer.exception_notification(data))
       end
       nil
     rescue Exception => ex
@@ -464,7 +463,7 @@ module ExceptionHandling # never included
             )
             send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
           end
-          dns_deferrable.errback  { |err| ExceptionHandling.logger.fatal("Failed to resolv DNS for #{smtp_settings[:address]}: #{err.inspect}") }
+          dns_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to resolv DNS for #{smtp_settings[:address]}: #{err.inspect}") }
         end
       else
         safe_email_deliver do
@@ -479,65 +478,6 @@ module ExceptionHandling # never included
       end
     rescue StandardError, MailerTimeout => ex
       log_error(ex, "ExceptionHandling::safe_email_deliver", nil, treat_like_warning: true)
-    end
-
-    def clear_exception_summary
-      @last_exception = nil
-    end
-
-    # Returns :Summarized iff exception has been added to summary and therefore should not be sent.
-    def summarize_exception(data)
-      if defined?(@last_exception) && @last_exception
-        same_signature = @last_exception[:backtrace] == data[:backtrace]
-
-        case @last_exception[:state]
-
-        when :NotSummarized
-          if same_signature
-            @last_exception[:count] += 1
-            if @last_exception[:count] >= SUMMARY_THRESHOLD
-              @last_exception.merge! state: :Summarized, first_seen: Time.now, count: 0
-            end
-            return nil
-          end
-
-        when :Summarized
-          if same_signature
-            @last_exception[:count] += 1
-            if Time.now - @last_exception[:first_seen] > SUMMARY_PERIOD
-              send_exception_summary(data, @last_exception[:first_seen], @last_exception[:count])
-              @last_exception.merge! first_seen: Time.now, count: 0
-            end
-            return :Summarized
-          elsif @last_exception[:count] > 0 # send the left-over, if any
-            send_exception_summary(@last_exception[:data], @last_exception[:first_seen], @last_exception[:count])
-          end
-
-        else
-          raise "Unknown state #{@last_exception[:state]}"
-        end
-      end
-
-      # New signature we haven't seen before.  Not summarized yet--we're just starting the count.
-      @last_exception = {
-        data: data,
-        count: 1,
-        first_seen: Time.now,
-        backtrace: data[:backtrace],
-        state: :NotSummarized
-      }
-      nil
-    end
-
-    def send_exception_summary(exception_data, first_seen, occurrences)
-      Timeout.timeout 30, MailerTimeout do
-        deliver(ExceptionHandling::Mailer.exception_notification(exception_data, first_seen, occurrences))
-      end
-    rescue StandardError, MailerTimeout => ex
-      original_error = exception_data[:error_string]
-      log_prefix = "ExceptionHandling.log_error_email rescued exception while logging #{original_error}"
-      warn("#{log_prefix}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
-      log_info(log_prefix)
     end
 
     def make_exception(exception_or_string)

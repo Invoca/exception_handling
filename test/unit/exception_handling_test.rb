@@ -113,20 +113,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.mailer_send_enabled = true
       end
 
-      should "take in additional key word args as logging context and pass them to the logger" do
+      should "take in additional keyword args as logging context and pass them to the logger" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
         assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
-      end
-
-      should "log the info and not raise another exception when sending email fails" do
-        9.times { ExceptionHandling.log_error('SomeError', 'Error Context') }
-        mock(ExceptionHandling::Mailer).exception_notification(anything, anything, anything) { raise 'An Error' }
-        mock(ExceptionHandling.logger) do |logger|
-          logger.info(/ExceptionHandling.log_error_email rescued exception while logging StandardError: SomeError/, anything)
-        end
-        ExceptionHandling.log_error('SomeError', 'Error Context')
       end
     end
 
@@ -241,7 +232,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     context "Exception Handling" do
       setup do
         ActionMailer::Base.deliveries.clear
-        ExceptionHandling.send(:clear_exception_summary)
       end
 
       context "default_metric_name" do
@@ -515,85 +505,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
         assert_emails(1)
         assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
-      end
-
-      should "only send 5 of a repeated error, but call post hook for every exception" do
-        @fail_count = 0
-        ExceptionHandling.post_log_error_hook = method(:log_error_callback)
-        assert_emails 5 do
-          10.times do
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
-        assert_equal 10, @fail_count
-      end
-
-      should "only send 5 of a repeated error but don't send summary if 6th is different" do
-        assert_emails 5 do
-          5.times do
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
-        assert_emails 1 do
-          ExceptionHandling.log_error(exception_2)
-        end
-      end
-
-      should "send the summary when the error is encountered an hour after the first occurrence" do
-        assert_emails 5 do # 5 exceptions, 4 summarized
-          9.times do |_t|
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
-        Time.now_override = 2.hours.from_now
-        assert_emails 1 do # 1 summary (4 + 1 = 5) after 2 hours
-          ExceptionHandling.log_error(exception_1)
-        end
-        assert_match(/\[5 SUMMARIZED\]/, ActionMailer::Base.deliveries.last.subject)
-        assert_match(/This exception occurred 5 times since/, ActionMailer::Base.deliveries.last.body.to_s)
-
-        assert_emails 0 do # still summarizing...
-          7.times do
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
-
-        Time.now_override = 3.hours.from_now
-
-        assert_emails 1 + 2 do # 1 summary and 2 new
-          2.times do
-            ExceptionHandling.log_error(exception_2)
-          end
-        end
-        assert_match(/\[7 SUMMARIZED\]/, ActionMailer::Base.deliveries[-3].subject)
-        assert_match(/This exception occurred 7 times since/, ActionMailer::Base.deliveries[-3].body.to_s)
-      end
-
-      should "send the summary if a summary is available, but not sent when another exception comes up" do
-        assert_emails 5 do # 5 to start summarizing
-          6.times do
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
-
-        assert_emails 1 + 1 do # 1 summary of previous, 1 from new exception
-          ExceptionHandling.log_error(exception_2)
-        end
-
-        assert_match(/\[1 SUMMARIZED\]/, ActionMailer::Base.deliveries[-2].subject)
-        assert_match(/This exception occurred 1 times since/, ActionMailer::Base.deliveries[-2].body.to_s)
-
-        assert_emails 5 do # 5 to start summarizing
-          10.times do
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
-
-        assert_emails 0 do # still summarizing
-          11.times do
-            ExceptionHandling.log_error(exception_1)
-          end
-        end
       end
 
       context "Honeybadger integration" do
