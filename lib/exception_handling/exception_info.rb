@@ -147,10 +147,11 @@ module ExceptionHandling
         first_line = data[:backtrace].first
 
         # template exceptions have the line number and filename as the first element in backtrace
-        if matched = first_line.match(/on line #(\d*) of (.*)/i)
-          backtrace_hash = {}
-          backtrace_hash[:line] = matched[1]
-          backtrace_hash[:file] = matched[2]
+        if (matched = first_line.match(/on line #(\d*) of (.*)/i))
+          backtrace_hash = {
+            line: matched[1],
+            file: matched[2]
+          }
         else
           backtrace_hash = Hash[* [:file, :line].zip(first_line.split(':')[0..1]).flatten]
         end

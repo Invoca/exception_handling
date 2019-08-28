@@ -91,12 +91,10 @@ class ActiveSupport::TestCase
     unless defined?(Rails) && defined?(Rails.env)
       module ::Rails
         class << self
+          attr_writer :env
+
           def env
             @env ||= 'test'
-          end
-
-          def env=(mode)
-            @env = mode
           end
         end
       end
