@@ -25,26 +25,9 @@ module ExceptionHandling
 
       def mailer_method_category
         {
-          exception_notification: :NetworkOptout,
           log_parser_exception_notification: :NetworkOptout
         }
       end
-    end
-
-    def exception_notification(cleaned_data)
-      if cleaned_data.is_a?(Hash)
-        cleaned_data.merge!(server: server_name)
-      end
-
-      untrimmed_subject = "#{email_prefix}#{cleaned_data[:error]}"
-      subject       = untrimmed_subject[0, 300]
-      recipients    = exception_recipients
-      from          = sender_address
-      @cleaned_data = cleaned_data
-
-      mail(from: from,
-           to: recipients,
-           subject: subject)
     end
 
     def escalation_notification(summary, data)

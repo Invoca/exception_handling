@@ -20,14 +20,6 @@ module ExceptionHandling
         ExceptionHandling.escalation_recipients = ['test_escalation@invoca.com']
       end
 
-      should "deliver" do
-        # ActionMailer::Base.delivery_method = :smtp
-        result = ExceptionHandling::Mailer.exception_notification(error: "Test Error.").deliver_now
-        assert_match(/Test Error./, result.body.to_s)
-        assert_equal_with_diff ['test_exception@invoca.com'], result.to
-        assert_emails 1
-      end
-
       context "log_parser_exception_notification" do
         should "send with string" do
           result = ExceptionHandling::Mailer.log_parser_exception_notification("This is my fake error", "My Fake Subj").deliver_now

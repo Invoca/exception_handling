@@ -27,13 +27,14 @@ module ExceptionHandling
       end
 
       should "use the current_controller when available" do
-        mock(Honeybadger).notify(anything)
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         mock(ExceptionHandling.logger).fatal(/blah/, anything)
         @controller.simulate_around_filter do
           ExceptionHandling.log_error(ArgumentError.new("blah"))
-          mail = ActionMailer::Base.deliveries.last
-          assert_match(@controller.request.request_uri, mail.body.to_s)
-          # assert_match( Username.first.username.to_s, mail.body.to_s ) if defined?(Username)
+          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+          assert_match(@controller.request.request_uri, sent_notifications.last.enhanced_data['request'].to_s)
         end
       end
 
