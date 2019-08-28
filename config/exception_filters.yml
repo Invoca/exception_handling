@@ -1,7 +1,6 @@
 --- !map:HashWithIndifferentAccess
 Test BS:
   error: "Some BS"
-  send_email: true
   notes: "this is used by a test"
   send_to_honeybadger: true
 

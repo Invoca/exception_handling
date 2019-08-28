@@ -5,14 +5,13 @@ module ExceptionHandling
     MATCH_SECTIONS = [:error, :request, :session, :environment, :backtrace, :event_response].freeze
 
     CONFIGURATION_SECTIONS = {
-      send_email: false,  # should email be sent?
       send_to_honeybadger: false,  # should be sent to honeybadger?
       send_metric: true,   # should the metric be sent.
       metric_name: nil,    # Will be derived from section name if not passed
       notes: nil     # Will be included in exception email if set, used to keep notes and relevant links
     }.freeze
 
-    attr_reader :filter_name, :send_email, :send_to_honeybadger, :send_metric, :metric_name, :notes
+    attr_reader :filter_name, :send_to_honeybadger, :send_metric, :metric_name, :notes
 
     def initialize(filter_name, configuration)
       @filter_name = filter_name
@@ -21,7 +20,6 @@ module ExceptionHandling
       invalid_sections.empty? or raise ArgumentError, "Unknown section: #{invalid_sections.keys.join(',')}"
 
       @configuration = CONFIGURATION_SECTIONS.merge(configuration)
-      @send_email = @configuration[:send_email]
       @send_to_honeybadger = @configuration[:send_to_honeybadger]
       @send_metric = @configuration[:send_metric]
       @metric_name = (@configuration[:metric_name] || @filter_name).to_s.gsub(" ", "_")

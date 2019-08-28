@@ -110,10 +110,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "#log_error" do
-      setup do
-        ExceptionHandling.mailer_send_enabled = true
-      end
-
       should "take in additional keyword args as logging context and pass them to the logger" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
         assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])

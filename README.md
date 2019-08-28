@@ -31,7 +31,6 @@ For example:
 
     # optional
     ExceptionHandling.escalation_recipients   = ['escalation@example.com']
-    ExceptionHandling.mailer_send_enabled     = true # false, will disable exception emails
     ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
     ExceptionHandling.email_environment       = Rails.env
     ExceptionHandling.eventmachine_safe       = false

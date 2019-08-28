@@ -109,7 +109,6 @@ class ActiveSupport::TestCase
     ExceptionHandling.exception_recipients  = 'exceptions@example.com'
     ExceptionHandling.escalation_recipients = 'escalation@example.com'
     ExceptionHandling.server_name           = 'server'
-    ExceptionHandling.mailer_send_enabled     = true
     ExceptionHandling.filter_list_filename    = "./config/exception_filters.yml"
     ExceptionHandling.eventmachine_safe       = false
     ExceptionHandling.eventmachine_synchrony  = false

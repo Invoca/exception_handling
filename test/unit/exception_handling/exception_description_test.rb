@@ -29,12 +29,6 @@ module ExceptionHandling
         assert_raise(ArgumentError, "Unknown section: not_a_parameter") { ExceptionDescription.new(:filter1, error: "my error message", not_a_parameter: false) }
       end
 
-      should "allow send email to be specified" do
-        assert !ExceptionDescription.new(:filter1, error: "my error message", send_email: false).send_email
-        assert ExceptionDescription.new(:filter1, error: "my error message", send_email: true).send_email
-        assert !ExceptionDescription.new(:filter1, error: "my error message").send_email
-      end
-
       should "allow send_to_honeybadger to be specified and have it disabled by default" do
         assert !ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: false).send_to_honeybadger
         assert ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: true).send_to_honeybadger
@@ -43,7 +37,6 @@ module ExceptionHandling
 
       should "allow send_metric to be configured" do
         assert !ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).send_metric
-        assert ExceptionDescription.new(:filter1, error: "my error message", send_email: true).send_metric
         assert ExceptionDescription.new(:filter1, error: "my error message").send_metric
       end
 
@@ -63,7 +56,6 @@ module ExceptionHandling
       end
 
       should "not consider config options in the filter set" do
-        assert ExceptionDescription.new(:filter1, error: "my error message", send_email: false).match?(error: "my error message")
         assert ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).match?(error: "my error message")
         assert ExceptionDescription.new(:filter1, error: "my error message", metric_name: "false").match?(error: "my error message")
         assert ExceptionDescription.new(:filter1, error: "my error message", notes: "hey").match?(error: "my error message")

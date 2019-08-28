@@ -88,7 +88,6 @@ module ExceptionHandling # never included
     attr_accessor :production_support_recipients
     attr_accessor :escalation_recipients
     attr_accessor :email_environment
-    attr_accessor :mailer_send_enabled
     attr_accessor :custom_data_hook
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
@@ -101,7 +100,6 @@ module ExceptionHandling # never included
     attr_reader :eventmachine_synchrony
 
     @filter_list_filename = "./config/exception_filters.yml"
-    @mailer_send_enabled  = true
     @email_environment = ""
     @eventmachine_safe = false
     @eventmachine_synchrony = false
@@ -348,10 +346,6 @@ module ExceptionHandling # never included
 
     def set_log_error_timestamp
       ExceptionHandling.last_exception_timestamp = Time.now.to_i
-    end
-
-    def should_send_email?
-      ExceptionHandling.mailer_send_enabled
     end
 
     def trace_timing(description)
