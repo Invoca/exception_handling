@@ -6,6 +6,7 @@ require "exception_handling/testing"
 
 module ExceptionHandling
   class MethodsTest < ActiveSupport::TestCase
+    include ExceptionHelpers
 
     def dont_stub_log_error
       true
@@ -27,8 +28,7 @@ module ExceptionHandling
       end
 
       should "use the current_controller when available" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         mock(ExceptionHandling.logger).fatal(/blah/, anything)
         @controller.simulate_around_filter do

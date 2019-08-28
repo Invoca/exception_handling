@@ -162,8 +162,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "support a custom_data_hook" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
         ExceptionHandling.ensure_safe("context") { raise "Some BS" }
@@ -385,9 +384,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       context "ExceptionHandling.ensure_escalation" do
         should "log the exception as usual and send the proper email" do
+          capture_notifications
           ActionMailer::Base.deliveries.clear
-          sent_notifications = []
-          stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
 
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
@@ -416,8 +414,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             logger.fatal.with_any_args { |*args| log_fatals << args }
           end
 
-          sent_notifications = []
-          stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+          capture_notifications
 
           ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
 
@@ -476,8 +473,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "include the timestamp when the exception is logged" do
-          sent_notifications = []
-          stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+          capture_notifications
 
           mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError context \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("context") { raise ArgumentError, "blah" }
@@ -492,8 +488,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "log the error if the exception message is nil" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error(exception_with_nil_message)
 
@@ -502,8 +497,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "log the error if the exception message is nil and the exception context is a hash" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
 
@@ -684,8 +678,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "allow sections to have data with just a to_s method" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error("This is my RingSwitch example.") do |data|
           data.merge!(event_response: EventResponse.new)
@@ -725,16 +718,14 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       should "handle case where filter list is not found" do
         stub(YAML).load_file { raise Errno::ENOENT, "File not found" }
 
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error("My error message is in list")
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
       end
 
       should "log exception and suppress email when exception is on filter list" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error("Error message is not in list")
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
@@ -748,8 +739,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         filters = { exception1: { session: "data: my extra session data" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filters) }
 
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
+
         ExceptionHandling.log_error("No match here") do |data|
           data[:session] = {
             key: "@session_id",
@@ -768,8 +759,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "reload filter list on the next exception if file was modified" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error("Error message is not in list")
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
@@ -784,10 +774,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "not consider filter if both error message and body do not match" do
-        # error message matches, but not full text
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
+        # error message matches, but not full text
         ExceptionHandling.log_error("some other message")
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
 
@@ -800,8 +789,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "skip environment keys not on whitelist" do
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error("some message") do |data|
           data[:environment] = { SERVER_PROTOCOL: "HTTP/1.0", RAILS_SECRETS_YML_CONTENTS: 'password: VERY_SECRET_PASSWORD' }
@@ -816,7 +804,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "omit environment defaults" do
-        sent_notifications = []
+        capture_notifications
+
         stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
 
         ExceptionHandling.log_error("some message") do |data|
@@ -836,8 +825,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
         stub(File).mtime { incrementing_mtime }
 
-        sent_notifications = []
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        capture_notifications
 
         ExceptionHandling.log_error("Error message is not in list")
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
