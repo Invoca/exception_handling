@@ -86,6 +86,5 @@ module ExceptionHandling
         assert exception_description.match?(error: credit), "does not match credit"
       end
     end
-
   end
 end

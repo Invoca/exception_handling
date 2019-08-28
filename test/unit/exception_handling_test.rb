@@ -155,44 +155,47 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
-    context "configuration" do
-      should "support a custom_data_hook" do
-        ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
-        ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
-        assert_match(/Invoca Engineering Dept./, ActionMailer::Base.deliveries[-1].body.to_s)
+    context "configuration with custom_data_hook or post_log_error_hook" do
+      teardown do
         ExceptionHandling.custom_data_hook = nil
+        ExceptionHandling.post_log_error_hook = nil
       end
 
-      should "support a log_error hook, and pass exception data, treat like warning, and logged_to_honeybadger to it" do
-        begin
-          @fail_count = 0
-          @honeybadger_status = nil
-          ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-          mock(Honeybadger).notify.with_any_args { '06220c5a-b471-41e5-baeb-de247da45a56' }
-          ExceptionHandling.ensure_safe("mooo") { raise "Some BS" }
-          assert_equal 1, @fail_count
-          assert_equal false, @treat_like_warning
-          assert_equal :success, @honeybadger_status
-        ensure
-          ExceptionHandling.post_log_error_hook = nil
-        end
+      should "support a custom_data_hook" do
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
+        ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
+        ExceptionHandling.ensure_safe("context") { raise "Some BS" }
+
+        assert_match(/Invoca Engineering Dept./, sent_notifications.last.enhanced_data['user_details'].to_s)
+      end
+
+      should "support a log_error hook, and pass exception_data, treat_like_warning, and logged_to_honeybadger to it" do
+        @fail_count = 0
+        @honeybadger_status = nil
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
+
+        notify_args = []
+        mock(Honeybadger).notify.with_any_args { |info| notify_args << info; '06220c5a-b471-41e5-baeb-de247da45a56' }
+        ExceptionHandling.ensure_safe("context") { raise "Some BS" }
+        assert_equal 1, @fail_count
+        assert_equal false, @treat_like_warning
+        assert_equal :success, @honeybadger_status
 
         assert_equal "this is used by a test", @callback_data["notes"]
-        assert_match(/this is used by a test/, ActionMailer::Base.deliveries[-1].body.to_s)
+        assert_equal 1, notify_args.size, notify_args.inspect
+        assert_match(/this is used by a test/, notify_args.last[:context].to_s)
       end
 
-      should "plumb treat like warning and logged_to_honeybadger to log error hook" do
-        begin
-          @fail_count = 0
-          @honeybadger_status = nil
-          ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-          ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", treat_like_warning: true)
-          assert_equal 1, @fail_count
-          assert_equal true, @treat_like_warning
-          assert_equal :skipped, @honeybadger_status
-        ensure
-          ExceptionHandling.post_log_error_hook = nil
-        end
+      should "plumb treat_like_warning and logged_to_honeybadger to log error hook" do
+        @fail_count = 0
+        @honeybadger_status = nil
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
+        ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", treat_like_warning: true)
+        assert_equal 1, @fail_count
+        assert_equal true, @treat_like_warning
+        assert_equal :skipped, @honeybadger_status
       end
 
       should "support rescue exceptions from a log_error hook" do
@@ -203,7 +206,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
         assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
         assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
-        ExceptionHandling.post_log_error_hook = nil
       end
 
       should "handle nil message exceptions resulting from the log_error hook" do
@@ -214,7 +216,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
         assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
         assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
-        ExceptionHandling.post_log_error_hook = nil
       end
 
       should "handle nil message exceptions resulting from the custom data hook" do
@@ -225,15 +226,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
         assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
         assert log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }
-        ExceptionHandling.custom_data_hook = nil
       end
     end
 
     context "Exception Handling" do
-      setup do
-        ActionMailer::Base.deliveries.clear
-      end
-
       context "default_metric_name" do
         context "when metric_name is present in exception_data" do
           should "include metric_name in resulting metric name" do
@@ -389,10 +385,15 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       context "ExceptionHandling.ensure_escalation" do
         should "log the exception as usual and send the proper email" do
-          assert_equal 0, ActionMailer::Base.deliveries.count
+          ActionMailer::Base.deliveries.clear
+          sent_notifications = []
+          stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
-          assert_equal 2, ActionMailer::Base.deliveries.count
+          assert_equal 1, ActionMailer::Base.deliveries.count
+          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+
           email = ActionMailer::Base.deliveries.last
           assert_equal "#{ExceptionHandling.email_environment} Escalation: Favorite Feature", email.subject
           assert_match 'ArgumentError: blah', email.body.to_s
@@ -400,23 +401,32 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "should not escalate if an exception is not raised." do
-          assert_equal 0, ActionMailer::Base.deliveries.count
+          ActionMailer::Base.deliveries.clear
           dont_allow(ExceptionHandling.logger).fatal
           ExceptionHandling.ensure_escalation('Ignored') { ; }
           assert_equal 0, ActionMailer::Base.deliveries.count
         end
 
-        should "log if the escalation email can not be sent" do
+        should "log if the escalation email cannot be sent" do
           any_instance_of(Mail::Message) do |message|
-            mock(message).deliver
             mock(message).deliver { raise RuntimeError.new, "Delivery Error" }
           end
-          mock(ExceptionHandling.logger) do |logger|
-            logger.fatal(/first_test_exception/, anything)
-            logger.fatal(/safe_email_deliver .*Delivery Error/, anything)
+          log_fatals = []
+          stub(ExceptionHandling.logger) do |logger|
+            logger.fatal.with_any_args { |*args| log_fatals << args }
           end
-          ExceptionHandling.ensure_escalation("Not Used") { raise ArgumentError, "first_test_exception" }
-          assert_equal 0, ActionMailer::Base.deliveries.count
+
+          sent_notifications = []
+          stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
+          ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
+
+          assert_match /ArgumentError.*first_test_exception/, log_fatals[0].first
+          assert_match /safe_email_deliver.*Delivery Error/, log_fatals[1].first
+
+          assert_equal 2, log_fatals.size, log_fatals.inspect
+
+          assert_equal 1, sent_notifications.size, sent_notifications.inspect # still sent to honeybadger
         end
       end
 
@@ -466,45 +476,39 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "include the timestamp when the exception is logged" do
-          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
-          b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
+          sent_notifications = []
+          stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
+          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError context \(blah\):\n.*exception_handling_test\.rb/, anything)
+          b = ExceptionHandling.ensure_safe("context") { raise ArgumentError, "blah" }
           assert_nil b
 
           assert_equal 517_033_020, ExceptionHandling.last_exception_timestamp
 
-          assert_emails 1
-          assert_match(/517033020/, ActionMailer::Base.deliveries[-1].body.to_s)
+          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+
+          assert_equal 517_033_020, sent_notifications.last.enhanced_data['timestamp']
         end
       end
 
-      should "send just one copy of exceptions that don't repeat" do
-        ExceptionHandling.log_error(exception_1)
-        ExceptionHandling.log_error(exception_2)
-        assert_emails 2
-        assert_match(/Exception 1/, ActionMailer::Base.deliveries[-2].subject)
-        assert_match(/Exception 2/, ActionMailer::Base.deliveries[-1].subject)
-      end
-
-      should "not send emails if exception is a warning" do
-        ExceptionHandling.log_error(ExceptionHandling::Warning.new("Don't send email"))
-        assert_emails 0
-      end
-
-      should "not send emails when log_warning is called" do
-        ExceptionHandling.log_warning("Don't send email")
-        assert_emails 0
-      end
-
       should "log the error if the exception message is nil" do
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error(exception_with_nil_message)
-        assert_emails(1)
-        assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
+
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        assert_equal 'RuntimeError: ', sent_notifications.last.enhanced_data['error_string']
       end
 
       should "log the error if the exception message is nil and the exception context is a hash" do
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
-        assert_emails(1)
-        assert_match(/RuntimeError/, ActionMailer::Base.deliveries.last.subject)
+
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        assert_equal 'RuntimeError: ', sent_notifications.last.enhanced_data['error_string']
       end
 
       context "Honeybadger integration" do
@@ -619,8 +623,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             assert_equal_with_diff expected_data, honeybadger_data
           end
 
-          should "not send notification to honeybadger when exception description has the flag turned off and call log error callback with logged_to_honeybadger set to nil" do
-            begin
+          context "with post_log_error_hook set" do
+            teardown do
+              ExceptionHandling.post_log_error_hook = nil
+            end
+
+            should "not send notification to honeybadger when exception description has the flag turned off and call log error callback with logged_to_honeybadger set to nil" do
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
@@ -633,52 +641,37 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               stub(File).mtime { incrementing_mtime }
               mock(YAML).load_file.with_any_args { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }.at_least(1)
 
-              exception = StandardError.new("suppress Honeybadger notification")
-              mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args.once
+              mock.proxy(ExceptionHandling).send_exception_to_honeybadger_unless_filtered.with_any_args.once
               dont_allow(Honeybadger).notify
-              ExceptionHandling.log_error(exception)
+              ExceptionHandling.log_error(StandardError.new("suppress Honeybadger notification"))
               assert_equal :skipped, @honeybadger_status
-            ensure
-              ExceptionHandling.post_log_error_hook = nil
             end
-          end
 
-          should "call log error callback with logged_to_honeybadger set to false if an error occurs while attempting to notify honeybadger" do
-            begin
+            should "call log error callback with logged_to_honeybadger set to false if an error occurs while attempting to notify honeybadger" do
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               mock(Honeybadger).notify.with_any_args { raise "Honeybadger Notification Failure" }
               ExceptionHandling.log_error(exception_1)
               assert_equal :failure, @honeybadger_status
-            ensure
-              ExceptionHandling.post_log_error_hook = nil
             end
-          end
 
-          should "call log error callback with logged_to_honeybadger set to false on unsuccessful honeybadger notification" do
-            begin
+            should "call log error callback with logged_to_honeybadger set to false on unsuccessful honeybadger notification" do
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               mock(Honeybadger).notify.with_any_args { false }
               ExceptionHandling.log_error(exception_1)
               assert_equal :failure, @honeybadger_status
-            ensure
-              ExceptionHandling.post_log_error_hook = nil
             end
-          end
 
-          should "call log error callback with logged_to_honeybadger set to true on successful honeybadger notification" do
-            begin
+            should "call log error callback with logged_to_honeybadger set to true on successful honeybadger notification" do
               @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               mock(Honeybadger).notify.with_any_args { '06220c5a-b471-41e5-baeb-de247da45a56' }
               ExceptionHandling.log_error(exception_1)
               assert_equal :success, @honeybadger_status
-            ensure
-              ExceptionHandling.post_log_error_hook = nil
             end
           end
         end
@@ -691,11 +684,15 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "allow sections to have data with just a to_s method" do
-        ExceptionHandling.log_error("This is my RingSwitch example.  Log, don't email!") do |data|
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
+        ExceptionHandling.log_error("This is my RingSwitch example.") do |data|
           data.merge!(event_response: EventResponse.new)
         end
-        assert_emails 1
-        assert_match(/message from to_s!/, ActionMailer::Base.deliveries.last.body.to_s)
+
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        assert_match(/message from to_s!/, sent_notifications.last.enhanced_data['event_response'].to_s)
       end
     end
 
@@ -728,92 +725,109 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       should "handle case where filter list is not found" do
         stub(YAML).load_file { raise Errno::ENOENT, "File not found" }
 
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error("My error message is in list")
-        assert_emails 1
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
       end
 
       should "log exception and suppress email when exception is on filter list" do
-        ActionMailer::Base.deliveries.clear
-        ExceptionHandling.log_error("Error message is not in list")
-        assert_emails 1
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
 
-        ActionMailer::Base.deliveries.clear
+        ExceptionHandling.log_error("Error message is not in list")
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+
+        sent_notifications.clear
         ExceptionHandling.log_error("My error message is in list")
-        assert_emails 0
+        assert_equal 0, sent_notifications.size, sent_notifications.inspect
       end
 
       should "allow filtering exception on any text in exception data" do
         filters = { exception1: { session: "data: my extra session data" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filters) }
 
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
         ExceptionHandling.log_error("No match here") do |data|
           data[:session] = {
             key: "@session_id",
             data: "my extra session data"
           }
         end
-        assert_emails 0
+        assert_equal 0, sent_notifications.size, sent_notifications.inspect
 
-        ActionMailer::Base.deliveries.clear
         ExceptionHandling.log_error("No match here") do |data|
           data[:session] = {
             key: "@session_id",
             data: "my extra session <no match!> data"
           }
         end
-        assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
       end
 
       should "reload filter list on the next exception if file was modified" do
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error("Error message is not in list")
-        assert_emails 1
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
 
         filter_list = { exception1: { 'error' => "Error message is not in list" } }
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
         stub(File).mtime { incrementing_mtime }
 
-        ActionMailer::Base.deliveries.clear
+        sent_notifications.clear
         ExceptionHandling.log_error("Error message is not in list")
-        assert_emails 0, ActionMailer::Base.deliveries.*.body.*.inspect
+        assert_equal 0, sent_notifications.size, sent_notifications.inspect
       end
 
       should "not consider filter if both error message and body do not match" do
         # error message matches, but not full text
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error("some other message")
-        assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
 
         # now both match
-        ActionMailer::Base.deliveries.clear
+        sent_notifications.clear
         ExceptionHandling.log_error("some other message") do |data|
           data[:session] = { some_random_key: "misc data" }
         end
-        assert_emails 0, ActionMailer::Base.deliveries.*.body.*.inspect
+        assert_equal 0, sent_notifications.size, sent_notifications.inspect
       end
 
       should "skip environment keys not on whitelist" do
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error("some message") do |data|
           data[:environment] = { SERVER_PROTOCOL: "HTTP/1.0", RAILS_SECRETS_YML_CONTENTS: 'password: VERY_SECRET_PASSWORD' }
         end
-        assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
-        mail = ActionMailer::Base.deliveries.last
-        assert_nil mail.body.to_s["RAILS_SECRETS_YML_CONTENTS"], mail.body.to_s # this is not on whitelist
-        assert     mail.body.to_s["SERVER_PROTOCOL: HTTP/1.0"], mail.body.to_s # this is
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+
+        mail = sent_notifications.last
+        environment = mail.enhanced_data['environment']
+
+        assert_nil environment["RAILS_SECRETS_YML_CONTENTS"], environment.inspect # this is not on whitelist
+        assert     environment["SERVER_PROTOCOL"], environment.inspect # this is
       end
 
       should "omit environment defaults" do
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error("some message") do |data|
           data[:environment] = { SERVER_PORT: '80', SERVER_PROTOCOL: "HTTP/1.0" }
         end
-        assert_emails 1, ActionMailer::Base.deliveries.*.body.*.inspect
-        mail = ActionMailer::Base.deliveries.last
-        assert_nil mail.body.to_s["SERVER_PORT"], mail.body.to_s # this was default
-        assert     mail.body.to_s["SERVER_PROTOCOL: HTTP/1.0"], mail.body.to_s # this was not
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        mail = sent_notifications.last
+        environment = mail.enhanced_data['environment']
+
+        assert_nil environment["SERVER_PORT"], environment.inspect # this was default
+        assert     environment["SERVER_PROTOCOL"], environment # this was not
       end
 
       should "reject the filter file if any contain all empty regexes" do
@@ -822,9 +836,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
         stub(File).mtime { incrementing_mtime }
 
-        ActionMailer::Base.deliveries.clear
+        sent_notifications = []
+        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+
         ExceptionHandling.log_error("Error message is not in list")
-        assert_emails 1, ActionMailer::Base.deliveries.*.inspect
+        assert_equal 1, sent_notifications.size, sent_notifications.inspect
       end
 
       should "reload filter file if filename changes" do
@@ -834,26 +850,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       context "Exception Handling Mailer" do
-        should "create email" do
-          ExceptionHandling.log_error(exception_1) do |data|
-            data[:request] = { params: { id: 10993 }, url: "www.ringrevenue.com" }
-            data[:session] = { key: "DECAFE" }
-          end
-          assert_emails 1, ActionMailer::Base.deliveries.*.inspect
-          assert mail = ActionMailer::Base.deliveries.last
-          assert_equal ['exceptions@example.com'], mail.to
-          assert_equal ['server@example.com'].to_s, mail.from.to_s
-          assert_match(/Exception 1/, mail.to_s)
-          assert_match(/key: DECAFE/, mail.to_s)
-          assert_match(/id: 10993/, mail.to_s)
-        end
-
         EXPECTED_SMTP_HASH =
           {
             host: '127.0.0.1',
             domain: 'localhost.localdomain',
             from: 'server@example.com',
-            to: 'exceptions@example.com'
+            to: 'escalation@example.com'
           }.freeze
 
         [[true, false], [true, true]].each do |em_flag, synchrony_flag|
@@ -874,22 +876,24 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             should "schedule EventMachine STMP when EventMachine defined" do
+              ActionMailer::Base.deliveries.clear
+
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
 
-              ExceptionHandling.log_error(exception_1)
+              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
               assert EventMachineStub.block
               EventMachineStub.block.call
               assert DNSResolvStub.callback_block
               DNSResolvStub.callback_block.call ['127.0.0.1']
               assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }, SmtpClientStub.send_hash.inspect
               assert_equal((synchrony_flag ? :asend : :send), SmtpClientStub.last_method)
-              assert_match(/Exception 1/, SmtpClientStub.send_hash[:content])
+              assert_match(/Exception to escalate/, SmtpClientStub.send_hash[:content])
               assert_emails 0, ActionMailer::Base.deliveries.*.to_s
             end
 
             should "pass the content as a proper rfc 2822 message" do
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
-              ExceptionHandling.log_error(exception_1)
+              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
               assert EventMachineStub.block
               EventMachineStub.block.call
               assert DNSResolvStub.callback_block
@@ -900,47 +904,32 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             should "log fatal on EventMachine STMP errback" do
-              assert_emails 0, ActionMailer::Base.deliveries.*.to_s
+              ActionMailer::Base.deliveries.clear
+
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientErrbackStub)
-              mock(ExceptionHandling.logger).fatal(/Exception 1/, anything)
+              mock(ExceptionHandling.logger).fatal(/Exception to escalate/, anything)
               mock(ExceptionHandling.logger).fatal(/Failed to email by SMTP: "credential mismatch"/)
 
-              ExceptionHandling.log_error(exception_1)
+              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
               assert EventMachineStub.block
               EventMachineStub.block.call
               assert DNSResolvStub.callback_block
               DNSResolvStub.callback_block.call(['127.0.0.1'])
               SmtpClientErrbackStub.block.call("credential mismatch")
               assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }, SmtpClientErrbackStub.send_hash.inspect
-              # assert_emails 0, ActionMailer::Base.deliveries.*.to_s
             end
 
             should "log fatal on EventMachine dns resolver errback" do
-              assert_emails 0, ActionMailer::Base.deliveries.*.to_s
-              mock(ExceptionHandling.logger).fatal(/Exception 1/, anything)
+              mock(ExceptionHandling.logger).fatal(/Exception to escalate/, anything)
               mock(ExceptionHandling.logger).fatal(/Failed to resolv DNS for localhost: "softlayer sucks"/)
 
-              ExceptionHandling.log_error(exception_1)
+              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
               assert EventMachineStub.block
               EventMachineStub.block.call
               DNSResolvStub.errback_block.call("softlayer sucks")
             end
           end
         end
-      end
-
-      should "truncate email subject" do
-        ActionMailer::Base.deliveries.clear
-        text = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLM".split('').join("123456789")
-        begin
-          raise text
-        rescue => ex
-          ExceptionHandling.log_error(ex)
-        end
-        assert_emails 1, ActionMailer::Base.deliveries.*.inspect
-        mail = ActionMailer::Base.deliveries.last
-        subject = "#{ExceptionHandling.email_environment} exception: RuntimeError: " + text
-        assert_equal subject[0, 300], mail.subject
       end
     end
 

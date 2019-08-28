@@ -172,23 +172,15 @@ module ExceptionHandling # never included
       if honeybadger_defined?
         send_exception_to_honeybadger(exception_info)
       end
-
-      if should_send_email?
-        # controller may not exist in some cases (like most 404 errors)
-        if (controller = exception_info.controller)
-          controller.session["last_exception_timestamp"] = last_exception_timestamp
-        end
-        log_error_email(exception_info)
-      end
     end
 
     #
     # Normal Operation:
     #   Called directly by our code, usually from rescue blocks.
-    #   Does three things: write to log file and send an email, may also send to honeybadger if defined
+    #   Writes to log file and may send to honeybadger
     #
     # Functional Test Operation:
-    #   Calls into handle_stub_log_error and returns. no log file. no email.
+    #   Calls into handle_stub_log_error and returns. no log file. no honeybadger
     #
     def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
       ex = make_exception(exception_or_string)
@@ -228,32 +220,35 @@ module ExceptionHandling # never included
     def send_external_notifications(exception_info)
       results = {}
       if honeybadger_defined?
-        results[:honeybadger_status] = send_exception_to_honeybadger(exception_info)
-      end
-
-      if should_send_email?
-        log_error_email(exception_info)
+        results[:honeybadger_status] = send_exception_to_honeybadger_unless_filtered(exception_info)
       end
       results
+    end
+
+    # Returns :success or :failure or :skipped
+    def send_exception_to_honeybadger_unless_filtered(exception_info)
+      if exception_info.send_to_honeybadger?
+        send_exception_to_honeybadger(exception_info)
+      else
+        log_info("Filtered exception using '#{exception_info.exception_description.filter_name}'; not sending notification to Honeybadger")
+        :skipped
+      end
     end
 
     #
     # Log exception to honeybadger.io.
     #
+    # Returns :success or :failure
+    #
     def send_exception_to_honeybadger(exception_info)
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
-      if exception_info.send_to_honeybadger?
-        response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
-                                      error_message: exception.message.to_s,
-                                      exception:     exception,
-                                      context:       exception_info.honeybadger_context_data,
-                                      controller:    exception_info.controller_name)
-        response ? :success : :failure
-      else
-        log_info("Filtered exception using '#{exception_description.filter_name}'; not sending notification to Honeybadger")
-        :skipped
-      end
+      response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
+                                    error_message: exception.message.to_s,
+                                    exception:     exception,
+                                    context:       exception_info.honeybadger_context_data,
+                                    controller:    exception_info.controller_name)
+      response ? :success : :failure
     rescue Exception => ex
       warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
@@ -404,23 +399,6 @@ module ExceptionHandling # never included
     end
 
     private
-
-    def log_error_email(exception_info)
-      data = exception_info.enhanced_data
-      exception_description = exception_info.exception_description
-
-      if exception_description && !exception_description.send_email
-        ExceptionHandling.logger.warn(
-          "Filtered exception using '#{exception_description.filter_name}'; not sending email to notify"
-        )
-      else
-        deliver(ExceptionHandling::Mailer.exception_notification(data))
-      end
-      nil
-    rescue Exception => ex
-      warn("ExceptionHandling.log_error_email rescued exception while logging #{exception_info.exception_context}: #{exception_info.exception}:\n#{ex.class}: #{ex}\n#{ex.backtrace.join("\n")}")
-      write_exception_to_log(ex, "ExceptionHandling.log_error_email rescued exception while logging #{exception_info.exception_context}: #{exception_info.exception}", exception_info.timestamp)
-    end
 
     def execute_custom_log_error_callback(exception_data, exception, treat_like_warning, external_notification_results)
       if ExceptionHandling.post_log_error_hook
