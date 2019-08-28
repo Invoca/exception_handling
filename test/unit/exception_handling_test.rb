@@ -103,8 +103,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   class SmtpClientErrbackStub < SmtpClientStub
   end
 
-  context "with honeybadger notify stubbed" do
+  context "with warn and honeybadger notify stubbed" do
     setup do
+      stub(ExceptionHandling).warn(anything)
       stub(Honeybadger).notify(anything)
     end
 
@@ -687,6 +688,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
         assert_match(/message from to_s!/, sent_notifications.last.enhanced_data['event_response'].to_s)
       end
+    end
+
+    should "return nil" do
+      result = ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
+      assert_nil result
     end
 
     should "rescue exceptions that happen in log_error" do

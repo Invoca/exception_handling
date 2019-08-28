@@ -195,13 +195,14 @@ module ExceptionHandling # never included
                                           send_external_notifications(exception_info)
                                         end || {}
         execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results)
-        nil
       end
+      nil
     rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
       raise
     rescue Exception => ex
       warn("ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
+      nil
     end
 
     #
