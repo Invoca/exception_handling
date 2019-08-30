@@ -149,7 +149,7 @@ module ExceptionHandling # never included
     # Gets called by Rack Middleware: DebugExceptions or ShowExceptions
     # it does 2 things:
     #   log the error
-    #   email the error
+    #   may send to honeybadger
     #
     # but not during functional tests, when rack middleware is not used
     #
@@ -158,17 +158,17 @@ module ExceptionHandling # never included
       exception_info = ExceptionInfo.new(exception, env, timestamp)
 
       if stub_handler
-        return stub_handler.handle_stub_log_error(exception_info.data)
-      end
+        stub_handler.handle_stub_log_error(exception_info.data)
+      else
+        # TODO: add a more interesting custom description, like:
+        # custom_description = ": caught and processed by Rack middleware filter #{rack_filter}"
+        # which would be nice, but would also require changing quite a few tests
+        custom_description = ""
+        write_exception_to_log(exception, custom_description, timestamp)
+  
+        send_external_notifications(exception_info)
 
-      # TODO: add a more interesting custom description, like:
-      # custom_description = ": caught and processed by Rack middleware filter #{rack_filter}"
-      # which would be nice, but would also require changing quite a few tests
-      custom_description = ""
-      write_exception_to_log(exception, custom_description, timestamp)
-
-      if honeybadger_defined?
-        send_exception_to_honeybadger(exception_info)
+        nil
       end
     end
 
