@@ -111,10 +111,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
     context "#log_error" do
       should "take in additional keyword args as logging context and pass them to the logger" do
-        ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
+        error_id = ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
         assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+        assert_equal ExceptionHandling.last_exception_timestamp, error_id
       end
     end
 
@@ -684,11 +685,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_equal 1, sent_notifications.size, sent_notifications.inspect
         assert_match(/message from to_s!/, sent_notifications.last.enhanced_data['event_response'].to_s)
       end
-    end
-
-    should "return nil" do
-      result = ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
-      assert_nil result
     end
 
     should "rescue exceptions that happen in log_error" do

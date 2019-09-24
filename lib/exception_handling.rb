@@ -165,7 +165,7 @@ module ExceptionHandling # never included
         # which would be nice, but would also require changing quite a few tests
         custom_description = ""
         write_exception_to_log(exception, custom_description, timestamp)
-  
+
         send_external_notifications(exception_info)
 
         nil
@@ -194,13 +194,15 @@ module ExceptionHandling # never included
                                         end || {}
         execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results)
       end
-      nil
+
+      ExceptionHandling.last_exception_timestamp
     rescue LogErrorStub::UnexpectedExceptionLogged, LogErrorStub::ExpectedExceptionNotLogged
       raise
     rescue Exception => ex
       warn("ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandlingError: log_error rescued exception while logging #{exception_context}: #{exception_or_string}", timestamp)
-      nil
+    ensure
+      ExceptionHandling.last_exception_timestamp
     end
 
     #
@@ -300,6 +302,7 @@ module ExceptionHandling # never included
       raise
     rescue Exception => ex
       log_error ex, exception_context, log_context
+      nil
     end
 
     def escalate_to_production_support(exception_or_string, email_subject)
