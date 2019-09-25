@@ -23,7 +23,7 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (2.2.1)
+    exception_handling (2.2.2)
       actionmailer (~> 4.2)
       actionpack (~> 4.2)
       activesupport (~> 4.2)
@@ -74,7 +74,8 @@ GEM
     builder (3.2.3)
     coderay (1.1.2)
     concurrent-ruby (1.1.5)
-    contextual_logger (0.2.1)
+    contextual_logger (0.3.1)
+      activesupport
       json
     crass (1.0.4)
     erubis (2.7.0)
@@ -177,4 +178,4 @@ DEPENDENCIES
   shoulda (> 3.1.1)
 
 BUNDLED WITH
-   1.16.4
+   1.16.6

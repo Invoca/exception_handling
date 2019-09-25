@@ -87,7 +87,7 @@ module ExceptionHandling
             ExceptionHandling.production_support_recipients = recipients
             ExceptionHandling.last_exception_timestamp = Time.now.to_i
 
-            mock(ExceptionHandling).escalate_custom(subject, exception, Time.now.to_i, recipients)
+            mock(ExceptionHandling).escalate(subject, exception, Time.now.to_i, recipients)
             ExceptionHandling.escalate_to_production_support(exception, subject)
           end
         end

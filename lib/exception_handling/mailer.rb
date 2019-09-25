@@ -30,28 +30,14 @@ module ExceptionHandling
       end
     end
 
-    def escalation_notification(summary, data)
+    def escalation_notification(summary, data, custom_recipients = nil)
       subject       = "#{email_environment} Escalation: #{summary}"
       from          = sender_address.gsub('xception', 'scalation')
       recipients    = begin
-                        escalation_recipients
+                        custom_recipients || escalation_recipients
                       rescue
                         exception_recipients
                       end
-
-      @summary      = summary
-      @server       = ExceptionHandling.server_name
-      @cleaned_data = data
-
-      mail(from: from,
-           to: recipients,
-           subject: subject)
-    end
-
-    def escalate_custom(summary, data, recipients)
-      subject       = "#{email_environment} Escalation: #{summary}"
-      from          = sender_address.gsub('xception', 'scalation')
-      recipients    = recipients
 
       @summary      = summary
       @server       = ExceptionHandling.server_name
