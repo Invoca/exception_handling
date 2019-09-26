@@ -459,7 +459,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           recipients = ["prodsupport@example.com"]
 
           mock(ExceptionHandling).production_support_recipients { recipients }.times(2)
-          mock(ExceptionHandling).escalate_custom(subject, exception, ExceptionHandling.last_exception_timestamp, recipients)
+          mock(ExceptionHandling).escalate(subject, exception, ExceptionHandling.last_exception_timestamp, recipients)
           ExceptionHandling.escalate_to_production_support(exception, subject)
         end
       end

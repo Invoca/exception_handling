@@ -305,19 +305,19 @@ module ExceptionHandling # never included
     def escalate_to_production_support(exception_or_string, email_subject)
       production_support_recipients or raise ArgumentError, "In order to escalate to production support, you must set #{name}.production_recipients"
       ex = make_exception(exception_or_string)
-      escalate_custom(email_subject, ex, last_exception_timestamp, production_support_recipients)
+      escalate(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
 
-    def escalate_error(exception_or_string, email_subject, **log_context)
+    def escalate_error(exception_or_string, email_subject, custom_recipients = nil, **log_context)
       ex = make_exception(exception_or_string)
       log_error(ex, **log_context)
-      escalate(email_subject, ex, last_exception_timestamp)
+      escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
-    def escalate_warning(message, email_subject, **log_context)
+    def escalate_warning(message, email_subject, custom_recipients = nil, **log_context)
       ex = Warning.new(message)
       log_error(ex, **log_context)
-      escalate(email_subject, ex, last_exception_timestamp)
+      escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
     def ensure_escalation(email_subject, **log_context)
@@ -406,14 +406,9 @@ module ExceptionHandling # never included
       log_info("Unable to execute custom log_error callback. #{ex_message} #{ex_backtrace}")
     end
 
-    def escalate(email_subject, ex, timestamp)
+    def escalate(email_subject, ex, timestamp, custom_recipients = nil)
       exception_info = ExceptionInfo.new(ex, nil, timestamp)
-      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data))
-    end
-
-    def escalate_custom(email_subject, ex, timestamp, recipients)
-      exception_info = ExceptionInfo.new(ex, nil, timestamp)
-      deliver(ExceptionHandling::Mailer.escalate_custom(email_subject, exception_info.data, recipients))
+      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data, custom_recipients))
     end
 
     def deliver(mail_object)
