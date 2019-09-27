@@ -686,9 +686,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
-    should "return nil" do
+    should "return the error ID (timestamp)" do
       result = ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
-      assert_nil result
+      assert_equal ExceptionHandling.last_exception_timestamp, result
     end
 
     should "rescue exceptions that happen in log_error" do
