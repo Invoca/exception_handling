@@ -36,6 +36,24 @@ module ExceptionHandling
       end
     end
 
+    class TestRaiseOnInspect < TestPoroWithAttribute
+      def inspect
+        raise "some error"
+      end
+    end
+
+    class TestRaiseOnInspectWithId < TestRaiseOnInspect
+      def id
+        123
+      end
+    end
+
+    class TestRaiseOnInspectWithToPk < TestRaiseOnInspect
+      def to_pk
+        "SomeRecord-123"
+      end
+    end
+
     context "register_callbacks" do
       should "store the callbacks in the honeybadger object" do
         HoneybadgerCallbacks.register_callbacks
@@ -64,6 +82,23 @@ module ExceptionHandling
       should "inspect other classes" do
         result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestPoroWithAttribute.new, ['password'])
         assert_match(/#<ExceptionHandling::HoneybadgerCallbacksTest::TestPoroWithAttribute:.* @test_attribute="test">/, result)
+      end
+
+      context "when inspect raises exceptions" do
+        should "handle exceptions for objects" do
+          result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspect.new, ['password'])
+          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspect [error 'RuntimeError: some error' while calling #inspect]>", result
+        end
+
+        should "handle exceptions for objects responding to id" do
+          result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithId.new, ['password'])
+          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithId @id=123 [error 'RuntimeError: some error' while calling #inspect]>", result
+        end
+
+        should "handle exceptions for objects responding to to_pik" do
+          result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithToPk.new, ['password'])
+          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithToPk @pk=SomeRecord-123 [error 'RuntimeError: some error' while calling #inspect]>", result
+        end
       end
 
       context "not inspect objects that contain filter keys" do
