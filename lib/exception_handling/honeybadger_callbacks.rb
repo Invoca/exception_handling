@@ -26,7 +26,7 @@ module ExceptionHandling
                     " @id=#{object.id}"
                   end
 
-        "#<#{object.class.name}#{details} [error '#{ex.class.name} - #{ex.message}' while calling #inspect]>"
+        "#<#{object.class.name}#{details} [error '#{ex.class.name}: #{ex.message}' while calling #inspect]>"
       end
 
       def local_variable_filter(_symbol, object, filter_keys)

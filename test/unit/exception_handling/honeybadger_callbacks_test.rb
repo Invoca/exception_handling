@@ -42,7 +42,7 @@ module ExceptionHandling
       end
     end
 
-    class TestRaiseOnInspectWithId< TestRaiseOnInspect
+    class TestRaiseOnInspectWithId < TestRaiseOnInspect
       def id
         123
       end
@@ -87,17 +87,17 @@ module ExceptionHandling
       context "when inspect raises exceptions" do
         should "handle exceptions for objects" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspect.new, ['password'])
-          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspect [error 'RuntimeError - some error' while calling #inspect]>", result
+          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspect [error 'RuntimeError: some error' while calling #inspect]>", result
         end
 
         should "handle exceptions for objects responding to id" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithId.new, ['password'])
-          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithId @id=123 [error 'RuntimeError - some error' while calling #inspect]>", result
+          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithId @id=123 [error 'RuntimeError: some error' while calling #inspect]>", result
         end
 
         should "handle exceptions for objects responding to to_pik" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithToPk.new, ['password'])
-          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithToPk @pk=SomeRecord-123 [error 'RuntimeError - some error' while calling #inspect]>", result
+          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithToPk @pk=SomeRecord-123 [error 'RuntimeError: some error' while calling #inspect]>", result
         end
       end
 
