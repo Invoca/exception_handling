@@ -380,10 +380,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       context "ExceptionHandling.ensure_escalation" do
-        should "log the exception as usual and send the proper email" do
+        setup do
           capture_notifications
           ActionMailer::Base.deliveries.clear
+        end
 
+        should "log the exception as usual and send the proper email" do
           mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
           assert_equal 1, ActionMailer::Base.deliveries.count
@@ -396,7 +398,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "should not escalate if an exception is not raised." do
-          ActionMailer::Base.deliveries.clear
           dont_allow(ExceptionHandling.logger).fatal
           ExceptionHandling.ensure_escalation('Ignored') { ; }
           assert_equal 0, ActionMailer::Base.deliveries.count
@@ -411,8 +412,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             logger.fatal.with_any_args { |*args| log_fatals << args }
           end
 
-          capture_notifications
-
           ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
 
           assert_match /ArgumentError.*first_test_exception/, log_fatals[0].first
@@ -421,6 +420,20 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           assert_equal 2, log_fatals.size, log_fatals.inspect
 
           assert_equal 1, sent_notifications.size, sent_notifications.inspect # still sent to honeybadger
+        end
+
+        should "allow the caller to specify custom recipients" do
+          custom_recipients = ['something@invoca.com']
+          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          ExceptionHandling.ensure_escalation("Favorite Feature", custom_recipients) { raise ArgumentError, "blah" }
+          assert_equal 1, ActionMailer::Base.deliveries.count
+          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+
+          email = ActionMailer::Base.deliveries.last
+          assert_equal "#{ExceptionHandling.email_environment} Escalation: Favorite Feature", email.subject
+          assert_match 'ArgumentError: blah', email.body.to_s
+          assert_match ExceptionHandling.last_exception_timestamp.to_s, email.body.to_s
+          assert_equal custom_recipients, email.to
         end
       end
 
