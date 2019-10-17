@@ -323,10 +323,10 @@ module ExceptionHandling # never included
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
-    def ensure_escalation(email_subject, **log_context)
+    def ensure_escalation(email_subject, custom_recipients = nil, **log_context)
       yield
     rescue => ex
-      escalate_error(ex, email_subject, **log_context)
+      escalate_error(ex, email_subject, custom_recipients, **log_context)
       nil
     end
 
