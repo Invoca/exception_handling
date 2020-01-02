@@ -194,6 +194,16 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_equal :skipped, @honeybadger_status
       end
 
+      should "include logging context in the exception data" do
+        ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
+        ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", nil, treat_like_warning: true, log_context_test: "contextual_logging")
+
+        expected_log_context = {
+          "log_context_test" => "contextual_logging"
+        }
+        assert_equal expected_log_context, @callback_data[:log_context]
+      end
+
       should "support rescue exceptions from a log_error hook" do
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_with_failure)
         log_info_messages = []
