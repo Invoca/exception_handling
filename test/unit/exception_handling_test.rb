@@ -162,7 +162,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         capture_notifications
 
         ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
-        ExceptionHandling.ensure_safe("context") { raise "Some BS" }
+        ExceptionHandling.ensure_safe("context") { raise "Some Exception" }
 
         assert_match(/Invoca Engineering Dept./, sent_notifications.last.enhanced_data['user_details'].to_s)
       end
@@ -174,7 +174,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
         notify_args = []
         mock(Honeybadger).notify.with_any_args { |info| notify_args << info; '06220c5a-b471-41e5-baeb-de247da45a56' }
-        ExceptionHandling.ensure_safe("context") { raise "Some BS" }
+        ExceptionHandling.ensure_safe("context") { raise "Some Exception" }
         assert_equal 1, @fail_count
         assert_equal false, @treat_like_warning
         assert_equal :success, @honeybadger_status
@@ -188,7 +188,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         @fail_count = 0
         @honeybadger_status = nil
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-        ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", treat_like_warning: true)
+        ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", treat_like_warning: true)
         assert_equal 1, @fail_count
         assert_equal true, @treat_like_warning
         assert_equal :skipped, @honeybadger_status
@@ -196,7 +196,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       should "include logging context in the exception data" do
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-        ExceptionHandling.log_error(StandardError.new("Some BS"), "mooo", nil, treat_like_warning: true, log_context_test: "contextual_logging")
+        ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", nil, treat_like_warning: true, log_context_test: "contextual_logging")
 
         expected_log_context = {
           "log_context_test" => "contextual_logging"
@@ -210,7 +210,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         stub(ExceptionHandling.logger).info.with_any_args do |message, _|
           log_info_messages << message
         end
-        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }
         assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
       end
 
@@ -220,7 +220,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         stub(ExceptionHandling.logger).info.with_any_args do |message, _|
           log_info_messages << message
         end
-        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }
         assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
       end
 
@@ -230,7 +230,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         stub(ExceptionHandling.logger).info.with_any_args do |message, _|
           log_info_messages << message
         end
-        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some BS" } }
+        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }
         assert log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }
       end
     end
@@ -584,7 +584,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             controller = create_dummy_controller(env, parameters, session, request_uri)
             stub(ExceptionHandling).server_name { "invoca_fe98" }
 
-            exception = StandardError.new("Some BS")
+            exception = StandardError.new("Some Exception")
             exception.set_backtrace([
                                       "test/unit/exception_handling_test.rb:847:in `exception_1'",
                                       "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
@@ -603,8 +603,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             expected_data = {
-              error_class: :"Test BS",
-              error_message: "Some BS",
+              error_class: :"Test Exception",
+              error_message: "Some Exception",
               controller: "some_controller",
               exception: exception,
               context: {
