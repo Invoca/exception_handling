@@ -192,7 +192,7 @@ module ExceptionHandling # never included
         external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
                                           send_external_notifications(exception_info)
                                         end || {}
-        execute_custom_log_error_callback(exception_info.enhanced_data, exception_info.exception, treat_like_warning, external_notification_results)
+        execute_custom_log_error_callback(exception_info.enhanced_data.merge(log_context: log_context), exception_info.exception, treat_like_warning, external_notification_results)
       end
 
       ExceptionHandling.last_exception_timestamp

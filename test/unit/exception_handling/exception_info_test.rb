@@ -425,7 +425,7 @@ module ExceptionHandling
         controller = create_dummy_controller(env, parameters, session, request_uri)
         stub(ExceptionHandling).server_name { "invoca_fe98" }
 
-        exception = StandardError.new("Some BS")
+        exception = StandardError.new("Some Exception")
         exception.set_backtrace([
                                   "test/unit/exception_handling_test.rb:847:in `exception_1'",
                                   "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
