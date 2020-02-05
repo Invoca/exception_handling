@@ -8,7 +8,6 @@ gemspec
 gem 'actionmailer',  '>= 4.2.11.1'
 gem 'actionpack',    '>= 4.2.11.1'
 gem 'activesupport', '>= 4.2.11.1'
-gem 'hobo_support',   '2.0.1',      git: 'git@github.com:Invoca/hobosupport',    ref: 'b9086322274b474a2b5bae507c4885e55d4aa050'
 
 group :development do
   gem 'pry'
