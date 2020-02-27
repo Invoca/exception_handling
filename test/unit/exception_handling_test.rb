@@ -424,8 +424,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
           ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
 
-          assert_match /ArgumentError.*first_test_exception/, log_fatals[0].first
-          assert_match /safe_email_deliver.*Delivery Error/, log_fatals[1].first
+          assert_match(/ArgumentError.*first_test_exception/, log_fatals[0].first)
+          assert_match(/safe_email_deliver.*Delivery Error/, log_fatals[1].first)
 
           assert_equal 2, log_fatals.size, log_fatals.inspect
 

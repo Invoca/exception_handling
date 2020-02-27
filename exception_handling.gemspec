@@ -3,13 +3,13 @@
 require File.expand_path('lib/exception_handling/version', __dir__)
 
 Gem::Specification.new do |spec|
-  spec.authors       = ["Colin Kelley"]
-  spec.email         = ["colindkelley@gmail.com"]
+  spec.authors       = ["Invoca"]
+  spec.email         = ["development@invoca.com"]
   spec.description   = 'Exception handling logger/emailer'
   spec.summary       = "Invoca's exception handling logger/emailer layer, based on exception_notifier. Works with Rails or EventMachine or EventMachine+Synchrony."
   spec.homepage      = "https://github.com/Invoca/exception_handling"
 
-  spec.files         = `git ls-files`.split($OUTPUT_RECORD_SEPARATOR)
+  spec.files         = `git ls-files`.split("\n")
   spec.executables   = spec.files.grep(%r{^bin/}).map { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/.*\.rb})
   spec.name          = "exception_handling"
