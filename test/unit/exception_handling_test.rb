@@ -543,10 +543,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         context "with Honeybadger defined" do
-          teardown do
-            ExceptionHandling.current_controller = nil
-          end
-
           should "not send_exception_to_honeybadger when log_warning is executed" do
             dont_allow(ExceptionHandling).send_exception_to_honeybadger
             ExceptionHandling.log_warning("This should not go to honeybadger")
@@ -585,7 +581,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             parameters = { advertiser_id: 435, controller: "some_controller" }
             session = { username: "jsmith" }
             request_uri = "host/path"
-            ExceptionHandling.current_controller = create_dummy_controller(env, parameters, session, request_uri)
+            controller = create_dummy_controller(env, parameters, session, request_uri)
             stub(ExceptionHandling).server_name { "invoca_fe98" }
 
             exception = StandardError.new("Some Exception")
@@ -599,7 +595,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             mock(Honeybadger).notify.with_any_args do |data|
               honeybadger_data = data
             end
-            ExceptionHandling.log_error(exception, exception_context) do |data|
+            ExceptionHandling.log_error(exception, exception_context, controller) do |data|
               data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
               data[:user_details] = { username: "jsmith" }
               data[:event_response] = "Event successfully received"

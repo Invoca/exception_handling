@@ -177,13 +177,16 @@ module ExceptionHandling # never included
     #   Called directly by our code, usually from rescue blocks.
     #   Writes to log file and may send to honeybadger
     #
+    # TODO: the **log_context means we can never have context named treat_like_warning. In general, keyword args will be conflated with log_context.
+    # Ideally we'd separate to log_context from the other keywords so they don't interfere in any way. Or have no keyword args.
+    #
     # Functional Test Operation:
     #   Calls into handle_stub_log_error and returns. no log file. no honeybadger
     #
-    def log_error(exception_or_string, exception_context = '', treat_like_warning: false, **log_context, &data_callback)
+    def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
       ex = make_exception(exception_or_string)
       timestamp = set_log_error_timestamp
-      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, current_controller, data_callback)
+      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
 
       if stub_handler
         stub_handler.handle_stub_log_error(exception_info.data)
