@@ -15,6 +15,10 @@ Gem::Specification.new do |spec|
   spec.name          = "exception_handling"
   spec.require_paths = ["lib"]
   spec.version       = ExceptionHandling::VERSION
+  spec.metadata    = {
+    "source_code_uri"   => "https://github.com/Invoca/exception_handling",
+    "allowed_push_host" => "https://rubygems.org"
+  }
 
   spec.add_dependency 'actionmailer',  '~> 4.2'
   spec.add_dependency 'actionpack',    '~> 4.2'
