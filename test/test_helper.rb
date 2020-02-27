@@ -27,15 +27,15 @@ class LoggerStub
     clear
   end
 
-  def info(message, **log_context)
+  def info(message, log_context = {})
     logged << { message: message, context: log_context }
   end
 
-  def warn(message, **log_context)
+  def warn(message, log_context = {})
     logged << { message: message, context: log_context }
   end
 
-  def fatal(message, **log_context)
+  def fatal(message, log_context = {})
     logged << { message: message, context: log_context }
   end
 

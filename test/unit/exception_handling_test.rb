@@ -110,7 +110,14 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "#log_error" do
-      should "take in additional keyword args as logging context and pass them to the logger" do
+      should "take in additional keyword args as logging context and pass them to the logger (using preferrred log_context:)" do
+        ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
+        assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
+        assert_not_empty logged_excluding_reload_filter.last[:context]
+        assert_equal({ service_name: 'exception_handling' }, logged_excluding_reload_filter.last[:context])
+      end
+
+      should "take in additional keyword args as logging context and pass them to the logger (using **)" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
         assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
@@ -196,7 +203,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
       should "include logging context in the exception data" do
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-        ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", nil, treat_like_warning: true, log_context_test: "contextual_logging")
+        ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", treat_like_warning: true, log_context_test: "contextual_logging")
 
         expected_log_context = {
           "log_context_test" => "contextual_logging"
@@ -543,6 +550,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         context "with Honeybadger defined" do
+          teardown do
+            ExceptionHandling.current_controller = nil
+          end
+
           should "not send_exception_to_honeybadger when log_warning is executed" do
             dont_allow(ExceptionHandling).send_exception_to_honeybadger
             ExceptionHandling.log_warning("This should not go to honeybadger")
@@ -581,7 +592,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             parameters = { advertiser_id: 435, controller: "some_controller" }
             session = { username: "jsmith" }
             request_uri = "host/path"
-            controller = create_dummy_controller(env, parameters, session, request_uri)
+            ExceptionHandling.current_controller = create_dummy_controller(env, parameters, session, request_uri)
             stub(ExceptionHandling).server_name { "invoca_fe98" }
 
             exception = StandardError.new("Some Exception")
@@ -595,7 +606,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             mock(Honeybadger).notify.with_any_args do |data|
               honeybadger_data = data
             end
-            ExceptionHandling.log_error(exception, exception_context, controller) do |data|
+            ExceptionHandling.log_error(exception, exception_context) do |data|
               data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
               data[:user_details] = { username: "jsmith" }
               data[:event_response] = "Event successfully received"
@@ -1042,10 +1053,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         Time.now_override = nil
       end
 
-      should "take in additional key word args as logging context and pass them to the logger" do
+      should "take in additional logging context and pass them to the logger" do
         ExceptionHandling.log_periodically(:test_context_with_periodic, 30.minutes, "this will be written", service_name: 'exception_handling')
         assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+        assert_equal({ service_name: 'exception_handling' }, logged_excluding_reload_filter.last[:context])
       end
 
       should "log immediately when we are expected to log" do

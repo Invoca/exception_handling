@@ -180,15 +180,15 @@ module ExceptionHandling # never included
     # Functional Test Operation:
     #   Calls into handle_stub_log_error and returns. no log file. no honeybadger
     #
-    def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
+    def log_error(exception_or_string, exception_context = '', treat_like_warning: false, **log_context, &data_callback)
       ex = make_exception(exception_or_string)
       timestamp = set_log_error_timestamp
-      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
+      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, current_controller, data_callback)
 
       if stub_handler
         stub_handler.handle_stub_log_error(exception_info.data)
       else
-        write_exception_to_log(ex, exception_context, timestamp, **log_context)
+        write_exception_to_log(ex, exception_context, timestamp, log_context)
         external_notification_results = unless treat_like_warning || ex.is_a?(Warning)
                                           send_external_notifications(exception_info)
                                         end || {}
@@ -208,9 +208,9 @@ module ExceptionHandling # never included
     #
     # Write an exception out to the log file using our own custom format.
     #
-    def write_exception_to_log(ex, exception_context, timestamp, **log_context)
+    def write_exception_to_log(ex, exception_context, timestamp, log_context = {})
       ActiveSupport::Deprecation.silence do
-        ExceptionHandling.logger.fatal("\nExceptionHandlingError (Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n", **log_context)
+        ExceptionHandling.logger.fatal("\nExceptionHandlingError (Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n", log_context)
       end
     end
 
@@ -275,33 +275,33 @@ module ExceptionHandling # never included
       end
     end
 
-    def log_warning(message, **log_context)
+    def log_warning(message, log_context = {})
       warning = Warning.new(message)
       warning.set_backtrace([])
       log_error(warning, **log_context)
     end
 
-    def log_info(message, **log_context)
-      ExceptionHandling.logger.info(message, **log_context)
+    def log_info(message, log_context = {})
+      ExceptionHandling.logger.info(message, log_context)
     end
 
-    def log_debug(message, **log_context)
-      ExceptionHandling.logger.debug(message, **log_context)
+    def log_debug(message, log_context = {})
+      ExceptionHandling.logger.debug(message, log_context)
     end
 
-    def ensure_safe(exception_context = "", **log_context)
+    def ensure_safe(exception_context = "", log_context = {})
       yield
     rescue => ex
-      log_error ex, exception_context, **log_context
+      log_error(ex, exception_context, **log_context)
       nil
     end
 
-    def ensure_completely_safe(exception_context = "", **log_context)
+    def ensure_completely_safe(exception_context = "", log_context = {})
       yield
     rescue SystemExit, SystemStackError, NoMemoryError, SecurityError, SignalException
       raise
     rescue Exception => ex
-      log_error ex, exception_context, log_context
+      log_error(ex, exception_context, **log_context)
       nil
     end
 
@@ -311,26 +311,26 @@ module ExceptionHandling # never included
       escalate(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
 
-    def escalate_error(exception_or_string, email_subject, custom_recipients = nil, **log_context)
+    def escalate_error(exception_or_string, email_subject, custom_recipients = nil, log_context = {})
       ex = make_exception(exception_or_string)
       log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
-    def escalate_warning(message, email_subject, custom_recipients = nil, **log_context)
+    def escalate_warning(message, email_subject, custom_recipients = nil, log_context = {})
       ex = Warning.new(message)
       log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
-    def ensure_escalation(email_subject, custom_recipients = nil, **log_context)
+    def ensure_escalation(email_subject, custom_recipients = nil, log_context = {})
       yield
     rescue => ex
-      escalate_error(ex, email_subject, custom_recipients, **log_context)
+      escalate_error(ex, email_subject, custom_recipients, log_context)
       nil
     end
 
-    def alert_warning(exception_or_string, alert_name, exception_context, **log_context)
+    def alert_warning(exception_or_string, alert_name, exception_context, log_context)
       ex = make_exception(exception_or_string)
       log_error(ex, exception_context, **log_context)
       begin
@@ -340,10 +340,10 @@ module ExceptionHandling # never included
       end
     end
 
-    def ensure_alert(alert_name, exception_context, **log_context)
+    def ensure_alert(alert_name, exception_context, log_context = {})
       yield
     rescue => ex
-      alert_warning(ex, alert_name, exception_context, **log_context)
+      alert_warning(ex, alert_name, exception_context, log_context)
       nil
     end
 
@@ -360,7 +360,7 @@ module ExceptionHandling # never included
       result
     end
 
-    def log_periodically(exception_key, interval, message, **log_context)
+    def log_periodically(exception_key, interval, message, log_context = {})
       self.periodic_exception_intervals ||= {}
       last_logged = self.periodic_exception_intervals[exception_key]
       if !last_logged || ((last_logged + interval) < Time.now)
@@ -447,7 +447,7 @@ module ExceptionHandling # never included
         yield
       end
     rescue StandardError, MailerTimeout => ex
-      log_error(ex, "ExceptionHandling::safe_email_deliver", nil, treat_like_warning: true)
+      log_error(ex, "ExceptionHandling::safe_email_deliver", treat_like_warning: true)
     end
 
     def make_exception(exception_or_string)
