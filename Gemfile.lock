@@ -8,7 +8,7 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (2.4.0.pre.1)
+    exception_handling (2.4.0.pre.2)
       actionmailer (~> 4.2)
       actionpack (~> 4.2)
       activesupport (~> 4.2)
@@ -164,4 +164,4 @@ DEPENDENCIES
   shoulda (> 3.1.1)
 
 BUNDLED WITH
-   1.17.2
+   1.17.3
