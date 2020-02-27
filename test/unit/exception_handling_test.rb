@@ -110,14 +110,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "#log_error" do
-      should "take in additional keyword args as logging context and pass them to the logger (using preferrred log_context:)" do
-        ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
-        assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
-        assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal({ service_name: 'exception_handling' }, logged_excluding_reload_filter.last[:context])
-      end
-
-      should "take in additional keyword args as logging context and pass them to the logger (using **)" do
+      should "take in additional logging context hash and pass it to the logger" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
         assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
