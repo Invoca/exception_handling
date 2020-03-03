@@ -17,13 +17,6 @@ pipeline {
     stage('Setup') {
       steps {
         script {
-          sh 'bundle install'
-        }
-      }
-    }
-    stage('Unit Test') {
-      steps {
-        script {
           sh '''
             # get SSH setup inside the container
             eval `ssh-agent -s`
@@ -32,8 +25,14 @@ pipeline {
             ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
 
             bundle install
-            bundle exec rake
           '''
+        }
+      }
+    }
+    stage('Unit Test') {
+      steps {
+        script {
+          sh 'bundle exec rake'
         }
       }
       post {
