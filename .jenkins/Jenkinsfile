@@ -8,11 +8,13 @@ pipeline {
       yamlFile ".jenkins/ruby_build_pod.yml"
     }
   }
+
   environment {
     GITHUB_TOKEN = credentials('github_token')
     GITHUB_KEY = credentials('github_key')
     BUNDLE_GEM__FURY__IO = credentials('gemfury_deploy_token')
   }
+
   stages {
     stage('Setup') {
       steps {
@@ -43,6 +45,7 @@ pipeline {
     }
   }
 }
+
 void updateGitHubStatus(String context, String status, String description) {
   gitHubStatus([
     repoSlug:    'Invoca/exception_handling',
