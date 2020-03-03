@@ -10,6 +10,7 @@ pipeline {
   }
   environment {
     GITHUB_TOKEN = credentials('github_token')
+    GITHUB_KEY = credentials('github_key')
     BUNDLE_GEM__FURY__IO = credentials('gemfury_deploy_token')
   }
   stages {
@@ -23,7 +24,16 @@ pipeline {
     stage('Unit Test') {
       steps {
         script {
-          sh 'bundle exec rake'
+          sh '''
+            # get SSH setup inside the container
+            eval `ssh-agent -s`
+            echo "$GITHUB_KEY" | ssh-add -
+            mkdir -p /root/.ssh
+            ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
+
+            bundle install
+            bundle exec rake
+          '''
         }
       }
       post {
