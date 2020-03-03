@@ -9,11 +9,10 @@ metadata:
 spec:
   containers:
   - name: ruby
-    image: ruby:2.6.1
+    image: ruby:2.6.5
     tty: true
     resources:
     requests:
       memory: "100Mi"
     command:
       - cat
-
