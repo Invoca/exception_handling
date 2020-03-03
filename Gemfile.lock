@@ -63,7 +63,7 @@ GEM
     contextual_logger (0.3.1)
       activesupport
       json
-    crass (1.0.4)
+    crass (1.0.6)
     erubis (2.7.0)
     eventmachine (1.2.7)
     globalid (0.4.2)
@@ -75,7 +75,7 @@ GEM
     invoca-utils (0.0.5)
     jaro_winkler (1.5.3)
     json (2.3.0)
-    loofah (2.2.3)
+    loofah (2.4.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
     mail (2.7.1)
@@ -89,7 +89,7 @@ GEM
       builder
       minitest (>= 5.0)
       ruby-progressbar
-    nokogiri (1.10.4)
+    nokogiri (1.10.9)
       mini_portile2 (~> 2.4.0)
     parallel (1.17.0)
     parser (2.6.3.0)
