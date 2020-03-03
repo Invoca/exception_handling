@@ -10,6 +10,8 @@ gem 'actionpack',    '>= 4.2.11.1'
 gem 'activesupport', '>= 4.2.11.1'
 
 group :development do
+  gem "minitest"
+  gem "minitest-reporters"
   gem 'pry'
   gem 'rake',    '>=0.9'
   gem 'rr'

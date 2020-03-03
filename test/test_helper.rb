@@ -10,6 +10,12 @@ require 'hobo_support'
 require 'shoulda'
 require 'rr'
 require 'minitest/autorun'
+require "minitest/reporters"
+Minitest::Reporters.use! [
+                             Minitest::Reporters::DefaultReporter.new,
+                             Minitest::Reporters::JUnitReporter.new
+                         ]
+
 require 'pry'
 require 'honeybadger'
 require 'contextual_logger'
