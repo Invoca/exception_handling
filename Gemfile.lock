@@ -123,19 +123,15 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  actionmailer
-  actionpack
-  activesupport
   exception_handling!
   honeybadger (= 3.3.1.pre.1)!
-  invoca-utils (~> 0.3)
   minitest
   minitest-reporters
   pry
-  rake (>= 0.9)
+  rake
   rr
   rubocop
-  shoulda (> 3.1.1)
+  shoulda
 
 BUNDLED WITH
    1.17.3
