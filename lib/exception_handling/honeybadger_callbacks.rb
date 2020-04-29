@@ -40,7 +40,7 @@ module ExceptionHandling
       end
 
       def contains_filter_key?(filter_keys, string)
-        filter_keys._?.any? { |key| string.include?(key) }
+        filter_keys&.any? { |key| string.include?(key) }
       end
 
       def filtered_object(object)
