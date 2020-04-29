@@ -5,9 +5,9 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in attr_default.gemspec
 gemspec
 
-gem 'actionmailer',  '>= 4.2.11.1'
-gem 'actionpack',    '>= 4.2.11.1'
-gem 'activesupport', '>= 4.2.11.1'
+gem 'actionmailer'
+gem 'actionpack'
+gem 'activesupport'
 
 group :development do
   gem "minitest"
