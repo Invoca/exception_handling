@@ -6,11 +6,6 @@ GIT
     honeybadger (3.3.1.pre.1)
 
 PATH
-  remote: ../invoca-utils
-  specs:
-    invoca-utils (0.3.0)
-
-PATH
   remote: .
   specs:
     exception_handling (2.5.0)
@@ -66,6 +61,7 @@ GEM
       activesupport (>= 4.2.0)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
+    invoca-utils (0.3.0)
     jaro_winkler (1.5.3)
     json (2.3.0)
     loofah (2.4.0)
@@ -132,7 +128,7 @@ DEPENDENCIES
   activesupport (>= 4.2.11.1)
   exception_handling!
   honeybadger (= 3.3.1.pre.1)!
-  invoca-utils!
+  invoca-utils (~> 0.3)
   minitest
   minitest-reporters
   pry
