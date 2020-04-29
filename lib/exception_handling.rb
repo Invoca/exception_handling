@@ -2,7 +2,7 @@
 
 require 'timeout'
 require 'active_support'
-require 'active_support/core_ext/hash'
+require 'active_support/core_ext'
 require 'contextual_logger'
 
 require 'invoca/utils'

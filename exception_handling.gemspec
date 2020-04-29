@@ -25,6 +25,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'activesupport', '~> 4.2'
   spec.add_dependency 'contextual_logger'
   spec.add_dependency 'eventmachine',  '~> 1.0'
-  spec.add_dependency 'hobo_support'
-  spec.add_dependency 'invoca-utils',  '~> 0.0'
+  spec.add_dependency 'invoca-utils',  '~> 0.3'
 end
