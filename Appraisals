@@ -11,3 +11,9 @@ appraise "rails-5" do
   gem 'actionpack',    '~> 5.0'
   gem 'activesupport', '~> 5.0'
 end
+
+appraise "rails-6" do
+  gem 'actionmailer',  '~> 6.0'
+  gem 'actionpack',    '~> 6.0'
+  gem 'activesupport', '~> 6.0'
+end

@@ -52,6 +52,12 @@ pipeline {
             sh 'JUNIT_OUTPUT_DIR=test/reports/rails-5 bundle exec appraisal rails-5 rake'
           }
         }
+
+        stage('Rails 6') {
+          steps {
+            sh 'JUNIT_OUTPUT_DIR=test/reports/rails-6 bundle exec appraisal rails-6 rake'
+          }
+        }
       }
 
       post {
