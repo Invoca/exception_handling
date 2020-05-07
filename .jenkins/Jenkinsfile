@@ -27,16 +27,32 @@ pipeline {
             ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
 
             bundle install
+            bundle exec appraisal install
           '''
         }
       }
     }
-    stage('Unit Test') {
-      steps {
-        script {
-          sh 'bundle exec rake'
+    stage('Appraisals') {
+      parallel {
+        stage('Current') {
+          steps {
+            sh 'JUNIT_OUTPUT_DIR=test/reports/current bundle exec rake'
+          }
+        }
+
+        stage('Rails 4') {
+          steps {
+            sh 'JUNIT_OUTPUT_DIR=test/reports/rails-4 bundle exec appraisal rails-4 rake'
+          }
+        }
+
+        stage('Rails 5') {
+          steps {
+            sh 'JUNIT_OUTPUT_DIR=test/reports/rails-5 bundle exec appraisal rails-5 rake'
+          }
         }
       }
+
       post {
         always { junit '*/reports/*.xml' }
         success { updateGitHubStatus('clean-build', 'success', 'Unit tests.') }
