@@ -19,6 +19,7 @@ pipeline {
     stage('Setup') {
       steps {
         script {
+          updateGitHubStatus('clean-build', 'pending', 'Unit tests.')
           sh '''
             # get SSH setup inside the container
             eval `ssh-agent -s`
