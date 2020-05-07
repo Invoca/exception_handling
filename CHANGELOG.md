@@ -6,7 +6,8 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 
 ## [2.4.2] - Unreleased
 ### Added
-- Added official support for rails versions 4, 5, and 6
+- Added support for rails 5 and 6.
+- Added appraisal tests for all supported rails version: 4/5/6
 
 ### Changed
 - Updated various test to be compatible with rails version 4/5/6
