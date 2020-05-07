@@ -55,7 +55,7 @@ pipeline {
       }
 
       post {
-        always { junit '*/reports/*.xml' }
+        always { junit '*/reports/*/*.xml' }
         success { updateGitHubStatus('clean-build', 'success', 'Unit tests.') }
         failure { updateGitHubStatus('clean-build', 'failure', 'Unit tests.') }
       }
