@@ -52,7 +52,7 @@ module ExceptionHandling
       setup do
         @filename = File.expand_path('../../../config/exception_filters.yml',  __dir__)
         @exception_catalog = ExceptionCatalog.new(@filename)
-        assert_nothing_raised "Loading the exception filter should not raise" do
+        assert_nothing_raised do
           @exception_catalog.send :load_file
         end
       end
