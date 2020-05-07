@@ -306,12 +306,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
         end
 
-        if ActionView::VERSION::MAJOR < 5
-          should "log an exception with call stack if an ActionView template exception is raised." do
-            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
-            ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
-          end
-        elsif
+        if ActionView::VERSION::MAJOR >= 5
           should "log an exception with call stack if an ActionView template exception is raised." do
             mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
             ExceptionHandling.ensure_safe do
@@ -323,6 +318,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                 raise ActionView::TemplateError.new({})
               end
             end
+          end
+        else
+          should "log an exception with call stack if an ActionView template exception is raised." do
+            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
+            ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
           end
         end
 
