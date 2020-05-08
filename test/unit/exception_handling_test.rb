@@ -306,9 +306,24 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
         end
 
-        should "log an exception with call stack if an ActionView template exception is raised." do
-          mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
-          ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
+        if ActionView::VERSION::MAJOR >= 5
+          should "log an exception with call stack if an ActionView template exception is raised." do
+            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
+            ExceptionHandling.ensure_safe do
+              begin
+                # Rails 5 made the switch from ActionView::TemplateError taking in the original exception
+                # as an argument to using the $! global to extract the original exception
+                raise ArgumentError, "blah"
+              rescue
+                raise ActionView::TemplateError.new({})
+              end
+            end
+          end
+        else
+          should "log an exception with call stack if an ActionView template exception is raised." do
+            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
+            ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
+          end
         end
 
         should "should not log an exception if an exception is not raised." do

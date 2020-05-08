@@ -2,6 +2,10 @@
 
 Enable emails for your exceptions that occur in your application!
 
+## Dependencies
+- Ruby 2.6
+- Rails >= 4, < 7
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -89,15 +93,15 @@ There is another hook available intended for custom actions after an error email
       else
         Invoca::Metrics::Client.metrics.counter("exception_handling/exception")
       end
-      
+
       case honeybadger_status
       when :success
         Invoca::Metrics::Client.metrics.counter("exception_handling.honeybadger.success")
-      when :failure 
+      when :failure
         Invoca::Metrics::Client.metrics.counter("exception_handling.honeybadger.failure")
       when :skipped
         Invoca::Metrics::Client.metrics.counter("exception_handling.honeybadger.skipped")
-      end  
+      end
     end
     ExceptionHandling.post_log_error_hook = method(:log_error_metrics)
 
