@@ -4,7 +4,7 @@ Enable emails for your exceptions that occur in your application!
 
 ## Dependencies
 - Ruby 2.6
-- Rails >= 4, < 7
+- Rails >= 4.2, < 7
 
 ## Installation
 
