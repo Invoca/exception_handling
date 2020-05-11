@@ -7,9 +7,9 @@ appraise "rails-4" do
 end
 
 appraise "rails-5" do
-  gem 'actionmailer',  '~> 5.0'
-  gem 'actionpack',    '~> 5.0'
-  gem 'activesupport', '~> 5.0'
+  gem 'actionmailer',  '~> 5.2'
+  gem 'actionpack',    '~> 5.2'
+  gem 'activesupport', '~> 5.2'
 end
 
 appraise "rails-6" do
