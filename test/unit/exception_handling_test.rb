@@ -8,6 +8,10 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   include ControllerHelpers
   include ExceptionHelpers
 
+  setup do
+    @fail_count = 0
+  end
+
   def dont_stub_log_error
     true
   end
@@ -192,7 +196,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "support a log_error hook, and pass exception_data, treat_like_warning, and logged_to_honeybadger to it" do
-        @fail_count = 0
         @honeybadger_status = nil
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
 
@@ -209,7 +212,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
 
       should "plumb treat_like_warning and logged_to_honeybadger to log error hook" do
-        @fail_count = 0
         @honeybadger_status = nil
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", treat_like_warning: true)
@@ -682,7 +684,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             should "not send notification to honeybadger when exception description has the flag turned off and call log error callback with logged_to_honeybadger set to nil" do
-              @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               filter_list = {
@@ -701,7 +702,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             should "call log error callback with logged_to_honeybadger set to false if an error occurs while attempting to notify honeybadger" do
-              @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               mock(Honeybadger).notify.with_any_args { raise "Honeybadger Notification Failure" }
@@ -710,7 +710,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             should "call log error callback with logged_to_honeybadger set to false on unsuccessful honeybadger notification" do
-              @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               mock(Honeybadger).notify.with_any_args { false }
@@ -719,7 +718,6 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
 
             should "call log error callback with logged_to_honeybadger set to true on successful honeybadger notification" do
-              @fail_count = 0
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               mock(Honeybadger).notify.with_any_args { '06220c5a-b471-41e5-baeb-de247da45a56' }
