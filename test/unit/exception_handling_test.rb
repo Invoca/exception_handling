@@ -109,6 +109,30 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       stub(Honeybadger).notify(anything)
     end
 
+    context "with logger stashed" do
+      setup { @original_logger = ExceptionHandling.logger }
+      teardown { ExceptionHandling.logger = @original_logger }
+
+      should "store logger as-is if it has ContextualLogger::Mixin" do
+        logger = Logger.new('/dev/null')
+        logger.extend(ContextualLogger::LoggerMixin)
+        ancestors = logger.singleton_class.ancestors.*.name
+
+        ExceptionHandling.logger = logger
+        assert_equal ancestors, ExceptionHandling.logger.singleton_class.ancestors.*.name
+      end
+
+      should "[deprecated] mix in ContextualLogger::Mixin if not there" do
+        mock(STDERR).puts(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
+        logger = Logger.new('/dev/null')
+        ancestors = logger.singleton_class.ancestors.*.name
+
+        ExceptionHandling.logger = logger
+        assert_not_equal ancestors, ExceptionHandling.logger.singleton_class.ancestors.*.name
+        assert_kind_of ContextualLogger::LoggerMixin, ExceptionHandling.logger
+      end
+    end
+
     context "#log_error" do
       should "take in additional logging context hash and pass it to the logger" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
