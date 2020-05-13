@@ -60,7 +60,7 @@ module ExceptionHandling # never included
       @logger = if logger.is_a?(ContextualLogger::LoggerMixin)
                   logger
                 else
-                  Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include your into your logger class first')
+                  Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include into your logger class first')
                   logger.extend(ContextualLogger::LoggerMixin)
                 end
     end
