@@ -23,10 +23,13 @@ require 'exception_handling/testing'
 ActiveSupport::TestCase.test_order = :sorted
 
 class LoggerStub
-  include ContextualLogger
-  attr_accessor :logged
+  include ContextualLogger::LoggerMixin
+  attr_accessor :logged, :level
 
   def initialize
+    @level = Logger::Severity::DEBUG
+    @progname = nil
+    @logdev = nil
     clear
   end
 

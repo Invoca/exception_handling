@@ -3,3 +3,4 @@
 .rubocop-http*
 test/reports/*
 gemfiles/*.lock
+pkg/

@@ -54,8 +54,15 @@ module ExceptionHandling # never included
       @logger or raise ArgumentError, "You must assign a value to #{name}.logger"
     end
 
+    Deprecation3_0 = ActiveSupport::Deprecation.new('3.0', 'exception_handling')
+
     def logger=(logger)
-      @logger = logger.is_a?(ContextualLogger) ? logger : ContextualLogger.new(logger)
+      @logger = if logger.is_a?(ContextualLogger::LoggerMixin)
+                  logger
+                else
+                  Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include into your logger class first')
+                  logger.extend(ContextualLogger::LoggerMixin)
+                end
     end
 
     def default_metric_name(exception_data, exception, treat_like_warning)
