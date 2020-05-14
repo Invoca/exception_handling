@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.3] - Unreleased
+## [2.4.3] - 2020-05-14
 ### Deprecated
 - In `ExceptionHandling.logger=`, implicit `logger.extend ContextualLogger::LoggerMixin` is now deprecated.
   This will be removed in version 3.0 and an `ArgumentError` will be raised if the logger

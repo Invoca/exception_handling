@@ -8,11 +8,11 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (2.4.3.pre.2)
+    exception_handling (2.4.3)
       actionmailer (>= 4.2, < 7.0)
       actionpack (>= 4.2, < 7.0)
       activesupport (>= 4.2, < 7.0)
-      contextual_logger
+      contextual_logger (~> 0.7)
       eventmachine (~> 1.0)
       invoca-utils (~> 0.3)
 
@@ -55,7 +55,7 @@ GEM
     builder (3.2.3)
     coderay (1.1.2)
     concurrent-ruby (1.1.5)
-    contextual_logger (0.6.1)
+    contextual_logger (0.7.0)
       activesupport
       json
     crass (1.0.6)
