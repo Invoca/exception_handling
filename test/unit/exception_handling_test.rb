@@ -126,6 +126,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_equal ancestors, ExceptionHandling.logger.singleton_class.ancestors.*.name
       end
 
+      should "allow logger = nil (no deprecation warning)" do
+        mock(STDERR).puts(/DEPRECATION WARNING/).never
+        ExceptionHandling.logger = nil
+      end
+
       should "[deprecated] mix in ContextualLogger::Mixin if not there" do
         mock(STDERR).puts(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
         logger = Logger.new('/dev/null')
