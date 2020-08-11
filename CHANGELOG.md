@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.4] - 2020-08-10
+### Fixed
+- `ExceptionHandling.logger = nil` no longer displays an "implicit extend" deprecation warning.
+
 ## [2.4.3] - 2020-05-14
 ### Deprecated
 - In `ExceptionHandling.logger=`, implicit `logger.extend ContextualLogger::LoggerMixin` is now deprecated.
@@ -24,6 +28,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.4.3]: https://github.com/Invoca/exception_handling/compare/v2.4.3...v2.4.4
 [2.4.3]: https://github.com/Invoca/exception_handling/compare/v2.4.2...v2.4.3
 [2.4.2]: https://github.com/Invoca/exception_handling/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/Invoca/exception_handling/compare/v2.4.0...v2.4.1
