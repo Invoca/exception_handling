@@ -222,7 +222,13 @@ module ExceptionHandling # never included
     #
     def write_exception_to_log(ex, exception_context, timestamp, log_context = {})
       ActiveSupport::Deprecation.silence do
-        ExceptionHandling.logger.fatal("\nExceptionHandlingError (Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n", log_context)
+        log_message = "\nExceptionHandlingError (Error:#{timestamp}) #{ex.class} #{exception_context} (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n"
+
+        if ex.is_a?(Warning)
+          ExceptionHandling.logger.warn(log_message, log_context)
+        else
+          ExceptionHandling.logger.fatal(log_message, log_context)
+        end
       end
     end
 
