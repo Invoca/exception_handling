@@ -95,7 +95,7 @@ module ExceptionHandling
           assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithId @id=123 [error 'RuntimeError: some error' while calling #inspect]>", result
         end
 
-        should "handle exceptions for objects responding to to_pik" do
+        should "handle exceptions for objects responding to to_pk" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithToPk.new, ['password'])
           assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithToPk @pk=SomeRecord-123 [error 'RuntimeError: some error' while calling #inspect]>", result
         end
