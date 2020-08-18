@@ -57,7 +57,7 @@ module ExceptionHandling # never included
     Deprecation3_0 = ActiveSupport::Deprecation.new('3.0', 'exception_handling')
 
     def logger=(logger)
-      @logger = if logger.is_a?(ContextualLogger::LoggerMixin)
+      @logger = if logger.nil? || logger.is_a?(ContextualLogger::LoggerMixin)
                   logger
                 else
                   Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include into your logger class first')
