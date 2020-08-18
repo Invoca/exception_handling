@@ -4,6 +4,8 @@
 require "bundler/gem_tasks"
 require 'rake/testtask'
 
+require_relative 'test/rake_test_warning_false'
+
 task default: :test
 
 Rake::TestTask.new do |t|
