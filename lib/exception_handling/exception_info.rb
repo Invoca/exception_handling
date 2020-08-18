@@ -3,7 +3,7 @@
 module ExceptionHandling
   class ExceptionInfo
 
-    ENVIRONMENT_WHITELIST = [
+    ENVIRONMENT_ALLOWLIST = [
       /^HTTP_/,
       /^QUERY_/,
       /^REQUEST_/,
@@ -178,7 +178,7 @@ module ExceptionHandling
 
     def clean_environment(env)
       Hash[ env.map do |k, v|
-        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
+        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_ALLOWLIST.any? { |regex| k =~ regex }
       end.compact ]
     end
 
