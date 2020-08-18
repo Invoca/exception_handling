@@ -636,7 +636,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             mock(Honeybadger).notify.with_any_args do |data|
               honeybadger_data = data
             end
-            ExceptionHandling.log_error(exception, exception_context, controller) do |data|
+            log_context = { log_source: "gem/listen", cuid: "AA12BC34DE" }
+            ExceptionHandling.log_error(exception, exception_context, controller, **log_context) do |data|
               data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
               data[:user_details] = { username: "jsmith" }
               data[:event_response] = "Event successfully received"
@@ -672,7 +673,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                   "test/unit/exception_handling_test.rb:847:in `exception_1'",
                   "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                 ],
-                event_response: "Event successfully received"
+                event_response: "Event successfully received",
+                log_context: { "log_source" => "gem/listen", "cuid" => "AA12BC34DE" }
               }
             }
             assert_equal_with_diff expected_data, honeybadger_data

@@ -51,12 +51,13 @@ module ExceptionHandling
 
     attr_reader :exception, :controller, :exception_context, :timestamp
 
-    def initialize(exception, exception_context: nil, timestamp:, controller: nil, data_callback: nil)
+    def initialize(exception, exception_context, timestamp, controller: nil, data_callback: nil, log_context: nil)
       @exception = exception
       @exception_context = exception_context
       @timestamp = timestamp
       @controller = controller || controller_from_context(exception_context)
       @data_callback = data_callback
+      @log_context = log_context
     end
 
     def data
@@ -268,6 +269,7 @@ module ExceptionHandling
       data = enhanced_data.dup
       data[:server] = ExceptionHandling.server_name
       data[:exception_context] = deep_clean_hash(@exception_context) if @exception_context.present?
+      data[:log_context] = @log_context
       unstringify_sections(data)
       context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
         if data[section].present?

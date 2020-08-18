@@ -29,7 +29,7 @@ module ExceptionHandling
           exception_context = {
             "action_controller.instance" => Object.new
           }
-          exception_info = ExceptionInfo.new(@exception, exception_context, @timestamp, @controller)
+          exception_info = ExceptionInfo.new(@exception, exception_context, @timestamp, controller: @controller)
           assert_equal @controller, exception_info.controller
           assert_not_equal exception_context["action_controller.instance"], exception_info.controller
         end
@@ -107,7 +107,7 @@ module ExceptionHandling
         request_uri = "host/path"
         controller = create_dummy_controller(env, parameters, session, request_uri)
         data_callback = ->(data) { data[:custom_section] = "value" }
-        exception_info = ExceptionInfo.new(@exception, "custom context data", @timestamp, controller, data_callback)
+        exception_info = ExceptionInfo.new(@exception, "custom context data", @timestamp, controller: controller, data_callback: data_callback)
 
         dont_allow(exception_info).extract_and_merge_controller_data
         dont_allow(exception_info).customize_from_data_callback
@@ -177,7 +177,7 @@ module ExceptionHandling
       end
 
       should "include controller data when available" do
-        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller: @controller)
         expected_data = {
           "error_class" => "StandardError",
           "error_string" => "StandardError: something went wrong",
@@ -220,7 +220,7 @@ module ExceptionHandling
       end
 
       should "add to_s attribute to specific sections that have their content in hash format" do
-        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller: @controller)
         expected_data = {
           "error_class" => "StandardError",
           "error_string" => "StandardError: something went wrong",
@@ -251,7 +251,7 @@ module ExceptionHandling
       should "filter out sensitive parameters like passwords" do
         @controller.request.parameters[:password] = "super_secret"
         @controller.request.parameters[:user] = { "password" => "also super secret", "password_confirmation" => "also super secret" }
-        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, @controller)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller: @controller)
         expected_params = {
           "password" => "[FILTERED]",
           "advertiser_id" => 435, "controller" => "dummy",
@@ -265,7 +265,7 @@ module ExceptionHandling
       end
 
       should "include the changes from the custom data callback" do
-        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, nil, @data_callback)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller: nil, data_callback: @data_callback)
         expected_data = {
           "error_class" => "StandardError",
           "error_string" => "StandardError: something went wrong",
@@ -331,7 +331,7 @@ module ExceptionHandling
         request_uri = "host/path"
         controller = create_dummy_controller(env, parameters, session, request_uri)
         exception = StandardError.new("Request to click domain rejected")
-        exception_info = ExceptionInfo.new(exception, {}, Time.now, controller)
+        exception_info = ExceptionInfo.new(exception, nil, Time.now, controller: controller)
         assert_equal true, exception_info.enhanced_data[:request].is_a?(Hash)
         description = exception_info.exception_description
         assert_not_nil description
@@ -340,11 +340,11 @@ module ExceptionHandling
 
       should "return same description object for related errors (avoid reloading exception catalog from disk)" do
         exception = StandardError.new("No route matches")
-        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
         description = exception_info.exception_description
 
         repeat_ex = StandardError.new("No route matches 2")
-        repeat_ex_info = ExceptionInfo.new(repeat_ex, {}, Time.now)
+        repeat_ex_info = ExceptionInfo.new(repeat_ex, nil, Time.now)
         assert_equal description.object_id, repeat_ex_info.exception_description.object_id
       end
     end
@@ -368,7 +368,7 @@ module ExceptionHandling
         session     = { username:   'smith' }
         request_uri = "host/path"
         controller  = create_dummy_controller(env, parameters, session, request_uri)
-        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller: controller)
 
         assert_equal 'some_controller', exception_info.controller_name
       end
@@ -384,7 +384,7 @@ module ExceptionHandling
       should "be enabled when Honeybadger is defined and exception is not in the filter list" do
         stub(ExceptionHandling).honeybadger_defined? { true }
         exception = StandardError.new("something went wrong")
-        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
         assert_nil exception_info.exception_description
         assert_equal true, exception_info.send_to_honeybadger?
       end
@@ -392,7 +392,7 @@ module ExceptionHandling
       should "be enabled when Honeybadger is defined and exception is on the filter list with the flag turned on" do
         stub(ExceptionHandling).honeybadger_defined? { true }
         exception = StandardError.new("No route matches")
-        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
         assert_not_nil exception_info.exception_description
         assert_equal true, exception_info.exception_description.send_to_honeybadger
         assert_equal true, exception_info.send_to_honeybadger?
@@ -401,7 +401,7 @@ module ExceptionHandling
       should "be disabled when Honeybadger is defined and exception is on the filter list with the flag turned off" do
         stub(ExceptionHandling).honeybadger_defined? { true }
         exception = StandardError.new("No route matches")
-        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
         assert_not_nil exception_info.exception_description
         stub(exception_info.exception_description).send_to_honeybadger { false }
         assert_equal false, exception_info.send_to_honeybadger?
@@ -410,7 +410,7 @@ module ExceptionHandling
       should "be disabled when Honeybadger is not defined" do
         stub(ExceptionHandling).honeybadger_defined? { false }
         exception = StandardError.new("something went wrong")
-        exception_info = ExceptionInfo.new(exception, {}, Time.now)
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
         assert_nil exception_info.exception_description
         assert_equal false, exception_info.send_to_honeybadger?
       end
@@ -438,7 +438,7 @@ module ExceptionHandling
           data[:other_section] = "This should not be included in the response"
         end
         timestamp = Time.now
-        exception_info = ExceptionInfo.new(exception, exception_context, timestamp, controller, data_callback)
+        exception_info = ExceptionInfo.new(exception, exception_context, timestamp, controller: controller, data_callback: data_callback)
 
         expected_data = {
           timestamp: timestamp,
