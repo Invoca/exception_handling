@@ -162,7 +162,7 @@ module ExceptionHandling # never included
     #
     def log_error_rack(exception, env, _rack_filter)
       timestamp = set_log_error_timestamp
-      exception_info = ExceptionInfo.new(exception, env, timestamp)
+      exception_info = ExceptionInfo.new(exception, exception_context: env, timestamp: timestamp)
 
       if stub_handler
         stub_handler.handle_stub_log_error(exception_info.data)
@@ -193,7 +193,7 @@ module ExceptionHandling # never included
     def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
       ex = make_exception(exception_or_string)
       timestamp = set_log_error_timestamp
-      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
+      exception_info = ExceptionInfo.new(ex, exception_context: exception_context, timestamp: timestamp, controller: controller || current_controller, data_callback: data_callback)
 
       if stub_handler
         stub_handler.handle_stub_log_error(exception_info.data)
@@ -420,7 +420,7 @@ module ExceptionHandling # never included
     end
 
     def escalate(email_subject, ex, timestamp, custom_recipients = nil)
-      exception_info = ExceptionInfo.new(ex, nil, timestamp)
+      exception_info = ExceptionInfo.new(ex, timestamp: timestamp)
       deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data, custom_recipients))
     end
 
