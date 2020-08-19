@@ -644,7 +644,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               mock(Honeybadger).notify.with_any_args do |data|
                 honeybadger_data = data
               end
-              log_context = { log_source: "gem/listen", cuid: "AA12BC34DE" }
+              ExceptionHandling.logger.global_context = { service_name: "rails", region: "AWS-us-east-1" }
+              log_context = { log_source: "gem/listen", service_name: "bin/console" }
               ExceptionHandling.log_error(@exception, @exception_context, @controller, **log_context) do |data|
                 data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
                 data[:user_details] = { username: "jsmith" }
@@ -682,7 +683,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                     "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                   ],
                   event_response: "Event successfully received",
-                  log_context: { "log_source" => "gem/listen", "cuid" => "AA12BC34DE" }
+                  log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
                 }
               }
               assert_equal_with_diff expected_data, honeybadger_data
@@ -693,7 +694,8 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               mock(Honeybadger).notify.with_any_args do |data|
                 honeybadger_data = data
               end
-              log_context = { }
+              ExceptionHandling.logger.global_context = {}
+              log_context = {}
               ExceptionHandling.log_error(@exception, @exception_context, @controller, **log_context) do |data|
                 data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
                 data[:user_details] = { username: "jsmith" }
