@@ -180,6 +180,20 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
       end
     end
 
+    context "#write_exception_to_log" do
+      should "log warnings with Severity::WARNING" do
+        warning = ExceptionHandling::Warning.new('This is a Warning')
+        ExceptionHandling.write_exception_to_log(warning, '', Time.now.to_i, service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
+      end
+
+      should "log everything else with Severity::FATAL" do
+        error = RuntimeError.new('This is a runtime error')
+        ExceptionHandling.write_exception_to_log(error, '', Time.now.to_i, service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'FATAL'
+      end
+    end
+
     context "configuration with custom_data_hook or post_log_error_hook" do
       teardown do
         ExceptionHandling.custom_data_hook = nil
