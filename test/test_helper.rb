@@ -38,11 +38,11 @@ class LoggerStub
   end
 
   def warn(message, log_context = {})
-    logged << { message: message, context: log_context }
+    logged << { message: message, context: log_context, severity: 'WARN' }
   end
 
   def fatal(message, log_context = {})
-    logged << { message: message, context: log_context }
+    logged << { message: message, context: log_context, severity: 'FATAL' }
   end
 
   def clear
