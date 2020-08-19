@@ -195,7 +195,7 @@ module ExceptionHandling # never included
       timestamp = set_log_error_timestamp
       exception_info = ExceptionInfo.new(ex, exception_context, timestamp,
                                          controller: controller || current_controller, data_callback: data_callback,
-                                         log_context: logger.current_context_for_thread.deep_merge(log_context))
+                                         log_context: log_context)
 
       if stub_handler
         stub_handler.handle_stub_log_error(exception_info.data)
