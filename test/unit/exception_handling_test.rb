@@ -144,6 +144,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
+
+      should "log with Severity::FATAL" do
+        ExceptionHandling.log_error('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'FATAL'
+      end
     end
 
     context "#log_warning" do
@@ -160,28 +165,43 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
+
+      should "log with Severity::WARN" do
+        ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
+      end
     end
 
     context "#log_info" do
       should "take in additional key word args as logging context and pass them to the logger" do
-        ExceptionHandling.log_warning('This is an Info', service_name: 'exception_handling')
+        ExceptionHandling.log_info('This is an Info', service_name: 'exception_handling')
         assert_match(/This is an Info/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+      end
+
+      should "log with Severity::INFO" do
+        ExceptionHandling.log_info('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'INFO'
       end
     end
 
     context "#log_debug" do
       should "take in additional key word args as logging context and pass them to the logger" do
-        ExceptionHandling.log_warning('This is a Debug', service_name: 'exception_handling')
+        ExceptionHandling.log_debug('This is a Debug', service_name: 'exception_handling')
         assert_match(/This is a Debug/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
+
+      should "log with Severity::DEBUG" do
+        ExceptionHandling.log_debug('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'DEBUG'
+      end
     end
 
     context "#write_exception_to_log" do
-      should "log warnings with Severity::WARNING" do
+      should "log warnings with Severity::WARN" do
         warning = ExceptionHandling::Warning.new('This is a Warning')
         ExceptionHandling.write_exception_to_log(warning, '', Time.now.to_i, service_name: 'exception_handling')
         assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
