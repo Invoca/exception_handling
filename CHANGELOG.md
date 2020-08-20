@@ -9,6 +9,10 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 - The `**log_context` passed to `log_error`/`log_warning`/`log_info` is now
   passed into `Honeybadger.notify()`, in `context: { log_context: ... }`.
 
+### Fixed
+- Silenced test warning noise by no longer running ruby -w.
+- Renamed a constant to ALLOWLIST.
+
 ## [2.4.4] - 2020-08-10
 ### Fixed
 - `ExceptionHandling.logger = nil` no longer displays an "implicit extend" deprecation warning.
