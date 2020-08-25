@@ -3,7 +3,7 @@
 module ExceptionHandling
   class ExceptionInfo
 
-    ENVIRONMENT_WHITELIST = [
+    ENVIRONMENT_ALLOWLIST = [
       /^HTTP_/,
       /^QUERY_/,
       /^REQUEST_/,
@@ -46,16 +46,20 @@ module ExceptionHandling
     EOS
 
     SECTIONS = [:request, :session, :environment, :backtrace, :event_response].freeze
-    HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes, :user_details, :request, :session, :environment, :backtrace, :event_response].freeze
+    HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes,
+                                    :user_details, :request, :session, :environment, :backtrace, :event_response, :log_context].freeze
 
     attr_reader :exception, :controller, :exception_context, :timestamp
 
-    def initialize(exception, exception_context, timestamp, controller = nil, data_callback = nil)
+    def initialize(exception, exception_context, timestamp, controller: nil, data_callback: nil, log_context: nil)
       @exception = exception
       @exception_context = exception_context
       @timestamp = timestamp
       @controller = controller || controller_from_context(exception_context)
       @data_callback = data_callback
+      @merged_log_context = if log_context # merge into the surrounding context just like ContextualLogger does when logging
+                              ExceptionHandling.logger.current_context_for_thread.deep_merge(log_context)
+                            end
     end
 
     def data
@@ -176,7 +180,7 @@ module ExceptionHandling
 
     def clean_environment(env)
       Hash[ env.map do |k, v|
-        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_WHITELIST.any? { |regex| k =~ regex }
+        [k, v] if !"#{k}: #{v}".in?(ENVIRONMENT_OMIT) && ENVIRONMENT_ALLOWLIST.any? { |regex| k =~ regex }
       end.compact ]
     end
 
@@ -267,6 +271,7 @@ module ExceptionHandling
       data = enhanced_data.dup
       data[:server] = ExceptionHandling.server_name
       data[:exception_context] = deep_clean_hash(@exception_context) if @exception_context.present?
+      data[:log_context] = @merged_log_context
       unstringify_sections(data)
       context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
         if data[section].present?

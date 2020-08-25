@@ -126,6 +126,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_equal ancestors, ExceptionHandling.logger.singleton_class.ancestors.*.name
       end
 
+      should "allow logger = nil (no deprecation warning)" do
+        mock(STDERR).puts(/DEPRECATION WARNING/).never
+        ExceptionHandling.logger = nil
+      end
+
       should "[deprecated] mix in ContextualLogger::Mixin if not there" do
         mock(STDERR).puts(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
         logger = Logger.new('/dev/null')
@@ -650,66 +655,122 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             ExceptionHandling.log_error(exception_with_nil_message)
           end
 
-          should "send error details and relevant context data to Honeybadger" do
-            Time.now_override = Time.now
-            env = { server: "fe98" }
-            parameters = { advertiser_id: 435, controller: "some_controller" }
-            session = { username: "jsmith" }
-            request_uri = "host/path"
-            controller = create_dummy_controller(env, parameters, session, request_uri)
-            stub(ExceptionHandling).server_name { "invoca_fe98" }
+          context "with stubbed values" do
+            setup do
+              Time.now_override = Time.now
+              @env = { server: "fe98" }
+              @parameters = { advertiser_id: 435, controller: "some_controller" }
+              @session = { username: "jsmith" }
+              @request_uri = "host/path"
+              @controller = create_dummy_controller(@env, @parameters, @session, @request_uri)
+              stub(ExceptionHandling).server_name { "invoca_fe98" }
 
-            exception = StandardError.new("Some Exception")
-            exception.set_backtrace([
-                                      "test/unit/exception_handling_test.rb:847:in `exception_1'",
-                                      "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
-                                    ])
-            exception_context = { "SERVER_NAME" => "exceptional.com" }
-
-            honeybadger_data = nil
-            mock(Honeybadger).notify.with_any_args do |data|
-              honeybadger_data = data
-            end
-            ExceptionHandling.log_error(exception, exception_context, controller) do |data|
-              data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
-              data[:user_details] = { username: "jsmith" }
-              data[:event_response] = "Event successfully received"
-              data[:other_section] = "This should not be included in the response"
+              @exception = StandardError.new("Some Exception")
+              @exception.set_backtrace([
+                                         "test/unit/exception_handling_test.rb:847:in `exception_1'",
+                                         "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                                       ])
+              @exception_context = { "SERVER_NAME" => "exceptional.com" }
             end
 
-            expected_data = {
-              error_class: :"Test Exception",
-              error_message: "Some Exception",
-              controller: "some_controller",
-              exception: exception,
-              context: {
-                timestamp: Time.now.to_i,
-                error_class: "StandardError",
-                server: "invoca_fe98",
-                exception_context: { "SERVER_NAME" => "exceptional.com" },
-                scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
-                notes: "this is used by a test",
-                user_details: { "username" => "jsmith" },
-                request: {
-                  "params" => { "advertiser_id" => 435, "controller" => "some_controller" },
-                  "rails_root" => "Rails.root not defined. Is this a test environment?",
-                  "url" => "host/path"
-                },
-                session: {
-                  "key" => nil,
-                  "data" => { "username" => "jsmith" }
-                },
-                environment: {
-                  "SERVER_NAME" => "exceptional.com"
-                },
-                backtrace: [
-                  "test/unit/exception_handling_test.rb:847:in `exception_1'",
-                  "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
-                ],
-                event_response: "Event successfully received"
+            should "send error details and relevant context data to Honeybadger with log_context" do
+              honeybadger_data = nil
+              mock(Honeybadger).notify.with_any_args do |data|
+                honeybadger_data = data
+              end
+              ExceptionHandling.logger.global_context = { service_name: "rails", region: "AWS-us-east-1" }
+              log_context = { log_source: "gem/listen", service_name: "bin/console" }
+              ExceptionHandling.log_error(@exception, @exception_context, @controller, **log_context) do |data|
+                data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
+                data[:user_details] = { username: "jsmith" }
+                data[:event_response] = "Event successfully received"
+                data[:other_section] = "This should not be included in the response"
+              end
+
+              expected_data = {
+                error_class: :"Test Exception",
+                error_message: "Some Exception",
+                controller: "some_controller",
+                exception: @exception,
+                context: {
+                  timestamp: Time.now.to_i,
+                  error_class: "StandardError",
+                  server: "invoca_fe98",
+                  exception_context: { "SERVER_NAME" => "exceptional.com" },
+                  scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
+                  notes: "this is used by a test",
+                  user_details: { "username" => "jsmith" },
+                  request: {
+                    "params" => { "advertiser_id" => 435, "controller" => "some_controller" },
+                    "rails_root" => "Rails.root not defined. Is this a test environment?",
+                    "url" => "host/path"
+                  },
+                  session: {
+                    "key" => nil,
+                    "data" => { "username" => "jsmith" }
+                  },
+                  environment: {
+                    "SERVER_NAME" => "exceptional.com"
+                  },
+                  backtrace: [
+                    "test/unit/exception_handling_test.rb:847:in `exception_1'",
+                    "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                  ],
+                  event_response: "Event successfully received",
+                  log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
+                }
               }
-            }
-            assert_equal_with_diff expected_data, honeybadger_data
+              assert_equal_with_diff expected_data, honeybadger_data
+            end
+
+            should "send error details and relevant context data to Honeybadger with empty log_context" do
+              honeybadger_data = nil
+              mock(Honeybadger).notify.with_any_args do |data|
+                honeybadger_data = data
+              end
+              ExceptionHandling.logger.global_context = {}
+              log_context = {}
+              ExceptionHandling.log_error(@exception, @exception_context, @controller, **log_context) do |data|
+                data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
+                data[:user_details] = { username: "jsmith" }
+                data[:event_response] = "Event successfully received"
+                data[:other_section] = "This should not be included in the response"
+              end
+
+              expected_data = {
+                error_class: :"Test Exception",
+                error_message: "Some Exception",
+                controller: "some_controller",
+                exception: @exception,
+                context: {
+                  timestamp: Time.now.to_i,
+                  error_class: "StandardError",
+                  server: "invoca_fe98",
+                  exception_context: { "SERVER_NAME" => "exceptional.com" },
+                  scm_revision: "5b24eac37aaa91f5784901e9aabcead36fd9df82",
+                  notes: "this is used by a test",
+                  user_details: { "username" => "jsmith" },
+                  request: {
+                    "params" => { "advertiser_id" => 435, "controller" => "some_controller" },
+                    "rails_root" => "Rails.root not defined. Is this a test environment?",
+                    "url" => "host/path"
+                  },
+                  session: {
+                    "key" => nil,
+                    "data" => { "username" => "jsmith" }
+                  },
+                  environment: {
+                    "SERVER_NAME" => "exceptional.com"
+                  },
+                  backtrace: [
+                               "test/unit/exception_handling_test.rb:847:in `exception_1'",
+                               "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                             ],
+                  event_response: "Event successfully received"
+                }
+              }
+              assert_equal_with_diff expected_data, honeybadger_data
+            end
           end
 
           context "with post_log_error_hook set" do

@@ -57,7 +57,7 @@ module ExceptionHandling # never included
     Deprecation3_0 = ActiveSupport::Deprecation.new('3.0', 'exception_handling')
 
     def logger=(logger)
-      @logger = if logger.is_a?(ContextualLogger::LoggerMixin)
+      @logger = if logger.nil? || logger.is_a?(ContextualLogger::LoggerMixin)
                   logger
                 else
                   Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include into your logger class first')
@@ -193,7 +193,9 @@ module ExceptionHandling # never included
     def log_error(exception_or_string, exception_context = '', controller = nil, treat_like_warning: false, **log_context, &data_callback)
       ex = make_exception(exception_or_string)
       timestamp = set_log_error_timestamp
-      exception_info = ExceptionInfo.new(ex, exception_context, timestamp, controller || current_controller, data_callback)
+      exception_info = ExceptionInfo.new(ex, exception_context, timestamp,
+                                         controller: controller || current_controller, data_callback: data_callback,
+                                         log_context: log_context)
 
       if stub_handler
         stub_handler.handle_stub_log_error(exception_info.data)
