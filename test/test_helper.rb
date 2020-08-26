@@ -33,16 +33,20 @@ class LoggerStub
     clear
   end
 
+  def debug(message, log_context = {})
+    logged << { message: message, context: log_context, severity: 'DEBUG' }
+  end
+
   def info(message, log_context = {})
-    logged << { message: message, context: log_context }
+    logged << { message: message, context: log_context, severity: 'INFO' }
   end
 
   def warn(message, log_context = {})
-    logged << { message: message, context: log_context }
+    logged << { message: message, context: log_context, severity: 'WARN' }
   end
 
   def fatal(message, log_context = {})
-    logged << { message: message, context: log_context }
+    logged << { message: message, context: log_context, severity: 'FATAL' }
   end
 
   def clear

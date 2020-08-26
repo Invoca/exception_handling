@@ -149,6 +149,11 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
+
+      should "log with Severity::FATAL" do
+        ExceptionHandling.log_error('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'FATAL'
+      end
     end
 
     context "#log_warning" do
@@ -165,23 +170,52 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
       end
+
+      should "log with Severity::WARN" do
+        ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
+      end
     end
 
     context "#log_info" do
       should "take in additional key word args as logging context and pass them to the logger" do
-        ExceptionHandling.log_warning('This is an Info', service_name: 'exception_handling')
+        ExceptionHandling.log_info('This is an Info', service_name: 'exception_handling')
         assert_match(/This is an Info/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+      end
+
+      should "log with Severity::INFO" do
+        ExceptionHandling.log_info('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'INFO'
       end
     end
 
     context "#log_debug" do
       should "take in additional key word args as logging context and pass them to the logger" do
-        ExceptionHandling.log_warning('This is a Debug', service_name: 'exception_handling')
+        ExceptionHandling.log_debug('This is a Debug', service_name: 'exception_handling')
         assert_match(/This is a Debug/, logged_excluding_reload_filter.last[:message])
         assert_not_empty logged_excluding_reload_filter.last[:context]
         assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+      end
+
+      should "log with Severity::DEBUG" do
+        ExceptionHandling.log_debug('This is a Warning', service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'DEBUG'
+      end
+    end
+
+    context "#write_exception_to_log" do
+      should "log warnings with Severity::WARN" do
+        warning = ExceptionHandling::Warning.new('This is a Warning')
+        ExceptionHandling.write_exception_to_log(warning, '', Time.now.to_i, service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
+      end
+
+      should "log everything else with Severity::FATAL" do
+        error = RuntimeError.new('This is a runtime error')
+        ExceptionHandling.write_exception_to_log(error, '', Time.now.to_i, service_name: 'exception_handling')
+        assert_equal logged_excluding_reload_filter.last[:severity], 'FATAL'
       end
     end
 
@@ -339,7 +373,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
         if ActionView::VERSION::MAJOR >= 5
           should "log an exception with call stack if an ActionView template exception is raised." do
-            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
+            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
             ExceptionHandling.ensure_safe do
               begin
                 # Rails 5 made the switch from ActionView::TemplateError taking in the original exception
@@ -352,7 +386,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           end
         else
           should "log an exception with call stack if an ActionView template exception is raised." do
-            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) ActionView::Template::Error  \(blah\):\n /, anything)
+            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
             ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
           end
         end
@@ -375,7 +409,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "allow a message to be appended to the error when logged." do
-          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
+          mock(ExceptionHandling.logger).fatal(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
           assert_nil b
         end
@@ -383,7 +417,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "only rescue StandardError and descendents" do
           assert_raise(Exception) { ExceptionHandling.ensure_safe("mooo") { raise Exception } }
 
-          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
+          mock(ExceptionHandling.logger).fatal(/mooo\nStandardError: \(blah\):\n.*exception_handling_test\.rb/, anything)
 
           b = ExceptionHandling.ensure_safe("mooo") { raise StandardError, "blah" }
           assert_nil b
@@ -414,7 +448,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
 
         should "allow a message to be appended to the error when logged." do
-          mock(ExceptionHandling.logger).fatal(/mooo \(blah\):\n.*exception_handling_test\.rb/, anything)
+          mock(ExceptionHandling.logger).fatal(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError, "blah" }
           assert_nil b
         end
@@ -471,7 +505,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
 
           assert_match(/ArgumentError.*first_test_exception/, log_fatals[0].first)
-          assert_match(/safe_email_deliver.*Delivery Error/, log_fatals[1].first)
+          assert_match(/safe_email_deliver.*Delivery Error/m, log_fatals[1].first)
 
           assert_equal 2, log_fatals.size, log_fatals.inspect
 
@@ -541,7 +575,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         should "include the timestamp when the exception is logged" do
           capture_notifications
 
-          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) ArgumentError context \(blah\):\n.*exception_handling_test\.rb/, anything)
+          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("context") { raise ArgumentError, "blah" }
           assert_nil b
 
