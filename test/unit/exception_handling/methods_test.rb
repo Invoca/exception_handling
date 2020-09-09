@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require File.expand_path('../../test_helper',  __dir__)
+require_relative '../../test_helper'
+require_relative '../../helpers/exception_helpers'
 
 require "exception_handling/testing"
 
@@ -12,7 +13,25 @@ module ExceptionHandling
       true
     end
 
-    context "ExceptionHandling.Methods" do
+    describe  "included deprecation" do
+      should "not deprecate when no around_filter in included hook" #do
+      #   mock(STDERR).never.puts(/DEPRECATION WARNING/)
+      #   k = Class.new
+      #   k.include ExceptionHandling::Methods
+      # end
+
+      should "deprecate controller around_filter in included hook" do
+        mock(STDERR).puts(/DEPRECATION WARNING: around_filter definition when ::Methods is included into Rails Controllers is deprecated and will be removed from exception_handling 3\.0/)
+        controller = Class.new
+        class << controller
+          def around_filter(*)
+          end
+        end
+        controller.include ExceptionHandling::Methods
+      end
+    end
+
+    context "ExceptionHandling::Methods" do
       setup do
         @controller = Testing::ControllerStub.new
         ExceptionHandling.stub_handler = nil

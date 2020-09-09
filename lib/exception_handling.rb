@@ -29,6 +29,8 @@ module ExceptionHandling # never included
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION', 'X-HTTP_AUTHORIZATION', 'X_HTTP_AUTHORIZATION', 'REDIRECT_X_HTTP_AUTHORIZATION'].freeze
   HONEYBADGER_STATUSES   = [:success, :failure, :skipped].freeze
 
+  Deprecation3_0 = ActiveSupport::Deprecation.new('3.0', 'exception_handling')
+
   class << self
 
     #
@@ -53,8 +55,6 @@ module ExceptionHandling # never included
     def logger
       @logger or raise ArgumentError, "You must assign a value to #{name}.logger"
     end
-
-    Deprecation3_0 = ActiveSupport::Deprecation.new('3.0', 'exception_handling')
 
     def logger=(logger)
       @logger = if logger.nil? || logger.is_a?(ContextualLogger::LoggerMixin)
