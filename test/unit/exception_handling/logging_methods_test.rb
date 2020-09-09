@@ -6,7 +6,7 @@ require_relative '../../helpers/exception_helpers'
 require "exception_handling/testing"
 
 module ExceptionHandling
-  class MethodsTest < ActiveSupport::TestCase
+  class LoggingMethodsTest < ActiveSupport::TestCase
     include ExceptionHelpers
 
     def dont_stub_log_error

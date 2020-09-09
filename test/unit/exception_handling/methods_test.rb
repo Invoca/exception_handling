@@ -26,15 +26,17 @@ module ExceptionHandling
       end
     end
 
-    describe  "included deprecation" do
-      should "not deprecate when no around_filter in included hook" do
-        mock(STDERR).puts(/DEPRECATION WARNING/).never
+    context  "included deprecation" do
+      setup do
+        mock_deprecation_3_0
+      end
+
+      should "deprecate when no around_filter in included hook" do
         k = Class.new
         k.include ExceptionHandling::Methods
       end
 
       should "deprecate controller around_filter in included hook" do
-        mock(STDERR).puts(/DEPRECATION WARNING: around_filter definition when ::Methods is included into Rails Controllers is deprecated and will be removed from exception_handling 3\.0/)
         controller = Class.new
         class << controller
           def around_filter(*)
@@ -42,6 +44,12 @@ module ExceptionHandling
         end
         controller.include ExceptionHandling::Methods
       end
+    end
+
+    private
+
+    def mock_deprecation_3_0
+      mock(STDERR).puts(/DEPRECATION WARNING: ExceptionHandling::Methods is deprecated and will be removed from exception_handling 3\.0/)
     end
   end
 end

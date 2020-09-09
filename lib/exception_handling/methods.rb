@@ -30,8 +30,8 @@ module ExceptionHandling
     end
 
     included do
+      Deprecation3_0.deprecation_warning('ExceptionHandling::Methods', 'include LoggingMethods; in controllers, set your own around_filter to set logging context')
       if respond_to? :around_filter
-        Deprecation3_0.deprecation_warning('around_filter definition when ::Methods is included into Rails Controllers', 'set your own around_filter to set logging context')
         around_filter :set_current_controller
       end
     end
