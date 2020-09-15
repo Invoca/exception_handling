@@ -4,7 +4,11 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.6.0] - Unreleased
+## [2.6.1] - Unreleased
+### Fixed
+- Fixed honeybadger_context_data to always merge `current_context_for_thread`, even if `log_context:` is passed as `nil`.
+
+## [2.6.0] - 2020-08-26
 ### Changed
 - Calling `log_warning` will now log with Severity::WARNING rather than FATAL.
 - Reordered the logging to put the exception class next to the message.
@@ -42,6 +46,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.6.1]: https://github.com/Invoca/exception_handling/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Invoca/exception_handling/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/Invoca/exception_handling/compare/v2.4.4...v2.5.0
 [2.4.4]: https://github.com/Invoca/exception_handling/compare/v2.4.3...v2.4.4
