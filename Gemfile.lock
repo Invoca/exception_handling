@@ -59,6 +59,7 @@ GEM
       activesupport
       json
     crass (1.0.6)
+    diff-lcs (1.4.4)
     erubis (2.7.0)
     eventmachine (1.2.7)
     globalid (0.4.2)
@@ -104,6 +105,21 @@ GEM
     rainbow (3.0.0)
     rake (13.0.1)
     rr (1.2.1)
+    rspec (3.9.0)
+      rspec-core (~> 3.9.0)
+      rspec-expectations (~> 3.9.0)
+      rspec-mocks (~> 3.9.0)
+    rspec-core (3.9.2)
+      rspec-support (~> 3.9.3)
+    rspec-expectations (3.9.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.9.0)
+    rspec-mocks (3.9.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.9.0)
+    rspec-support (3.9.3)
+    rspec_junit_formatter (0.4.1)
+      rspec-core (>= 2, < 4, != 2.12.0)
     rubocop (0.74.0)
       jaro_winkler (~> 1.5.1)
       parallel (~> 1.10)
@@ -136,6 +152,8 @@ DEPENDENCIES
   pry
   rake
   rr
+  rspec
+  rspec_junit_formatter
   rubocop
   shoulda
 
