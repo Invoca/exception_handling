@@ -417,6 +417,26 @@ module ExceptionHandling
     end
 
     context "honeybadger_context_data" do
+      setup do
+        stub(ExceptionHandling.logger).current_context_for_thread { { cuid: 'ABCD' } }
+      end
+
+      should "include thread_context when log_context: is nil" do
+        exception_with_nil_message = RuntimeError.new(nil)
+        stub(exception_with_nil_message).message { nil }
+        exception_info = ExceptionInfo.new(exception_with_nil_message, @exception_context, @timestamp)
+        honeybadger_context_data = exception_info.honeybadger_context_data
+        assert_equal({ "cuid" => 'ABCD' }, honeybadger_context_data[:log_context])
+      end
+
+      should "include thread context merged with log_context:" do
+        exception_with_nil_message = RuntimeError.new(nil)
+        stub(exception_with_nil_message).message { nil }
+        exception_info = ExceptionInfo.new(exception_with_nil_message, @exception_context, @timestamp, log_context: { url: 'http://example.com' })
+        honeybadger_context_data = exception_info.honeybadger_context_data
+        assert_equal({ "cuid" => 'ABCD', "url" => 'http://example.com' }, honeybadger_context_data[:log_context])
+      end
+
       should "return the error details and relevant context data to be used as honeybadger notification context while filtering sensitive data" do
         env = { server: "fe98" }
         parameters = { advertiser_id: 435 }
@@ -464,7 +484,8 @@ module ExceptionHandling
             "test/unit/exception_handling_test.rb:847:in `exception_1'",
             "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
           ],
-          event_response: "Event successfully received"
+          event_response: "Event successfully received",
+          log_context: { "cuid" => "ABCD" }
         }
         assert_equal_with_diff expected_data, exception_info.honeybadger_context_data
       end

@@ -57,9 +57,8 @@ module ExceptionHandling
       @timestamp = timestamp
       @controller = controller || controller_from_context(exception_context)
       @data_callback = data_callback
-      @merged_log_context = if log_context # merge into the surrounding context just like ContextualLogger does when logging
-                              ExceptionHandling.logger.current_context_for_thread.deep_merge(log_context)
-                            end
+      # merge into the surrounding context just like ContextualLogger does when logging
+      @merged_log_context = ExceptionHandling.logger.current_context_for_thread.deep_merge(log_context || {})
     end
 
     def data
@@ -273,13 +272,11 @@ module ExceptionHandling
       data[:exception_context] = deep_clean_hash(@exception_context) if @exception_context.present?
       data[:log_context] = @merged_log_context
       unstringify_sections(data)
-      context_data = HONEYBADGER_CONTEXT_SECTIONS.reduce({}) do |context, section|
+      HONEYBADGER_CONTEXT_SECTIONS.each_with_object({}) do |section, context|
         if data[section].present?
           context[section] = data[section]
         end
-        context
       end
-      context_data
     end
   end
 end
