@@ -3,79 +3,80 @@
 require File.expand_path('../../test_helper',  __dir__)
 
 module ExceptionHandling
-  class ExceptionDescriptionTest < ActiveSupport::TestCase
+  describe ExceptionDescription do
 
     context "Filter" do
-      should "allow direct matching of strings" do
+      it "allow direct matching of strings" do
         @f = ExceptionDescription.new(:filter1, error: "my error message")
-        assert @f.match?('error' => "my error message")
+        expect(@f.match?('error' => "my error message")).to be_truthy
       end
 
-      should "allow direct matching of strings on with symbol keys" do
+      it "allow direct matching of strings on with symbol keys" do
         @f = ExceptionDescription.new(:filter1, error: "my error message")
-        assert @f.match?(error: "my error message")
+        expect(@f.match?(error: "my error message")).to be_truthy
       end
 
-      should "allow wildcards to cross line boundries" do
+      it "allow wildcards to cross line boundries" do
         @f = ExceptionDescription.new(:filter1, error: "my error message.*with multiple lines")
-        assert @f.match?(error: "my error message\nwith more than one, with multiple lines")
+        expect(@f.match?(error: "my error message\nwith more than one, with multiple lines")).to be_truthy
       end
 
-      should "complain when no regexps have a value" do
-        assert_raise(ArgumentError, "has all blank regexe") { ExceptionDescription.new(:filter1, error: nil) }
+      it "complain when no regexps have a value" do
+        expect { ExceptionDescription.new(:filter1, error: nil) }.to raise_exception(ArgumentError, /has all blank regexes/)
       end
 
-      should "report when an invalid key is passed" do
-        assert_raise(ArgumentError, "Unknown section: not_a_parameter") { ExceptionDescription.new(:filter1, error: "my error message", not_a_parameter: false) }
+      it "report when an invalid key is passed" do
+        expect { ExceptionDescription.new(:filter1, error: "my error message", not_a_parameter: false) }.to raise_exception(ArgumentError, "Unknown section: not_a_parameter")
       end
 
-      should "allow send_to_honeybadger to be specified and have it disabled by default" do
-        assert !ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: false).send_to_honeybadger
-        assert ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: true).send_to_honeybadger
-        assert !ExceptionDescription.new(:filter1, error: "my error message").send_to_honeybadger
+      it "allow send_to_honeybadger to be specified and have it disabled by default" do
+        expect(!ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: false).send_to_honeybadger).to be_truthy
+        expect(ExceptionDescription.new(:filter1, error: "my error message", send_to_honeybadger: true).send_to_honeybadger).to be_truthy
+        expect(!ExceptionDescription.new(:filter1, error: "my error message").send_to_honeybadger).to be_truthy
       end
 
-      should "allow send_metric to be configured" do
-        assert !ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).send_metric
-        assert ExceptionDescription.new(:filter1, error: "my error message").send_metric
+      it "allow send_metric to be configured" do
+        expect(!ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).send_metric).to be_truthy
+        expect(ExceptionDescription.new(:filter1, error: "my error message").send_metric).to be_truthy
       end
 
-      should "provide metric name" do
-        assert_equal "filter1", ExceptionDescription.new(:filter1, error: "my error message").metric_name
-        assert_equal "some_other_metric_name", ExceptionDescription.new(:filter1, error: "my error message", metric_name: :some_other_metric_name).metric_name
+      it "provide metric name" do
+        expect(ExceptionDescription.new(:filter1, error: "my error message").metric_name).to eq("filter1")
+        expect(ExceptionDescription.new(:filter1, error: "my error message", metric_name: :some_other_metric_name).metric_name).to eq("some_other_metric_name")
       end
 
-      should "replace spaces in metric name" do
+      it "replace spaces in metric name" do
         @f = ExceptionDescription.new(:"filter has spaces", error: "my error message")
-        assert_equal "filter_has_spaces", @f.metric_name
+        expect(@f.metric_name).to eq( "filter_has_spaces")
       end
 
-      should "allow notes to be recorded" do
-        assert_nil ExceptionDescription.new(:filter1, error: "my error message").notes
-        assert_equal "a long string", ExceptionDescription.new(:filter1, error: "my error message", notes: "a long string").notes
+      it "allow notes to be recorded" do
+        expect(ExceptionDescription.new(:filter1, error: "my error message").notes).to be_nil
+        expect(ExceptionDescription.new(:filter1, error: "my error message", notes: "a long string").notes).to eq("a long string")
       end
 
-      should "not consider config options in the filter set" do
-        assert ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).match?(error: "my error message")
-        assert ExceptionDescription.new(:filter1, error: "my error message", metric_name: "false").match?(error: "my error message")
-        assert ExceptionDescription.new(:filter1, error: "my error message", notes: "hey").match?(error: "my error message")
+      it "not consider config options in the filter set" do
+        expect(ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).match?(error: "my error message")).to be_truthy
+        expect(ExceptionDescription.new(:filter1, error: "my error message", metric_name: "false").match?(error: "my error message")).to be_truthy
+        expect(ExceptionDescription.new(:filter1, error: "my error message", notes: "hey").match?(error: "my error message")).to be_truthy
       end
 
-      should "provide exception details" do
+      it "provide exception details" do
         exception_description = ExceptionDescription.new(:filter1, error: "my error message", notes: "hey")
 
         expected = { "send_metric" => true, "metric_name" => "filter1", "notes" => "hey" }
 
-        assert_equal expected, exception_description.exception_data
+        expect(exception_description.exception_data).to eq( expected)
       end
 
-      should "match multiple email addresses" do
+      it "match multiple email addresses" do
         mobi = "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for 'mcc@mobistreak.com'"
         credit = "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for 'damon@thecreditpros.com'"
 
         exception_description = ExceptionDescription.new(:filter1, error: "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for '(mcc\@mobistreak|damon\@thecreditpros).com'")
-        assert exception_description.match?(error: mobi), "does not match mobi"
-        assert exception_description.match?(error: credit), "does not match credit"
+        # expect("does not match mobi").to start_with(exception_description.match?(error: mobi))
+        expect(exception_description.match?(error: mobi)).to be_truthy
+        expect(exception_description.match?(error: credit)).to be_truthy
       end
     end
   end
