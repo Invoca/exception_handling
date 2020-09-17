@@ -10,6 +10,14 @@ module ExceptionHandling
 
     protected
 
+    def long_controller_action_timeout
+      if defined?(Rails) && Rails.respond_to?(:env) && Rails.env == 'test'
+        300
+      else
+        30
+      end
+    end
+
     def set_current_controller
       ExceptionHandling.current_controller = self
       result = nil

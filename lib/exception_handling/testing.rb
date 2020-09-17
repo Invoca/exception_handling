@@ -4,7 +4,7 @@
 
 module ExceptionHandling
   module Testing
-    class ControllerStub
+    class ControllerStubBase
 
       class Request
         attr_accessor :parameters, :protocol, :host, :request_uri, :env, :session_options
@@ -25,7 +25,7 @@ module ExceptionHandling
         attr_accessor :around_filter_method
 
         def around_filter(method)
-          ControllerStub.around_filter_method = method
+          self.around_filter_method = method
         end
       end
 
@@ -44,14 +44,6 @@ module ExceptionHandling
           end
       end
 
-      def simulate_around_filter(&block)
-        set_current_controller(&block)
-      end
-
-      def controller_name
-        "ControllerStub"
-      end
-
       def action_name
         "test_action"
       end
@@ -59,9 +51,27 @@ module ExceptionHandling
       def complete_request_uri
         "#{@request.protocol}#{@request.host}#{@request.request_uri}"
       end
+    end
 
+    class LoggingMethodsControllerStub < ControllerStubBase
+      include ExceptionHandling::LoggingMethods
+
+      def controller_name
+        "LoggingMethodsControllerStub"
+      end
+    end
+
+    class MethodsControllerStub < ControllerStubBase
       include ExceptionHandling::Methods
       set_long_controller_action_timeout 2
+
+      def simulate_around_filter(&block)
+        set_current_controller(&block)
+      end
+
+      def controller_name
+        "MethodsControllerStub"
+      end
     end
   end
 end
