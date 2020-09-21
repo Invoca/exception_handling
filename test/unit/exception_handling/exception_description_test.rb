@@ -74,7 +74,6 @@ module ExceptionHandling
         credit = "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for 'damon@thecreditpros.com'"
 
         exception_description = ExceptionDescription.new(:filter1, error: "ExceptionHandling::Warning: LoginAttempt::IPAddressLocked: failed login for '(mcc\@mobistreak|damon\@thecreditpros).com'")
-        # expect("does not match mobi").to start_with(exception_description.match?(error: mobi))
         expect(exception_description.match?(error: mobi)).to be_truthy
         expect(exception_description.match?(error: credit)).to be_truthy
       end
