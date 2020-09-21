@@ -3,25 +3,25 @@
 require File.expand_path('../../test_helper',  __dir__)
 
 module ExceptionHandling
-  class LogErrorStubTest < ActiveSupport::TestCase
+  describe LogErrorStub do
 
     include LogErrorStub
 
     context "while running tests" do
-      setup do
+      before do
         setup_log_error_stub
       end
 
-      teardown do
+      after do
         teardown_log_error_stub
       end
 
-      should "raise an error when log_error and log_warning are called" do
+      it "raise an error when log_error and log_warning are called" do
         begin
           ExceptionHandling.log_error("Something happened")
           flunk
         rescue Exception => ex # LogErrorStub::UnexpectedExceptionLogged => ex
-          assert ex.to_s.starts_with?("StandardError: Something happened"), ex.to_s
+          expect(ex.to_s.starts_with?("StandardError: Something happened")).to be_truthy
         end
 
         begin
@@ -31,16 +31,16 @@ module ExceptionHandling
           begin
             ExceptionHandling.log_error(ex)
           rescue LogErrorStub::UnexpectedExceptionLogged => ex
-            assert ex.to_s.starts_with?("RaisedError: This should raise"), ex.to_s
+            expect(ex.to_s.starts_with?("RaisedError: This should raise")).to be_truthy
           end
         end
       end
 
-      should "allow for the regex specification of an expected exception to be ignored" do
+      it "allow for the regex specification of an expected exception to be ignored" do
         exception_pattern = /StandardError: This is a test error/
-        assert_nil exception_whitelist # test that exception expectations are cleared
+        expect(exception_whitelist).to be_nil  # test that exception expectations are cleared
         expects_exception(exception_pattern)
-        assert_equal exception_pattern, exception_whitelist[0][0]
+        expect(exception_whitelist[0][0]).to eq(exception_pattern)
         begin
           ExceptionHandling.log_error("This is a test error")
         rescue StandardError
@@ -48,11 +48,11 @@ module ExceptionHandling
         end
       end
 
-      should "allow for the string specification of an expected exception to be ignored" do
+      it "allow for the string specification of an expected exception to be ignored" do
         exception_pattern = "StandardError: This is a test error"
-        assert_nil exception_whitelist # test that exception expectations are cleared
+        expect(exception_whitelist).to be_nil # test that exception expectations are cleared
         expects_exception(exception_pattern)
-        assert_equal exception_pattern, exception_whitelist[0][0]
+        expect(exception_whitelist[0][0]).to eq(exception_pattern)
         begin
           ExceptionHandling.log_error("This is a test error")
         rescue StandardError
@@ -60,9 +60,9 @@ module ExceptionHandling
         end
       end
 
-      should "allow multiple errors to be ignored" do
+      it "allow multiple errors to be ignored" do
         class IgnoredError < StandardError; end
-        assert_nil exception_whitelist # test that exception expectations are cleared
+        expect(exception_whitelist).to be_nil # test that exception expectations are cleared
         expects_exception(/StandardError: This is a test error/)
         expects_exception(/IgnoredError: This should be ignored/)
         ExceptionHandling.log_error("This is a test error")
@@ -73,7 +73,7 @@ module ExceptionHandling
         end
       end
 
-      should "expect exception twice if declared twice" do
+      it "expect exception twice if declared twice" do
         expects_exception(/StandardError: ERROR: I love lamp/)
         expects_exception(/StandardError: ERROR: I love lamp/)
         ExceptionHandling.log_error("ERROR: I love lamp")
@@ -82,7 +82,7 @@ module ExceptionHandling
     end
 
     context "teardown_log_error_stub" do
-      should "support MiniTest framework for adding a failure" do
+      it "support MiniTest framework for adding a failure" do
         expects_exception(/foo/)
 
         mock(self).is_mini_test?.returns { true }
@@ -93,7 +93,7 @@ module ExceptionHandling
         self.exception_whitelist = nil
       end
 
-      should "support Test::Unit framework for adding a failure" do
+      it "support Test::Unit framework for adding a failure" do
         expects_exception(/foo/)
 
         mock(self).is_mini_test?.returns { false }
