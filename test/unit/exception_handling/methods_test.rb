@@ -3,9 +3,10 @@
 require File.expand_path('../../test_helper',  __dir__)
 
 require "exception_handling/testing"
+require_relative '../../helpers/exception_helpers.rb'
 
 module ExceptionHandling
-  class MethodsTest < ActiveSupport::TestCase
+  describe Methods do
     include ExceptionHelpers
 
     def dont_stub_log_error
@@ -13,48 +14,48 @@ module ExceptionHandling
     end
 
     context "ExceptionHandling.Methods" do
-      setup do
+      before do
         @controller = Testing::ControllerStub.new
         ExceptionHandling.stub_handler = nil
       end
 
-      should "set the around filter" do
-        assert_equal :set_current_controller, Testing::ControllerStub.around_filter_method
-        assert_nil ExceptionHandling.current_controller
+      it "set the around filter" do
+        expect(Testing::ControllerStub.around_filter_method).to eq(:set_current_controller)
+        expect(ExceptionHandling.current_controller).to be_nil
         @controller.simulate_around_filter do
-          assert_equal @controller, ExceptionHandling.current_controller
+          expect(ExceptionHandling.current_controller).to eq(@controller)
         end
-        assert_nil ExceptionHandling.current_controller
+        expect(ExceptionHandling.current_controller).to be_nil
       end
 
-      should "use the current_controller when available" do
+      it "use the current_controller when available" do
         capture_notifications
 
-        mock(ExceptionHandling.logger).fatal(/blah/, anything)
+        expect(ExceptionHandling.logger).to receive(:fatal).with(/blah/, anything)
         @controller.simulate_around_filter do
           ExceptionHandling.log_error(ArgumentError.new("blah"))
-          assert_equal 1, sent_notifications.size, sent_notifications.inspect
-          assert_match(@controller.request.request_uri, sent_notifications.last.enhanced_data['request'].to_s)
+          expect(sent_notifications.size).to eq(1)
+          expect(sent_notifications.last.enhanced_data['request'].to_s).to match(@controller.request.request_uri)
         end
       end
 
-      should "report long running controller action" do
-        assert_equal 2, @controller.send(:long_controller_action_timeout)
-        mock(ExceptionHandling).log_error(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/, anything, anything)
+      it "report long running controller action" do
+        expect(@controller.send(:long_controller_action_timeout)).to eq(2)
+        expect(ExceptionHandling).to receive(:log_error).with(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/, anything, anything)
         @controller.simulate_around_filter do
           sleep(3)
         end
       end
 
-      should "not report long running controller actions if it is less than the timeout" do
-        assert_equal 2, @controller.send(:long_controller_action_timeout)
-        stub(ExceptionHandling).log_error { flunk "Should not timeout" }
+      it "not report long running controller actions if it is less than the timeout" do
+        expect(@controller.send(:long_controller_action_timeout)).to eq(2)
+        allow(ExceptionHandling).to receive(:log_error).and_return(flunk "Should not timeout")
         @controller.simulate_around_filter do
           sleep(1)
         end
       end
 
-      should "default long running controller action(300/30 for test/prod)" do
+      it "default long running controller action(300/30 for test/prod)" do
         class DummyController
           include ExceptionHandling::Methods
         end
@@ -62,19 +63,19 @@ module ExceptionHandling
         controller = DummyController.new
 
         Rails.env = 'production'
-        assert_equal 30, controller.send(:long_controller_action_timeout)
+        expect(controller.send(:long_controller_action_timeout)).to eq(30)
 
         Rails.env = 'test'
-        assert_equal 300, controller.send(:long_controller_action_timeout)
+        expect(controller.send(:long_controller_action_timeout)).to eq(300)
       end
 
       context "#log_warning" do
-        should "be available to the controller" do
-          assert_equal true, @controller.methods.include?(:log_warning)
+        it "be available to the controller" do
+          expect(@controller.methods.include?(:log_warning)).to eq(true)
         end
 
-        should "call ExceptionHandling#log_warning" do
-          mock(ExceptionHandling).log_warning("Hi mom")
+        it "call ExceptionHandling#log_warning" do
+          expect(ExceptionHandling).to receive(:log_warning).with("Hi mom")
           @controller.send(:log_warning, "Hi mom")
         end
       end
