@@ -30,7 +30,7 @@ module ExceptionHandling
 
         expect do
           ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye", :hair_on_fire)
-        end.to raise_exception(RuntimeError, "Invalid alert level")
+        end.to raise_exception(RuntimeError, /Invalid alert level/)
       end
     end
 
