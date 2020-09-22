@@ -319,8 +319,7 @@ module ExceptionHandling
         exception = StandardError.new("No route matches")
         exception_info = ExceptionInfo.new(exception, {}, Time.now)
         description = exception_info.exception_description
-        description.filt
-        expect(description).to be_falsey
+        expect(description).to_not be_nil
         expect(description.filter_name).to eq(:NoRoute)
       end
 
@@ -334,7 +333,7 @@ module ExceptionHandling
         exception_info = ExceptionInfo.new(exception, nil, Time.now, controller: controller)
         expect(exception_info.enhanced_data[:request].is_a?(Hash)).to eq(true)
         description = exception_info.exception_description
-        expect(description).to be_falsey
+        expect(description).to_not be_nil
         expect(description.filter_name).to eq(:"Click Request Rejected")
       end
 
@@ -393,7 +392,7 @@ module ExceptionHandling
         allow(ExceptionHandling).to receive(:honeybadger_defined?).and_return(true)
         exception = StandardError.new("No route matches")
         exception_info = ExceptionInfo.new(exception, nil, Time.now)
-        expect(exception_info.exception_description).to be_falsey
+        expect(exception_info.exception_description).to_not be_nil
         expect(exception_info.exception_description.send_to_honeybadger).to eq(true)
         expect(exception_info.send_to_honeybadger?).to eq(true)
       end
@@ -402,7 +401,7 @@ module ExceptionHandling
         allow(ExceptionHandling).to receive(:honeybadger_defined?).and_return(true)
         exception = StandardError.new("No route matches")
         exception_info = ExceptionInfo.new(exception, nil, Time.now)
-        expect(exception_info.exception_description).to be_falsey
+        expect(exception_info.exception_description).to_not be_nil
         allow(exception_info.exception_description).to receive(:send_to_honeybadger).and_return(false)
         expect(exception_info.send_to_honeybadger?).to eq(false)
       end
@@ -485,6 +484,7 @@ module ExceptionHandling
           ],
           event_response: "Event successfully received",
           log_context: { "cuid" => "ABCD" },
+          notes: "this is used by a test"
         }
         expect(exception_info.honeybadger_context_data).to eq(expected_data)
       end
