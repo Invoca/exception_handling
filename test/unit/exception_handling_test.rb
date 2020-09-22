@@ -4,11 +4,11 @@ require File.expand_path('../test_helper',  __dir__)
 require_test_helper 'controller_helpers'
 require_test_helper 'exception_helpers'
 
-class ExceptionHandlingTest < ActiveSupport::TestCase
+describe ExceptionHandling do
   include ControllerHelpers
   include ExceptionHelpers
 
-  setup do
+  before do
     @fail_count = 0
   end
 
@@ -108,228 +108,228 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
   end
 
   context "with warn and honeybadger notify stubbed" do
-    setup do
-      stub(ExceptionHandling).warn(anything)
-      stub(Honeybadger).notify(anything)
+    before do
+      allow(ExceptionHandling).to receive(:warn).with(anything)
+      allow(Honeybadger).to receive(:notify).with(anything)
     end
 
     context "with logger stashed" do
-      setup { @original_logger = ExceptionHandling.logger }
-      teardown { ExceptionHandling.logger = @original_logger }
+      before { @original_logger = ExceptionHandling.logger }
+      after { ExceptionHandling.logger = @original_logger }
 
-      should "store logger as-is if it has ContextualLogger::Mixin" do
+      it "store logger as-is if it has ContextualLogger::Mixin" do
         logger = Logger.new('/dev/null')
         logger.extend(ContextualLogger::LoggerMixin)
         ancestors = logger.singleton_class.ancestors.*.name
 
         ExceptionHandling.logger = logger
-        assert_equal ancestors, ExceptionHandling.logger.singleton_class.ancestors.*.name
+        expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to eq(ancestors)
       end
 
-      should "allow logger = nil (no deprecation warning)" do
-        mock(STDERR).puts(/DEPRECATION WARNING/).never
+      it "allow logger = nil (no deprecation warning)" do
+        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING/).never
         ExceptionHandling.logger = nil
       end
 
-      should "[deprecated] mix in ContextualLogger::Mixin if not there" do
-        mock(STDERR).puts(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
+      it "[deprecated] mix in ContextualLogger::Mixin if not there" do
+        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
         logger = Logger.new('/dev/null')
         ancestors = logger.singleton_class.ancestors.*.name
 
         ExceptionHandling.logger = logger
-        assert_not_equal ancestors, ExceptionHandling.logger.singleton_class.ancestors.*.name
-        assert_kind_of ContextualLogger::LoggerMixin, ExceptionHandling.logger
+        expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to_not eq(ancestors)
+        expect(ExceptionHandling.logger).to be_kind_of(ContextualLogger::LoggerMixin)
       end
     end
 
     context "#log_error" do
-      should "take in additional logging context hash and pass it to the logger" do
+      it "take in additional logging context hash and pass it to the logger" do
         ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
-        assert_match(/This is an Error/, logged_excluding_reload_filter.last[:message])
-        assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+        expect(logged_excluding_reload_filter.last[:message]).to match(/This is an Error/)
+        expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
+        expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
       end
 
-      should "log with Severity::FATAL" do
+      it "log with Severity::FATAL" do
         ExceptionHandling.log_error('This is a Warning', service_name: 'exception_handling')
-        assert_equal logged_excluding_reload_filter.last[:severity], 'FATAL'
+        expect('FATAL').to eq(logged_excluding_reload_filter.last[:severity])
       end
     end
 
     context "#log_warning" do
-      should "have empty array as a backtrace" do
-        mock(ExceptionHandling).log_error(is_a(ExceptionHandling::Warning), anything) do |error|
-          assert_equal [], error.backtrace
+      it "have empty array as a backtrace" do
+        expect(ExceptionHandling).to receive(:log_error).with((ExceptionHandling::Warning), anything) do |error|
+          expect(error.backtrace).to eq([])
         end
         ExceptionHandling.log_warning('Now with empty array as a backtrace!')
       end
 
-      should "take in additional key word args as logging context and pass them to the logger" do
+      it "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
-        assert_match(/This is a Warning/, logged_excluding_reload_filter.last[:message])
-        assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+        expect(logged_excluding_reload_filter.last[:message]).to match(/This is a Warning/)
+        expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
+        expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
       end
 
-      should "log with Severity::WARN" do
+      it "log with Severity::WARN" do
         ExceptionHandling.log_warning('This is a Warning', service_name: 'exception_handling')
-        assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
+        expect('WARN').to eq(logged_excluding_reload_filter.last[:severity])
       end
     end
 
     context "#log_info" do
-      should "take in additional key word args as logging context and pass them to the logger" do
+      it "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_info('This is an Info', service_name: 'exception_handling')
-        assert_match(/This is an Info/, logged_excluding_reload_filter.last[:message])
-        assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+        expect(logged_excluding_reload_filter.last[:message]).to match(/This is an Info/)
+        expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
+        expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
       end
 
-      should "log with Severity::INFO" do
+      it "log with Severity::INFO" do
         ExceptionHandling.log_info('This is a Warning', service_name: 'exception_handling')
-        assert_equal logged_excluding_reload_filter.last[:severity], 'INFO'
+        expect('INFO').to eq(logged_excluding_reload_filter.last[:severity])
       end
     end
 
     context "#log_debug" do
-      should "take in additional key word args as logging context and pass them to the logger" do
+      it "take in additional key word args as logging context and pass them to the logger" do
         ExceptionHandling.log_debug('This is a Debug', service_name: 'exception_handling')
-        assert_match(/This is a Debug/, logged_excluding_reload_filter.last[:message])
-        assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal logged_excluding_reload_filter.last[:context], service_name: 'exception_handling'
+        expect(logged_excluding_reload_filter.last[:message]).to match(/This is a Debug/)
+        expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
+        expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
       end
 
-      should "log with Severity::DEBUG" do
+      it "log with Severity::DEBUG" do
         ExceptionHandling.log_debug('This is a Warning', service_name: 'exception_handling')
-        assert_equal logged_excluding_reload_filter.last[:severity], 'DEBUG'
+        expect('DEBUG').to eq(logged_excluding_reload_filter.last[:severity])
       end
     end
 
     context "#write_exception_to_log" do
-      should "log warnings with Severity::WARN" do
+      it "log warnings with Severity::WARN" do
         warning = ExceptionHandling::Warning.new('This is a Warning')
         ExceptionHandling.write_exception_to_log(warning, '', Time.now.to_i, service_name: 'exception_handling')
-        assert_equal logged_excluding_reload_filter.last[:severity], 'WARN'
+        expect('WARN').to eq(logged_excluding_reload_filter.last[:severity])
       end
 
-      should "log everything else with Severity::FATAL" do
+      it "log everything else with Severity::FATAL" do
         error = RuntimeError.new('This is a runtime error')
         ExceptionHandling.write_exception_to_log(error, '', Time.now.to_i, service_name: 'exception_handling')
-        assert_equal logged_excluding_reload_filter.last[:severity], 'FATAL'
+        expect('FATAL').to eq(logged_excluding_reload_filter.last[:severity])
       end
     end
 
     context "configuration with custom_data_hook or post_log_error_hook" do
-      teardown do
+      after do
         ExceptionHandling.custom_data_hook = nil
         ExceptionHandling.post_log_error_hook = nil
       end
 
-      should "support a custom_data_hook" do
+      it "support a custom_data_hook" do
         capture_notifications
 
         ExceptionHandling.custom_data_hook = method(:append_organization_info_config)
         ExceptionHandling.ensure_safe("context") { raise "Some Exception" }
 
-        assert_match(/Invoca Engineering Dept./, sent_notifications.last.enhanced_data['user_details'].to_s)
+        expect(sent_notifications.last.enhanced_data['user_details'].to_s).to match(/Invoca Engineering Dept./)
       end
 
-      should "support a log_error hook, and pass exception_data, treat_like_warning, and logged_to_honeybadger to it" do
+      it "support a log_error hook, and pass exception_data, treat_like_warning, and logged_to_honeybadger to it" do
         @honeybadger_status = nil
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
 
         notify_args = []
-        mock(Honeybadger).notify.with_any_args { |info| notify_args << info; '06220c5a-b471-41e5-baeb-de247da45a56' }
+        expect(Honeybadger).to receive(:notify).with(any_args) { |info| notify_args << info; '06220c5a-b471-41e5-baeb-de247da45a56' }
         ExceptionHandling.ensure_safe("context") { raise "Some Exception" }
-        assert_equal 1, @fail_count
-        assert_equal false, @treat_like_warning
-        assert_equal :success, @honeybadger_status
+        expect(@fail_count).to eq(1)
+        expect(@treat_like_warning).to eq(false)
+        expect(@honeybadger_status).to eq(:success)
 
-        assert_equal "this is used by a test", @callback_data["notes"]
-        assert_equal 1, notify_args.size, notify_args.inspect
-        assert_match(/this is used by a test/, notify_args.last[:context].to_s)
+        expect(@callback_data["notes"]).to eq("this is used by a test")
+        expect(notify_args.size).to eq(1), notify_args.inspect
+        expect(notify_args.last[:context].to_s).to match(/this is used by a test/)
       end
 
-      should "plumb treat_like_warning and logged_to_honeybadger to log error hook" do
+      it "plumb treat_like_warning and logged_to_honeybadger to log error hook" do
         @honeybadger_status = nil
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", treat_like_warning: true)
-        assert_equal 1, @fail_count
-        assert_equal true, @treat_like_warning
-        assert_equal :skipped, @honeybadger_status
+        expect(@fail_count).to eq(1)
+        expect(@treat_like_warning).to eq(true)
+        expect(@honeybadger_status).to eq(:skipped)
       end
 
-      should "include logging context in the exception data" do
+      it "include logging context in the exception data" do
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
         ExceptionHandling.log_error(StandardError.new("Some Exception"), "mooo", treat_like_warning: true, log_context_test: "contextual_logging")
 
         expected_log_context = {
           "log_context_test" => "contextual_logging"
         }
-        assert_equal expected_log_context, @callback_data[:log_context]
+        expect(@callback_data[:log_context]).to eq(expected_log_context)
       end
 
-      should "support rescue exceptions from a log_error hook" do
+      it "support rescue exceptions from a log_error hook" do
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_with_failure)
         log_info_messages = []
-        stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        allow(ExceptionHandling.logger).to receive(:info).with(any_args) do |message, _|
           log_info_messages << message
         end
-        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }
-        assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
+        expect { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }.to_not raise_error
+        expect(log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }).to be_truthy
       end
 
-      should "handle nil message exceptions resulting from the log_error hook" do
+      it "handle nil message exceptions resulting from the log_error hook" do
         ExceptionHandling.post_log_error_hook = method(:log_error_callback_returns_nil_message_exception)
         log_info_messages = []
-        stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        allow(ExceptionHandling.logger).to receive(:info).with(any_args) do |message, _|
           log_info_messages << message
         end
-        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }
-        assert log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }
+        expect { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }.to_not raise_error
+        expect(log_info_messages.find { |message| message =~ /Unable to execute custom log_error callback/ }).to be_truthy
       end
 
-      should "handle nil message exceptions resulting from the custom data hook" do
+      it "handle nil message exceptions resulting from the custom data hook" do
         ExceptionHandling.custom_data_hook = method(:custom_data_callback_returns_nil_message_exception)
         log_info_messages = []
-        stub(ExceptionHandling.logger).info.with_any_args do |message, _|
+        allow(ExceptionHandling.logger).to receive(:info).with(any_args) do |message, _|
           log_info_messages << message
         end
-        assert_nothing_raised { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }
-        assert log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }
+        expect { ExceptionHandling.ensure_safe("mooo") { raise "Some Exception" } }.not_to raise_error
+        expect(log_info_messages.find { |message| message =~ /Unable to execute custom custom_data_hook callback/ }).to be_truthy
       end
     end
 
     context "Exception Handling" do
       context "default_metric_name" do
         context "when metric_name is present in exception_data" do
-          should "include metric_name in resulting metric name" do
+          it "include metric_name in resulting metric name" do
             exception = StandardError.new('this is an exception')
             metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true)
-            assert_equal 'exception_handling.special_metric', metric
+            expect(metric).to eq('exception_handling.special_metric')
           end
         end
 
         context "when metric_name is not present in exception_data" do
-          should "return exception_handling.warning when using log warning" do
+          it "return exception_handling.warning when using log warning" do
             warning = ExceptionHandling::Warning.new('this is a warning')
             metric  = ExceptionHandling.default_metric_name({}, warning, false)
-            assert_equal 'exception_handling.warning', metric
+            expect(metric).to eq('exception_handling.warning')
           end
 
-          should "return exception_handling.exception when using log error" do
+          it "return exception_handling.exception when using log error" do
             exception = StandardError.new('this is an exception')
             metric    = ExceptionHandling.default_metric_name({}, exception, false)
-            assert_equal 'exception_handling.exception', metric
+            expect(metric).to eq('exception_handling.exception')
           end
 
           context "when using log error with treat_like_warning" do
-            should "return exception_handling.unforwarded_exception when exception not present" do
+            it "return exception_handling.unforwarded_exception when exception not present" do
               metric = ExceptionHandling.default_metric_name({}, nil, true)
-              assert_equal 'exception_handling.unforwarded_exception', metric
+              expect(metric).to eq('exception_handling.unforwarded_exception')
             end
 
-            should "return exception_handling.unforwarded_exception with exception classname when exception is present" do
+            it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
               module SomeModule
                 class SomeException < StandardError
                 end
@@ -337,43 +337,43 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
               exception = SomeModule::SomeException.new('this is an exception')
               metric    = ExceptionHandling.default_metric_name({}, exception, true)
-              assert_equal 'exception_handling.unforwarded_exception_SomeException', metric
+              expect(metric).to eq('exception_handling.unforwarded_exception_SomeException')
             end
           end
         end
       end
 
       context "default_honeybadger_metric_name" do
-        should "return exception_handling.honeybadger.success when status is :success" do
+        it "return exception_handling.honeybadger.success when status is :success" do
           metric = ExceptionHandling.default_honeybadger_metric_name(:success)
-          assert_equal 'exception_handling.honeybadger.success', metric
+          expect(metric).to eq('exception_handling.honeybadger.success')
         end
 
-        should "return exception_handling.honeybadger.failure when status is :failure" do
+        it "return exception_handling.honeybadger.failure when status is :failure" do
           metric = ExceptionHandling.default_honeybadger_metric_name(:failure)
-          assert_equal 'exception_handling.honeybadger.failure', metric
+          expect(metric).to eq('exception_handling.honeybadger.failure')
         end
 
-        should "return exception_handling.honeybadger.skipped when status is :skipped" do
+        it "return exception_handling.honeybadger.skipped when status is :skipped" do
           metric = ExceptionHandling.default_honeybadger_metric_name(:skipped)
-          assert_equal 'exception_handling.honeybadger.skipped', metric
+          expect(metric).to eq('exception_handling.honeybadger.skipped')
         end
 
-        should "return exception_handling.honeybadger.unknown_status when status is not recognized" do
+        it "return exception_handling.honeybadger.unknown_status when status is not recognized" do
           metric = ExceptionHandling.default_honeybadger_metric_name(nil)
-          assert_equal 'exception_handling.honeybadger.unknown_status', metric
+          expect(metric).to eq('exception_handling.honeybadger.unknown_status')
         end
       end
 
       context "ExceptionHandling.ensure_safe" do
-        should "log an exception with call stack if an exception is raised." do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "log an exception with call stack if an exception is raised." do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
         end
 
         if ActionView::VERSION::MAJOR >= 5
-          should "log an exception with call stack if an ActionView template exception is raised." do
-            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
+          it "log an exception with call stack if an ActionView template exception is raised." do
+            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
             ExceptionHandling.ensure_safe do
               begin
                 # Rails 5 made the switch from ActionView::TemplateError taking in the original exception
@@ -385,117 +385,117 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
           end
         else
-          should "log an exception with call stack if an ActionView template exception is raised." do
-            mock(ExceptionHandling.logger).fatal(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
+          it "log an exception with call stack if an ActionView template exception is raised." do
+            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
             ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
           end
         end
 
-        should "should not log an exception if an exception is not raised." do
-          dont_allow(ExceptionHandling.logger).fatal
+        it "should not log an exception if an exception is not raised." do
+          expect(ExceptionHandling.logger).to_not receive(:fatal)
           ExceptionHandling.ensure_safe { ; }
         end
 
-        should "return its value if used during an assignment" do
-          dont_allow(ExceptionHandling.logger).fatal
+        it "return its value if used during an assignment" do
+          expect(ExceptionHandling.logger).to_not receive(:fatal)
           b = ExceptionHandling.ensure_safe { 5 }
-          assert_equal 5, b
+          expect(b).to eq(5)
         end
 
-        should "return nil if an exception is raised during an assignment" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "return nil if an exception is raised during an assignment" do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
-          assert_nil b
+          expect(b).to be_nil
         end
 
-        should "allow a message to be appended to the error when logged." do
-          mock(ExceptionHandling.logger).fatal(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "allow a message to be appended to the error when logged." do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
-          assert_nil b
+          expect(b).to be_nil
         end
 
-        should "only rescue StandardError and descendents" do
-          assert_raise(Exception) { ExceptionHandling.ensure_safe("mooo") { raise Exception } }
+        it "only rescue StandardError and descendents" do
+          expect { ExceptionHandling.ensure_safe("mooo") { raise Exception } }.to raise_exception(Exception)
 
-          mock(ExceptionHandling.logger).fatal(/mooo\nStandardError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nStandardError: \(blah\):\n.*exception_handling_test\.rb/, anything)
 
           b = ExceptionHandling.ensure_safe("mooo") { raise StandardError, "blah" }
-          assert_nil b
+          expect(b).to be_nil
         end
       end
 
       context "ExceptionHandling.ensure_completely_safe" do
-        should "log an exception if an exception is raised." do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "log an exception if an exception is raised." do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
         end
 
-        should "should not log an exception if an exception is not raised." do
-          mock(ExceptionHandling.logger).fatal.times(0)
+        it "should not log an exception if an exception is not raised." do
+          expect(ExceptionHandling.logger).to receive(:fatal).exactly(0)
           ExceptionHandling.ensure_completely_safe { ; }
         end
 
-        should "return its value if used during an assignment" do
-          mock(ExceptionHandling.logger).fatal.times(0)
+        it "return its value if used during an assignment" do
+          expect(ExceptionHandling.logger).to receive(:fatal).exactly(0)
           b = ExceptionHandling.ensure_completely_safe { 5 }
-          assert_equal 5, b
+          expect(b).to eq(5)
         end
 
-        should "return nil if an exception is raised during an assignment" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything) { nil }
+        it "return nil if an exception is raised during an assignment" do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything) { nil }
           b = ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
-          assert_nil b
+          expect(b).to be_nil
         end
 
-        should "allow a message to be appended to the error when logged." do
-          mock(ExceptionHandling.logger).fatal(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "allow a message to be appended to the error when logged." do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError, "blah" }
-          assert_nil b
+          expect(b).to be_nil
         end
 
-        should "rescue any instance or child of Exception" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "rescue any instance or child of Exception" do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_completely_safe { raise Exception, "blah" }
         end
 
-        should "not rescue the special exceptions that Ruby uses" do
+        it "not rescue the special exceptions that Ruby uses" do
           [SystemExit, SystemStackError, NoMemoryError, SecurityError].each do |exception|
-            assert_raise exception do
+            expect do
               ExceptionHandling.ensure_completely_safe do
                 raise exception
               end
-            end
+            end.to raise_exception(exception)
           end
         end
       end
 
       context "ExceptionHandling.ensure_escalation" do
-        setup do
+        before do
           capture_notifications
           ActionMailer::Base.deliveries.clear
         end
 
-        should "log the exception as usual and send the proper email" do
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "log the exception as usual and send the proper email" do
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
-          assert_equal 1, ActionMailer::Base.deliveries.count
-          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+          expect(ActionMailer::Base.deliveries.count).to eq(1)
+          expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
           email = ActionMailer::Base.deliveries.last
-          assert_equal "#{ExceptionHandling.email_environment} Escalation: Favorite Feature", email.subject
-          assert_match 'ArgumentError: blah', email.body.to_s
-          assert_match ExceptionHandling.last_exception_timestamp.to_s, email.body.to_s
+          expect(email.subject).to eq("#{ExceptionHandling.email_environment} Escalation: Favorite Feature")
+          expect(email.body.to_s).to match('ArgumentError: blah')
+          expect(email.body.to_s).to match(ExceptionHandling.last_exception_timestamp.to_s)
         end
 
-        should "should not escalate if an exception is not raised." do
-          dont_allow(ExceptionHandling.logger).fatal
+        it "should not escalate if an exception is not raised." do
+          expect(ExceptionHandling.logger).to_not receive(:fatal)
           ExceptionHandling.ensure_escalation('Ignored') { ; }
-          assert_equal 0, ActionMailer::Base.deliveries.count
+          expect(ActionMailer::Base.deliveries.count).to eq(0)
         end
 
-        should "log if the escalation email cannot be sent" do
-          any_instance_of(Mail::Message) do |message|
-            mock(message).deliver { raise RuntimeError.new, "Delivery Error" }
+        it "log if the escalation email cannot be sent" do
+          expect_any_instance_of(Mail::Message) do |message|
+            expect(message).to receive(:deliver) { raise RuntimeError.new, "Delivery Error" }
           end
           log_fatals = []
           stub(ExceptionHandling.logger) do |logger|
@@ -503,167 +503,164 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
           end
 
           ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
+          expect(log_fatals[0].first).to match(/ArgumentError.*first_test_exception/)
+          expect(log_fatals[1].first).to match(/safe_email_deliver.*Delivery Error/m)
 
-          assert_match(/ArgumentError.*first_test_exception/, log_fatals[0].first)
-          assert_match(/safe_email_deliver.*Delivery Error/m, log_fatals[1].first)
+          expect(log_fatals.size).to eq(2), log_fatals.inspect
 
-          assert_equal 2, log_fatals.size, log_fatals.inspect
-
-          assert_equal 1, sent_notifications.size, sent_notifications.inspect # still sent to honeybadger
+          expect(sent_notifications.size).to eq(1), sent_notifications.inspect # still sent to honeybadger
         end
 
-        should "allow the caller to specify custom recipients" do
+        it "allow the caller to specify custom recipients" do
           custom_recipients = ['something@invoca.com']
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature", custom_recipients) { raise ArgumentError, "blah" }
-          assert_equal 1, ActionMailer::Base.deliveries.count
-          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+          expect(ActionMailer::Base.deliveries.count).to eq(1)
+          expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
           email = ActionMailer::Base.deliveries.last
-          assert_equal "#{ExceptionHandling.email_environment} Escalation: Favorite Feature", email.subject
-          assert_match 'ArgumentError: blah', email.body.to_s
-          assert_match ExceptionHandling.last_exception_timestamp.to_s, email.body.to_s
-          assert_equal custom_recipients, email.to
+          expect(email.subject).to eq("#{ExceptionHandling.email_environment} Escalation: Favorite Feature")
+          expect(email.body.to_s).to match('ArgumentError: blah')
+          expect(email.body.to_s).to match(ExceptionHandling.last_exception_timestamp.to_s)
+          expect(email.to).to eq(custom_recipients)
         end
       end
 
       context "ExceptionHandling.ensure_alert" do
-        should "log the exception as usual and fire a sensu event" do
-          mock(ExceptionHandling::Sensu).generate_event("Favorite Feature", "test context\nblah")
-          mock(ExceptionHandling.logger).fatal(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+        it "log the exception as usual and fire a sensu event" do
+          expect(ExceptionHandling::Sensu).to receive(:generate_event).with("Favorite Feature", "test context\nblah")
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
           ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError, "blah" }
         end
 
-        should "should not send sensu event if an exception is not raised." do
-          dont_allow(ExceptionHandling.logger).fatal
-          dont_allow(ExceptionHandling::Sensu).generate_event
+        it "should not send sensu event if an exception is not raised." do
+          expect(ExceptionHandling.logger).to_not receive(:fatal)
+          expect(ExceptionHandling::Sensu).to_not receive(:generate_event)
           ExceptionHandling.ensure_alert('Ignored', 'test context') { ; }
         end
 
-        should "log if the sensu event could not be sent" do
-          mock(ExceptionHandling::Sensu).send_event(anything) { raise "Failed to send" }
-          mock(ExceptionHandling.logger) do |logger|
-            logger.fatal(/first_test_exception/, anything)
-            logger.fatal(/Failed to send/, anything)
-          end
+        it "log if the sensu event could not be sent" do
+          expect(ExceptionHandling::Sensu).to receive(:send_event).with(anything) { raise "Failed to send" }
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/first_test_exception/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to send/, anything)
           ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError, "first_test_exception" }
         end
 
-        should "log if the exception message is nil" do
-          mock(ExceptionHandling::Sensu).generate_event("some alert", "test context\n")
+        it "log if the exception message is nil" do
+          expect(ExceptionHandling::Sensu).to receive(:generate_event).with("some alert", "test context\n")
           ExceptionHandling.ensure_alert('some alert', 'test context') { raise_exception_with_nil_message }
         end
       end
 
       context "ExceptionHandling.escalate_to_production_support" do
-        should "notify production support" do
+        it "notify production support" do
           subject = "Runtime Error found!"
           exception = RuntimeError.new("Test")
           recipients = ["prodsupport@example.com"]
 
-          mock(ExceptionHandling).production_support_recipients { recipients }.times(2)
-          mock(ExceptionHandling).escalate(subject, exception, ExceptionHandling.last_exception_timestamp, recipients)
+          expect(ExceptionHandling).to receive(:production_support_recipients).and_return(recipients).exactly(2)
+          expect(ExceptionHandling).to receive(:escalate).with(subject, exception, ExceptionHandling.last_exception_timestamp, recipients)
           ExceptionHandling.escalate_to_production_support(exception, subject)
         end
       end
 
       context "exception timestamp" do
-        setup do
+        before do
           Time.now_override = Time.parse('1986-5-21 4:17 am UTC')
         end
 
-        should "include the timestamp when the exception is logged" do
+        it "include the timestamp when the exception is logged" do
           capture_notifications
 
-          mock(ExceptionHandling.logger).fatal(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
           b = ExceptionHandling.ensure_safe("context") { raise ArgumentError, "blah" }
-          assert_nil b
+          expect(b).to be_nil
 
-          assert_equal 517_033_020, ExceptionHandling.last_exception_timestamp
+          expect(ExceptionHandling.last_exception_timestamp).to eq(517_033_020)
 
-          assert_equal 1, sent_notifications.size, sent_notifications.inspect
+          expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
-          assert_equal 517_033_020, sent_notifications.last.enhanced_data['timestamp']
+          expect(sent_notifications.last.enhanced_data['timestamp']).to eq(517_033_020)
         end
       end
 
-      should "log the error if the exception message is nil" do
+      it "log the error if the exception message is nil" do
         capture_notifications
 
         ExceptionHandling.log_error(exception_with_nil_message)
 
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
-        assert_equal 'RuntimeError: ', sent_notifications.last.enhanced_data['error_string']
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
+        expect(sent_notifications.last.enhanced_data['error_string']).to eq('RuntimeError: ')
       end
 
-      should "log the error if the exception message is nil and the exception context is a hash" do
+      it "log the error if the exception message is nil and the exception context is a hash" do
         capture_notifications
 
         ExceptionHandling.log_error(exception_with_nil_message, "SERVER_NAME" => "exceptional.com")
 
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
-        assert_equal 'RuntimeError: ', sent_notifications.last.enhanced_data['error_string']
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
+        expect(sent_notifications.last.enhanced_data['error_string']).to eq('RuntimeError: ')
       end
 
       context "Honeybadger integration" do
         context "with Honeybadger not defined" do
-          setup do
-            stub(ExceptionHandling).honeybadger_defined? { false }
+          before do
+            allow(ExceptionHandling).to receive(:honeybadger_defined?) { false }
           end
 
-          should "not invoke send_exception_to_honeybadger when log_error is executed" do
-            dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          it "not invoke send_exception_to_honeybadger when log_error is executed" do
+            expect(ExceptionHandling).to_not receive(:send_exception_to_honeybadger)
             ExceptionHandling.log_error(exception_1)
           end
 
-          should "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
-            dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          it "not invoke send_exception_to_honeybadger when ensure_safe is executed" do
+            expect(ExceptionHandling).to_not receive(:send_exception_to_honeybadger)
             ExceptionHandling.ensure_safe { raise exception_1 }
           end
         end
 
         context "with Honeybadger defined" do
-          should "not send_exception_to_honeybadger when log_warning is executed" do
-            dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          it "not send_exception_to_honeybadger when log_warning is executed" do
+            expect(ExceptionHandling).to_not receive(:send_exception_to_honeybadger)
             ExceptionHandling.log_warning("This should not go to honeybadger")
           end
 
-          should "not send_exception_to_honeybadger when log_error is called with a Warning" do
-            dont_allow(ExceptionHandling).send_exception_to_honeybadger
+          it "not send_exception_to_honeybadger when log_error is called with a Warning" do
+            expect(ExceptionHandling).to_not receive(:send_exception_to_honeybadger)
             ExceptionHandling.log_error(ExceptionHandling::Warning.new("This should not go to honeybadger"))
           end
 
-          should "invoke send_exception_to_honeybadger when log_error is executed" do
-            mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
+          it "invoke send_exception_to_honeybadger when log_error is executed" do
+            expect(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(any_args).and_call_original
             ExceptionHandling.log_error(exception_1)
           end
 
-          should "invoke send_exception_to_honeybadger when log_error_rack is executed" do
-            mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
+          it "invoke send_exception_to_honeybadger when log_error_rack is executed" do
+            expect(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(any_args).and_call_original
             ExceptionHandling.log_error_rack(exception_1, {}, nil)
           end
 
-          should "invoke send_exception_to_honeybadger when ensure_safe is executed" do
-            mock.proxy(ExceptionHandling).send_exception_to_honeybadger.with_any_args
+          it "invoke send_exception_to_honeybadger when ensure_safe is executed" do
+            expect(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(any_args).and_call_original
             ExceptionHandling.ensure_safe { raise exception_1 }
           end
 
-          should "specify error message as an empty string when notifying honeybadger if exception message is nil" do
-            mock(Honeybadger).notify.with_any_args do |args|
-              assert_equal "", args[:error_message]
+          it "specify error message as an empty string when notifying honeybadger if exception message is nil" do
+            expect(Honeybadger).to receive(:notify).with(any_args) do |args|
+              expect(args[:error_message]).to eq("")
             end
             ExceptionHandling.log_error(exception_with_nil_message)
           end
 
           context "with stubbed values" do
-            setup do
+            before do
               Time.now_override = Time.now
               @env = { server: "fe98" }
               @parameters = { advertiser_id: 435, controller: "some_controller" }
               @session = { username: "jsmith" }
               @request_uri = "host/path"
               @controller = create_dummy_controller(@env, @parameters, @session, @request_uri)
-              stub(ExceptionHandling).server_name { "invoca_fe98" }
+              allow(ExceptionHandling).to receive(:server_name) { "invoca_fe98" }
 
               @exception = StandardError.new("Some Exception")
               @exception.set_backtrace([
@@ -673,9 +670,9 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               @exception_context = { "SERVER_NAME" => "exceptional.com" }
             end
 
-            should "send error details and relevant context data to Honeybadger with log_context" do
+            it "send error details and relevant context data to Honeybadger with log_context" do
               honeybadger_data = nil
-              mock(Honeybadger).notify.with_any_args do |data|
+              expect(Honeybadger).to receive(:notify).with(any_args) do |data|
                 honeybadger_data = data
               end
               ExceptionHandling.logger.global_context = { service_name: "rails", region: "AWS-us-east-1" }
@@ -720,12 +717,12 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                   log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
                 }
               }
-              assert_equal_with_diff expected_data, honeybadger_data
+              expect(honeybadger_data).to eq(expected_data)
             end
 
-            should "send error details and relevant context data to Honeybadger with empty log_context" do
+            it "send error details and relevant context data to Honeybadger with empty log_context" do
               honeybadger_data = nil
-              mock(Honeybadger).notify.with_any_args do |data|
+              expect(Honeybadger).to receive(:notify).with(any_args) do |data|
                 honeybadger_data = data
               end
               ExceptionHandling.logger.global_context = {}
@@ -769,16 +766,16 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                   event_response: "Event successfully received"
                 }
               }
-              assert_equal_with_diff expected_data, honeybadger_data
+              expect(honeybadger_data).to eq(expected_data)
             end
           end
 
           context "with post_log_error_hook set" do
-            teardown do
+            after do
               ExceptionHandling.post_log_error_hook = nil
             end
 
-            should "not send notification to honeybadger when exception description has the flag turned off and call log error callback with logged_to_honeybadger set to nil" do
+            it "not send notification to honeybadger when exception description has the flag turned off and call log error callback with logged_to_honeybadger set to nil" do
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
               filter_list = {
@@ -787,37 +784,37 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
                   send_to_honeybadger: false
                 }
               }
-              stub(File).mtime { incrementing_mtime }
-              mock(YAML).load_file.with_any_args { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }.at_least(1)
+              allow(File).to receive(:mtime) { incrementing_mtime }
+              expect(YAML).to receive(:load_file).with(any_args) { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }.at_least(1)
 
-              mock.proxy(ExceptionHandling).send_exception_to_honeybadger_unless_filtered.with_any_args.once
-              dont_allow(Honeybadger).notify
+              expect(ExceptionHandling).to receive(:send_exception_to_honeybadger_unless_filtered).with(any_args).exactly(1).and_call_original
+              expect(Honeybadger).to_not receive(:notify)
               ExceptionHandling.log_error(StandardError.new("suppress Honeybadger notification"))
-              assert_equal :skipped, @honeybadger_status
+              expect(@honeybadger_status).to eq(:skipped)
             end
 
-            should "call log error callback with logged_to_honeybadger set to false if an error occurs while attempting to notify honeybadger" do
+            it "call log error callback with logged_to_honeybadger set to false if an error occurs while attempting to notify honeybadger" do
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-              mock(Honeybadger).notify.with_any_args { raise "Honeybadger Notification Failure" }
+              expect(Honeybadger).to receive(:notify).with(any_args) { raise "Honeybadger Notification Failure" }
               ExceptionHandling.log_error(exception_1)
-              assert_equal :failure, @honeybadger_status
+              expect(@honeybadger_status).to eq(:failure)
             end
 
-            should "call log error callback with logged_to_honeybadger set to false on unsuccessful honeybadger notification" do
+            it "call log error callback with logged_to_honeybadger set to false on unsuccessful honeybadger notification" do
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-              mock(Honeybadger).notify.with_any_args { false }
+              expect(Honeybadger).to receive(:notify).with(any_args) { false }
               ExceptionHandling.log_error(exception_1)
-              assert_equal :failure, @honeybadger_status
+              expect(@honeybadger_status).to eq(:failure)
             end
 
-            should "call log error callback with logged_to_honeybadger set to true on successful honeybadger notification" do
+            it "call log error callback with logged_to_honeybadger set to true on successful honeybadger notification" do
               @honeybadger_status = nil
               ExceptionHandling.post_log_error_hook = method(:log_error_callback_config)
-              mock(Honeybadger).notify.with_any_args { '06220c5a-b471-41e5-baeb-de247da45a56' }
+              expect(Honeybadger).to receive(:notify).with(any_args) { '06220c5a-b471-41e5-baeb-de247da45a56' }
               ExceptionHandling.log_error(exception_1)
-              assert_equal :success, @honeybadger_status
+              expect(@honeybadger_status).to eq(:success)
             end
           end
         end
@@ -829,33 +826,33 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         end
       end
 
-      should "allow sections to have data with just a to_s method" do
+      it "allow sections to have data with just a to_s method" do
         capture_notifications
 
         ExceptionHandling.log_error("This is my RingSwitch example.") do |data|
           data.merge!(event_response: EventResponse.new)
         end
 
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
-        assert_match(/message from to_s!/, sent_notifications.last.enhanced_data['event_response'].to_s)
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
+        expect(sent_notifications.last.enhanced_data['event_response'].to_s).to match(/message from to_s!/)
       end
     end
 
-    should "return the error ID (timestamp)" do
+    it "return the error ID (timestamp)" do
       result = ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
-      assert_equal ExceptionHandling.last_exception_timestamp, result
+      expect(result).to eq(ExceptionHandling.last_exception_timestamp)
     end
 
-    should "rescue exceptions that happen in log_error" do
-      stub(ExceptionHandling).make_exception { raise ArgumentError, "Bad argument" }
-      mock(ExceptionHandling).write_exception_to_log(satisfy { |ex| ex.to_s['Bad argument'] },
+    it "rescue exceptions that happen in log_error" do
+      allow(ExceptionHandling).to receive(:make_exception) { raise ArgumentError, "Bad argument" }
+      expect(ExceptionHandling).to receive(:write_exception_to_log).with(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['ExceptionHandlingError: log_error rescued exception while logging Runtime message'] },
                                                      anything)
       ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
     end
 
-    should "rescue exceptions that happen when log_error yields" do
-      mock(ExceptionHandling).write_exception_to_log(satisfy { |ex| ex.to_s['Bad argument'] },
+    it "rescue exceptions that happen when log_error yields" do
+      expect(ExceptionHandling).to receive(:write_exception_to_log).with(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['Context message'] },
                                                      anything,
                                                      anything)
@@ -863,38 +860,38 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "Exception Filtering" do
-      setup do
+      before do
         filter_list = { exception1: { 'error' => "my error message" },
                         exception2: { 'error' => "some other message", :session => "misc data" } }
-        stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
+        allow(YAML).to receive(:load_file) { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
 
         # bump modified time up to get the above filter loaded
-        stub(File).mtime { incrementing_mtime }
+        allow(File).to receive(:mtime) { incrementing_mtime }
       end
 
-      should "handle case where filter list is not found" do
-        stub(YAML).load_file { raise Errno::ENOENT, "File not found" }
+      it "handle case where filter list is not found" do
+        allow(YAML).to receive(:load_file) { raise Errno::ENOENT, "File not found" }
 
         capture_notifications
 
         ExceptionHandling.log_error("My error message is in list")
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
       end
 
-      should "log exception and suppress email when exception is on filter list" do
+      it "log exception and suppress email when exception is on filter list" do
         capture_notifications
 
         ExceptionHandling.log_error("Error message is not in list")
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
         sent_notifications.clear
         ExceptionHandling.log_error("My error message is in list")
-        assert_equal 0, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(0), sent_notifications.inspect
       end
 
-      should "allow filtering exception on any text in exception data" do
+      it "allow filtering exception on any text in exception data" do
         filters = { exception1: { session: "data: my extra session data" } }
-        stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filters) }
+        allow(YAML).to receive(:load_file) { ActiveSupport::HashWithIndifferentAccess.new(filters) }
 
         capture_notifications
 
@@ -904,7 +901,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             data: "my extra session data"
           }
         end
-        assert_equal 0, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(0), sent_notifications.inspect
 
         ExceptionHandling.log_error("No match here") do |data|
           data[:session] = {
@@ -912,86 +909,86 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             data: "my extra session <no match!> data"
           }
         end
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
       end
 
-      should "reload filter list on the next exception if file was modified" do
+      it "reload filter list on the next exception if file was modified" do
         capture_notifications
 
         ExceptionHandling.log_error("Error message is not in list")
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
         filter_list = { exception1: { 'error' => "Error message is not in list" } }
-        stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
-        stub(File).mtime { incrementing_mtime }
+        allow(YAML).to receive(:load_file) { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
+        allow(File).to receive(:mtime) { incrementing_mtime }
 
         sent_notifications.clear
         ExceptionHandling.log_error("Error message is not in list")
-        assert_equal 0, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(0), sent_notifications.inspect
       end
 
-      should "not consider filter if both error message and body do not match" do
+      it "not consider filter if both error message and body do not match" do
         capture_notifications
 
         # error message matches, but not full text
         ExceptionHandling.log_error("some other message")
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
         # now both match
         sent_notifications.clear
         ExceptionHandling.log_error("some other message") do |data|
           data[:session] = { some_random_key: "misc data" }
         end
-        assert_equal 0, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(0), sent_notifications.inspect
       end
 
-      should "skip environment keys not on whitelist" do
+      it "skip environment keys not on whitelist" do
         capture_notifications
 
         ExceptionHandling.log_error("some message") do |data|
           data[:environment] = { SERVER_PROTOCOL: "HTTP/1.0", RAILS_SECRETS_YML_CONTENTS: 'password: VERY_SECRET_PASSWORD' }
         end
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
 
         mail = sent_notifications.last
         environment = mail.enhanced_data['environment']
 
-        assert_nil environment["RAILS_SECRETS_YML_CONTENTS"], environment.inspect # this is not on whitelist
-        assert     environment["SERVER_PROTOCOL"], environment.inspect # this is
+        expect(environment["RAILS_SECRETS_YML_CONTENTS"]).to be_nil, environment.inspect # this is not on whitelist).to be_nil
+        expect(environment["SERVER_PROTOCOL"]).to be_truthy, environment.inspect # this is
       end
 
-      should "omit environment defaults" do
+      it "omit environment defaults" do
         capture_notifications
 
-        stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| sent_notifications << exception_info }
+        allow(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(anything) { |exception_info| sent_notifications << exception_info }
 
         ExceptionHandling.log_error("some message") do |data|
           data[:environment] = { SERVER_PORT: '80', SERVER_PROTOCOL: "HTTP/1.0" }
         end
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
         mail = sent_notifications.last
         environment = mail.enhanced_data['environment']
 
-        assert_nil environment["SERVER_PORT"], environment.inspect # this was default
-        assert     environment["SERVER_PROTOCOL"], environment # this was not
+        expect(environment["SERVER_PORT"]).to be_nil, environment.inspect # this was default).to be_nil
+        expect(environment["SERVER_PROTOCOL"]).to be_truthy, environment # this was not
       end
 
-      should "reject the filter file if any contain all empty regexes" do
+      it "reject the filter file if any contain all empty regexes" do
         filter_list = { exception1: { 'error' => "", :session => "" },
                         exception2: { 'error' => "is not in list", :session => "" } }
-        stub(YAML).load_file { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
-        stub(File).mtime { incrementing_mtime }
+        allow(YAML).to receive(:load_file) { ActiveSupport::HashWithIndifferentAccess.new(filter_list) }
+        allow(File).to receive(:mtime) { incrementing_mtime }
 
         capture_notifications
 
         ExceptionHandling.log_error("Error message is not in list")
-        assert_equal 1, sent_notifications.size, sent_notifications.inspect
+        expect(sent_notifications.size).to eq(1), sent_notifications.inspect
       end
 
-      should "reload filter file if filename changes" do
+      it "reload filter file if filename changes" do
         catalog = ExceptionHandling.exception_catalog
         ExceptionHandling.filter_list_filename = "./config/other_exception_filters.yml"
-        assert_not_equal catalog, ExceptionHandling.exception_catalog
+        expect(ExceptionHandling.exception_catalog).to_not eq(catalog)
       end
 
       context "Exception Handling Mailer" do
@@ -1005,7 +1002,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
 
         [[true, false], [true, true]].each do |em_flag, synchrony_flag|
           context "eventmachine_safe = #{em_flag} && eventmachine_synchrony = #{synchrony_flag}" do
-            setup do
+            before do
               ExceptionHandling.eventmachine_safe       = em_flag
               ExceptionHandling.eventmachine_synchrony  = synchrony_flag
               EventMachineStub.block = nil
@@ -1015,61 +1012,60 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
               set_test_const('EventMachine::DNS::Resolver', DNSResolvStub)
             end
 
-            teardown do
+            after do
               ExceptionHandling.eventmachine_safe       = false
               ExceptionHandling.eventmachine_synchrony  = false
             end
 
-            should "schedule EventMachine STMP when EventMachine defined" do
+            it "schedule EventMachine STMP when EventMachine defined" do
               ActionMailer::Base.deliveries.clear
 
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
 
               ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              assert EventMachineStub.block
+              expect(EventMachineStub.block).to be_truthy
               EventMachineStub.block.call
-              assert DNSResolvStub.callback_block
+              expect(DNSResolvStub.callback_block).to be_truthy
               DNSResolvStub.callback_block.call ['127.0.0.1']
-              assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }, SmtpClientStub.send_hash.inspect
-              assert_equal((synchrony_flag ? :asend : :send), SmtpClientStub.last_method)
-              assert_match(/Exception to escalate/, SmtpClientStub.send_hash[:content])
+              expect((SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }) .to eq(EXPECTED_SMTP_HASH), SmtpClientStub.send_hash.inspect
+              expect(SmtpClientStub.last_method).to eq((synchrony_flag ? :asend : :send))
+              expect(SmtpClientStub.send_hash[:content]).to match(/Exception to escalate/)
               assert_emails 0, ActionMailer::Base.deliveries.*.to_s
             end
 
-            should "pass the content as a proper rfc 2822 message" do
+            it "pass the content as a proper rfc 2822 message" do
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
               ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              assert EventMachineStub.block
+              expect(EventMachineStub.block).to be_truthy
               EventMachineStub.block.call
-              assert DNSResolvStub.callback_block
+              expect(DNSResolvStub.callback_block).to be_truthy
               DNSResolvStub.callback_block.call ['127.0.0.1']
-              assert content = SmtpClientStub.send_hash[:content]
-              assert_match(/Content-Transfer-Encoding: 7bit/, content)
-              assert_match(/\r\n\.\r\n\z/, content)
+              expect(content = SmtpClientStub.send_hash[:content]).to be_truthy
+              expect(content).to match(/Content-Transfer-Encoding: 7bit/)
+              expect(content).to match(/\r\n\.\r\n\z/)
             end
 
-            should "log fatal on EventMachine STMP errback" do
+            it "log fatal on EventMachine STMP errback" do
               ActionMailer::Base.deliveries.clear
 
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientErrbackStub)
-              mock(ExceptionHandling.logger).fatal(/Exception to escalate/, anything)
-              mock(ExceptionHandling.logger).fatal(/Failed to email by SMTP: "credential mismatch"/)
+              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, anything)
+              expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to email by SMTP: "credential mismatch"/)
 
               ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              assert EventMachineStub.block
+              expect(EventMachineStub.block).to be_truthy
               EventMachineStub.block.call
-              assert DNSResolvStub.callback_block
+              expect(DNSResolvStub.callback_block).to be_truthy
               DNSResolvStub.callback_block.call(['127.0.0.1'])
               SmtpClientErrbackStub.block.call("credential mismatch")
-              assert_equal_with_diff EXPECTED_SMTP_HASH, (SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }, SmtpClientErrbackStub.send_hash.inspect
-            end
+              expect((SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }).to eq(EXPECTED_SMTP_HASH), SmtpClientErrbackStub.send_hash.inspect            end
 
-            should "log fatal on EventMachine dns resolver errback" do
-              mock(ExceptionHandling.logger).fatal(/Exception to escalate/, anything)
-              mock(ExceptionHandling.logger).fatal(/Failed to resolv DNS for localhost: "softlayer sucks"/)
+            it "log fatal on EventMachine dns resolver errback" do
+              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, anything)
+              expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to resolv DNS for localhost: "softlayer sucks"/)
 
               ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              assert EventMachineStub.block
+              expect(EventMachineStub.block).to be_truthy
               EventMachineStub.block.call
               DNSResolvStub.errback_block.call("softlayer sucks")
             end
@@ -1079,7 +1075,7 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "Exception mapping" do
-      setup do
+      before do
         @data = {
           environment: {
             'HTTP_HOST' => "localhost",
@@ -1104,17 +1100,17 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
         }
       end
 
-      should "clean backtraces" do
+      it "clean backtraces" do
         begin
           raise "test exception"
         rescue => ex
           backtrace = ex.backtrace
         end
         result = ExceptionHandling.send(:clean_backtrace, ex).to_s
-        assert_not_equal result, backtrace
+        expect(backtrace).to_not eq(result)
       end
 
-      should "return entire backtrace if cleaned is emtpy" do
+      it "return entire backtrace if cleaned is emtpy" do
         begin
           backtrace = ["/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/relation/finder_methods.rb:312:in `find_with_ids'",
                        "/Users/peter/ringrevenue/web/vendor/rails-3.2.12/activerecord/lib/active_record/relation/finder_methods.rb:107:in `find'",
@@ -1152,12 +1148,13 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
             end
           end
 
-          mock(Rails).backtrace_cleaner { Rails::BacktraceCleaner.new }
+          dbl = double(Rails)
+          expect(Rails).to receive(:backtrace_cleaner) { Rails::BacktraceCleaner.new }
 
           ex = Exception.new
           ex.set_backtrace(backtrace)
           result = ExceptionHandling.send(:clean_backtrace, ex)
-          assert_equal backtrace, result
+          expect(result).to eq(backtrace)
         ensure
           Object.send(:remove_const, :Rails)
         end
@@ -1165,36 +1162,36 @@ class ExceptionHandlingTest < ActiveSupport::TestCase
     end
 
     context "log_perodically" do
-      setup do
+      before do
         Time.now_override = Time.now # Freeze time
         ExceptionHandling.logger.clear
       end
 
-      teardown do
+      after do
         Time.now_override = nil
       end
 
-      should "take in additional logging context and pass them to the logger" do
+      it "take in additional logging context and pass them to the logger" do
         ExceptionHandling.log_periodically(:test_context_with_periodic, 30.minutes, "this will be written", service_name: 'exception_handling')
-        assert_not_empty logged_excluding_reload_filter.last[:context]
-        assert_equal({ service_name: 'exception_handling' }, logged_excluding_reload_filter.last[:context])
+        expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
+        expect(logged_excluding_reload_filter.last[:context]).to eq({ service_name: 'exception_handling' })
       end
 
-      should "log immediately when we are expected to log" do
+      it "log immediately when we are expected to log" do
         ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
-        assert_equal 1, logged_excluding_reload_filter.size
+        expect(logged_excluding_reload_filter.size).to eq(1)
 
         Time.now_override = Time.now + 5.minutes
         ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will not be written")
-        assert_equal 1, logged_excluding_reload_filter.size
+        expect(logged_excluding_reload_filter.size).to eq(1)
 
         ExceptionHandling.log_periodically(:test_another_periodic_exception, 30.minutes, "this will be written")
-        assert_equal 2, logged_excluding_reload_filter.size
+        expect(logged_excluding_reload_filter.size).to eq(2)
 
         Time.now_override = Time.now + 26.minutes
 
         ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
-        assert_equal 3, logged_excluding_reload_filter.size
+        expect(logged_excluding_reload_filter.size).to eq(3)
       end
     end
   end
