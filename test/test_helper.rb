@@ -1,17 +1,14 @@
 # frozen_string_literal: true
 
-require 'active_support'
-require 'active_support/time'
-require 'active_support/test_case'
-require 'action_mailer'
-require 'action_dispatch'
-require 'shoulda'
-require 'rr'
-require 'minitest/autorun'
-require "minitest/reporters"
+# require 'active_support'
+# require 'active_support/time'
+# require 'active_support/test_case'
+# require 'action_mailer'
+# require 'action_dispatch'
+require 'rspec'
+require 'rspec/mocks'
+require 'rspec_junit_formatter'
 
-junit_ouptut_dir = ENV["JUNIT_OUTPUT_DIR"].presence || "test/reports"
-Minitest::Reporters.use!([Minitest::Reporters::DefaultReporter.new, Minitest::Reporters::JUnitReporter.new(junit_ouptut_dir)])
 
 require 'pry'
 require 'honeybadger'
@@ -19,8 +16,6 @@ require 'contextual_logger'
 
 require 'exception_handling'
 require 'exception_handling/testing'
-
-ActiveSupport::TestCase.test_order = :sorted
 
 class LoggerStub
   include ContextualLogger::LoggerMixin
@@ -87,27 +82,17 @@ end
 
 ActionMailer::Base.delivery_method = :test
 
-_ = ActiveSupport
-_ = ActiveSupport::TestCase
 
-class ActiveSupport::TestCase
-  @@constant_overrides = []
+module TestHelper
+  @constant_overrides = []
+  class << self
+    attr_accessor :constant_overrides
+  end
 
-  setup do
-    unless @@constant_overrides.nil? || @@constant_overrides.empty?
-      raise "Uh-oh! constant_overrides left over: #{@@constant_overrides.inspect}"
-    end
 
-    unless defined?(Rails) && defined?(Rails.env)
-      module ::Rails
-        class << self
-          attr_writer :env
-
-          def env
-            @env ||= 'test'
-          end
-        end
-      end
+  def setup_constant_overrides
+    unless TestHelper.constant_overrides.nil? || TestHelper.constant_overrides.empty?
+      raise "Uh-oh! constant_overrides left over: #{TestHelper.constant_overrides.inspect}"
     end
 
     Time.now_override = nil
@@ -127,8 +112,8 @@ class ActiveSupport::TestCase
     ExceptionHandling.sensu_prefix            = ""
   end
 
-  teardown do
-    @@constant_overrides&.reverse&.each do |parent_module, k, v|
+  def teardown_constant_overrides
+    TestHelper.constant_overrides&.reverse&.each do |parent_module, k, v|
       ExceptionHandling.ensure_safe "constant cleanup #{k.inspect}, #{parent_module}(#{parent_module.class})::#{v.inspect}(#{v.class})" do
         silence_warnings do
           if v == :never_defined
@@ -139,7 +124,7 @@ class ActiveSupport::TestCase
         end
       end
     end
-    @@constant_overrides = []
+    TestHelper.constant_overrides = []
   end
 
   def set_test_const(const_name, value)
@@ -159,7 +144,7 @@ class ActiveSupport::TestCase
         end
       end
 
-    @@constant_overrides << [final_parent_module, final_const_name, original_value]
+    TestHelper.constant_overrides << [final_parent_module, final_const_name, original_value]
 
     silence_warnings { final_parent_module.const_set(final_const_name, value) }
   end
@@ -171,15 +156,15 @@ class ActiveSupport::TestCase
     else
       original_count = 0
     end
-    assert_equal expected, ActionMailer::Base.deliveries.size - original_count, "wrong number of emails#{': ' + message.to_s if message}"
+    expect(ActionMailer::Base.deliveries.size - original_count).to eq(expected), "wrong number of emails#{': ' + message.to_s if message}"
   end
 end
 
 def assert_equal_with_diff(arg1, arg2, msg = '')
   if arg1 == arg2
-    assert true # To keep the assertion count accurate
+    expect(true).to be_truthy # To keep the assertion count accurate
   else
-    assert_equal arg1, arg2, "#{msg}\n#{Diff.compare(arg1, arg2)}"
+    expect(arg1).to eq(arg2), "#{msg}\n#{Diff.compare(arg1, arg2)}"
   end
 end
 
@@ -209,4 +194,34 @@ class Time
       now_override ? now_override.dup : old_now
     end
   end
+end
+
+RSpec.configure do |config|
+  # config.add_formatter(RspecJunitFormatter, 'spec/reports/rspec.xml')
+  config.include TestHelper
+
+  config.before(:each) do
+    setup_constant_overrides
+    unless defined?(Rails) && defined?(Rails.env)
+      module Rails
+        class << self
+          attr_writer :env
+
+          def env
+            @env ||= 'test'
+          end
+        end
+      end
+    end
+  end
+
+  config.after(:each) do
+    teardown_constant_overrides
+  end
+
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+
+  RSpec::Support::ObjectFormatter.default_instance.max_formatted_output_length = 2_000
 end
