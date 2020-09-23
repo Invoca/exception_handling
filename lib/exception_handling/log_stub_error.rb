@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 #
-# Used by functional tests to track exceptions.
+# Test Helper that supports Minitest::Test and Test::Unit
+# Used by tests in the consumers of this gem to track exceptions.
 #
 
 module LogErrorStub
