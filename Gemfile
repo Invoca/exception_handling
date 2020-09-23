@@ -9,9 +9,11 @@ gem 'honeybadger', '3.3.1-1', git: 'git@github.com:Invoca/honeybadger-ruby', ref
 gem "minitest"
 gem "minitest-reporters"
 gem 'pry'
+gem 'pry-byebug'
 gem 'rake'
 gem 'rr'
 gem 'rspec'
 gem 'rspec_junit_formatter'
 gem 'rubocop'
 gem 'shoulda'
+gem 'test-unit'
