@@ -494,11 +494,9 @@ describe ExceptionHandling do
         end
 
         it "log if the escalation email cannot be sent" do
-          expect_any_instance_of(Mail::Message) do |message|
-            expect(message).to receive(:deliver) { raise RuntimeError.new, "Delivery Error" }
-          end
+          expect_any_instance_of(Mail::Message).to receive(:deliver).and_raise(RuntimeError.new, "Delivery Error")
           log_fatals = []
-          expect(ExceptionHandling.logger).to receive(:fatal).with(any_args) do |*args|
+          expect(ExceptionHandling.logger).to receive(:fatal).with(any_args).at_least(:once) do |*args|
             log_fatals << args
           end
 
