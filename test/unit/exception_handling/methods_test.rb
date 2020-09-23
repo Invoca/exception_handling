@@ -49,7 +49,7 @@ module ExceptionHandling
 
       it "not report long running controller actions if it is less than the timeout" do
         expect(@controller.send(:long_controller_action_timeout)).to eq(2)
-        allow(ExceptionHandling).to receive(:log_error).and_return(flunk "Should not timeout")
+        allow(ExceptionHandling).to receive(:log_error).and_return("Should not timeout")
         @controller.simulate_around_filter do
           sleep(1)
         end
