@@ -223,5 +223,7 @@ RSpec.configure do |config|
     mocks.verify_partial_doubles = true
   end
 
+  config.expect_with(:minitest, :rspec, :test_unit)
+
   RSpec::Support::ObjectFormatter.default_instance.max_formatted_output_length = 2_000
 end
