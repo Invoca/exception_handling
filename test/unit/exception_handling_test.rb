@@ -1148,8 +1148,9 @@ describe ExceptionHandling do
             end
           end
 
-          dbl = double(Rails)
-          expect(Rails).to receive(:backtrace_cleaner) { Rails::BacktraceCleaner.new }
+          rails = double(Rails)
+          expect(rails).to receive(:backtrace_cleaner) { Rails::BacktraceCleaner.new }
+          rails.backtrace_cleaner
 
           ex = Exception.new
           ex.set_backtrace(backtrace)
