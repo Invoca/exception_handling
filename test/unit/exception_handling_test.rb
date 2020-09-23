@@ -498,8 +498,8 @@ describe ExceptionHandling do
             expect(message).to receive(:deliver) { raise RuntimeError.new, "Delivery Error" }
           end
           log_fatals = []
-          stub(ExceptionHandling.logger) do |logger|
-            logger.fatal.with_any_args { |*args| log_fatals << args }
+          expect(ExceptionHandling.logger).to receive(:fatal).with(any_args) do |*args|
+            log_fatals << args
           end
 
           ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
