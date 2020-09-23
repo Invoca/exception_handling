@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require File.expand_path('../../test_helper',  __dir__)
+require 'minitest'
+require 'test/unit'
+require 'rr'
 
 module ExceptionHandling
   describe LogErrorStub do
@@ -82,12 +85,28 @@ module ExceptionHandling
     end
 
     context "teardown_log_error_stub" do
+      before do
+        RSpec.configure do |config|
+          config.mock_with :rspec do |mocks|
+            mocks.verify_partial_doubles = false
+          end
+        end
+      end
+
+      after do
+        RSpec.configure do |config|
+          config.mock_with :rspec do |mocks|
+            mocks.verify_partial_doubles = true
+          end
+        end
+      end
+
       it "support MiniTest framework for adding a failure" do
         expects_exception(/foo/)
 
-        mock(self).is_mini_test?.returns { true }
+        expect(self).to receive(:is_mini_test?) { true }
 
-        mock(self).flunk("log_error expected 1 times with pattern: 'foo' found 0")
+        expect(self).to receive(:flunk).with("log_error expected 1 times with pattern: 'foo' found 0")
         teardown_log_error_stub
 
         self.exception_whitelist = nil
@@ -96,9 +115,9 @@ module ExceptionHandling
       it "support Test::Unit framework for adding a failure" do
         expects_exception(/foo/)
 
-        mock(self).is_mini_test?.returns { false }
+        expect(self).to receive(:is_mini_test?) { false }
 
-        mock(self).add_failure("log_error expected 1 times with pattern: 'foo' found 0")
+        expect(self).to receive(:add_failure).with("log_error expected 1 times with pattern: 'foo' found 0")
         teardown_log_error_stub
 
         self.exception_whitelist = nil
