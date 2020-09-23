@@ -7,7 +7,6 @@ module ExceptionHandling
   describe Mailer do
 
     include ::Rails::Dom::Testing::Assertions::SelectorAssertions
-    # tests ExceptionHandling::Mailer
 
     def dont_stub_log_error
       true
