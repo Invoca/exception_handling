@@ -367,7 +367,7 @@ describe ExceptionHandling do
 
       context "ExceptionHandling.ensure_safe" do
         it "log an exception with call stack if an exception is raised." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
         end
 
@@ -403,13 +403,13 @@ describe ExceptionHandling do
         end
 
         it "return nil if an exception is raised during an assignment" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           b = ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
 
         it "allow a message to be appended to the error when logged." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
           b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
@@ -417,7 +417,7 @@ describe ExceptionHandling do
         it "only rescue StandardError and descendents" do
           expect { ExceptionHandling.ensure_safe("mooo") { raise Exception } }.to raise_exception(Exception)
 
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nStandardError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nStandardError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
 
           b = ExceptionHandling.ensure_safe("mooo") { raise StandardError, "blah" }
           expect(b).to be_nil
@@ -426,7 +426,7 @@ describe ExceptionHandling do
 
       context "ExceptionHandling.ensure_completely_safe" do
         it "log an exception if an exception is raised." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
         end
 
@@ -442,19 +442,19 @@ describe ExceptionHandling do
         end
 
         it "return nil if an exception is raised during an assignment" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything) { nil }
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything) { nil }
           b = ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
 
         it "allow a message to be appended to the error when logged." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
           b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
 
         it "rescue any instance or child of Exception" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           ExceptionHandling.ensure_completely_safe { raise Exception, "blah" }
         end
 
@@ -476,7 +476,7 @@ describe ExceptionHandling do
         end
 
         it "log the exception as usual and send the proper email" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
           expect(ActionMailer::Base.deliveries.count).to eq(1)
           expect(sent_notifications.size).to eq(1), sent_notifications.inspect
@@ -511,7 +511,7 @@ describe ExceptionHandling do
 
         it "allow the caller to specify custom recipients" do
           custom_recipients = ['something@invoca.com']
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           ExceptionHandling.ensure_escalation("Favorite Feature", custom_recipients) { raise ArgumentError, "blah" }
           expect(ActionMailer::Base.deliveries.count).to eq(1)
           expect(sent_notifications.size).to eq(1), sent_notifications.inspect
@@ -527,7 +527,7 @@ describe ExceptionHandling do
       context "ExceptionHandling.ensure_alert" do
         it "log the exception as usual and fire a sensu event" do
           expect(ExceptionHandling::Sensu).to receive(:generate_event).with("Favorite Feature", "test context\nblah")
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
           ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError, "blah" }
         end
 
@@ -570,7 +570,7 @@ describe ExceptionHandling do
         it "include the timestamp when the exception is logged" do
           capture_notifications
 
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_test\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
           b = ExceptionHandling.ensure_safe("context") { raise ArgumentError, "blah" }
           expect(b).to be_nil
 
@@ -662,8 +662,8 @@ describe ExceptionHandling do
 
               @exception = StandardError.new("Some Exception")
               @exception.set_backtrace([
-                                         "spec/unit/exception_handling_test.rb:847:in `exception_1'",
-                                         "spec/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                                         "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
+                                         "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                                        ])
               @exception_context = { "SERVER_NAME" => "exceptional.com" }
             end
@@ -708,8 +708,8 @@ describe ExceptionHandling do
                     "SERVER_NAME" => "exceptional.com"
                   },
                   backtrace: [
-                    "spec/unit/exception_handling_test.rb:847:in `exception_1'",
-                    "spec/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                    "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
+                    "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                   ],
                   event_response: "Event successfully received",
                   log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
@@ -758,8 +758,8 @@ describe ExceptionHandling do
                     "SERVER_NAME" => "exceptional.com"
                   },
                   backtrace: [
-                               "spec/unit/exception_handling_test.rb:847:in `exception_1'",
-                               "spec/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                               "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
+                               "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                              ],
                   event_response: "Event successfully received"
                 }
