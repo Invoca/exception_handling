@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require File.expand_path('../../test_helper',  __dir__)
+require File.expand_path('../../spec_helper',  __dir__)
 
 require "exception_handling/testing"
 require_relative '../../helpers/exception_helpers.rb'
