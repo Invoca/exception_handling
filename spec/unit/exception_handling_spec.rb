@@ -662,8 +662,8 @@ describe ExceptionHandling do
 
               @exception = StandardError.new("Some Exception")
               @exception.set_backtrace([
-                                         "test/unit/exception_handling_test.rb:847:in `exception_1'",
-                                         "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                                         "spec/unit/exception_handling_test.rb:847:in `exception_1'",
+                                         "spec/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                                        ])
               @exception_context = { "SERVER_NAME" => "exceptional.com" }
             end
@@ -708,8 +708,8 @@ describe ExceptionHandling do
                     "SERVER_NAME" => "exceptional.com"
                   },
                   backtrace: [
-                    "test/unit/exception_handling_test.rb:847:in `exception_1'",
-                    "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                    "spec/unit/exception_handling_test.rb:847:in `exception_1'",
+                    "spec/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                   ],
                   event_response: "Event successfully received",
                   log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
@@ -758,8 +758,8 @@ describe ExceptionHandling do
                     "SERVER_NAME" => "exceptional.com"
                   },
                   backtrace: [
-                               "test/unit/exception_handling_test.rb:847:in `exception_1'",
-                               "test/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                               "spec/unit/exception_handling_test.rb:847:in `exception_1'",
+                               "spec/unit/exception_handling_test.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                              ],
                   event_response: "Event successfully received"
                 }
