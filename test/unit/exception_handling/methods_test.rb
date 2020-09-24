@@ -31,11 +31,11 @@ module ExceptionHandling
       it "use the current_controller when available" do
         capture_notifications
 
-        expect(ExceptionHandling.logger).to receive(:fatal).with(/blah/, anything)
+        expect(ExceptionHandling.logger).to receive(:fatal).with(/blah/, anything).at_least(:once)
         @controller.simulate_around_filter do
           ExceptionHandling.log_error(ArgumentError.new("blah"))
           expect(sent_notifications.size).to eq(1)
-          expect(sent_notifications.last.enhanced_data['request'].to_s).to match(@controller.request.request_uri)
+          expect(/#{Regexp.new(Regexp.escape(@controller.request.request_uri))}/).to match(sent_notifications.last.enhanced_data['request'].to_s)
         end
       end
 
