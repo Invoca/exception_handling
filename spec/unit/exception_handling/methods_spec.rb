@@ -80,6 +80,5 @@ module ExceptionHandling
         end
       end
     end
-
   end
 end
