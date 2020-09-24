@@ -36,12 +36,16 @@ pipeline {
     stage('Appraisals') {
       parallel {
         stage('Current') {
+          environment {
+            JUNIT_OUTPUT = 'spec/reports/current'
+          }
+
           steps {
-            sh 'JUNIT_OUTPUT_DIR=test/reports/current bundle exec rake'
+            sh "JUNIT_OUTPUT_DIR=test/reports/current bundle exec rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
           }
 
           post {
-            always { junit '*/reports/current/*.xml' }
+            always { junit "${JUNIT_OUTPUT}/*.xml" }
           }
         }
 
@@ -60,22 +64,30 @@ pipeline {
         }
 
         stage('Rails 5') {
+          environment {
+            JUNIT_OUTPUT = 'spec/reports/rails-5'
+          }
+
           steps {
-            sh 'JUNIT_OUTPUT_DIR=test/reports/rails-5 bundle exec appraisal rails-5 rake'
+            sh "JUNIT_OUTPUT_DIR=test/reports/rails-5 bundle exec appraisal rails-4 rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
           }
 
           post {
-            always { junit '*/reports/rails-5/*.xml' }
+            always { junit "${JUNIT_OUTPUT}/*.xml" }
           }
         }
 
         stage('Rails 6') {
+          environment {
+            JUNIT_OUTPUT = 'spec/reports/rails-6'
+          }
+
           steps {
-            sh 'JUNIT_OUTPUT_DIR=test/reports/rails-6 bundle exec appraisal rails-6 rake'
+            sh "JUNIT_OUTPUT_DIR=test/reports/rails-6 bundle exec appraisal rails-4 rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
           }
 
           post {
-            always { junit '*/reports/rails-6/*.xml' }
+            always { junit "${JUNIT_OUTPUT}/*.xml" }
           }
         }
       }
