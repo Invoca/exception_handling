@@ -968,7 +968,7 @@ describe ExceptionHandling do
         environment = mail.enhanced_data['environment']
 
         expect(environment["SERVER_PORT"]).to be_nil, environment.inspect # this was default).to be_nil
-        expect(environment["SERVER_PROTOCOL"]).to be_truthy, environment # this was not
+        expect(environment["SERVER_PROTOCOL"]).to be_truthy, environment.inspect # this was not
       end
 
       it "reject the filter file if any contain all empty regexes" do
