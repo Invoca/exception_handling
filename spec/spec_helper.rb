@@ -1,14 +1,8 @@
 # frozen_string_literal: true
 
-# require 'active_support'
-# require 'active_support/time'
-# require 'active_support/test_case'
-# require 'action_mailer'
-# require 'action_dispatch'
 require 'rspec'
 require 'rspec/mocks'
 require 'rspec_junit_formatter'
-
 
 require 'pry'
 require 'honeybadger'
@@ -197,7 +191,7 @@ class Time
 end
 
 RSpec.configure do |config|
-  # config.add_formatter(RspecJunitFormatter, 'spec/reports/rspec.xml')
+  config.add_formatter(RspecJunitFormatter, 'spec/reports/rspec.xml')
   config.include TestHelper
 
   config.before(:each) do
