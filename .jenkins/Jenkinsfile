@@ -69,7 +69,7 @@ pipeline {
           }
 
           steps {
-            sh "bundle exec appraisal rails-4 rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
+            sh "bundle exec appraisal rails-5 rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
           }
 
           post {
@@ -83,7 +83,7 @@ pipeline {
           }
 
           steps {
-            sh "bundle exec appraisal rails-4 rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
+            sh "bundle exec appraisal rails-6 rspec --format RspecJunitFormatter --out ${JUNIT_OUTPUT}/rspec.xml"
           }
 
           post {
