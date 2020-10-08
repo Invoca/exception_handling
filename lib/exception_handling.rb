@@ -324,24 +324,28 @@ module ExceptionHandling # never included
     end
 
     def escalate_to_production_support(exception_or_string, email_subject)
+      ActiveSupport::Deprecation.warn('escalate_to_production_support is deprecated as of exception_handling 3.0')
       production_support_recipients or raise ArgumentError, "In order to escalate to production support, you must set #{name}.production_recipients"
       ex = make_exception(exception_or_string)
       escalate(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
 
     def escalate_error(exception_or_string, email_subject, custom_recipients = nil, log_context = {})
+      ActiveSupport::Deprecation.warn('escalate_error is deprecated as of exception_handling 3.0')
       ex = make_exception(exception_or_string)
       log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
     def escalate_warning(message, email_subject, custom_recipients = nil, log_context = {})
+      ActiveSupport::Deprecation.warn('escalate_warning is deprecated as of exception_handling 3.0')
       ex = Warning.new(message)
       log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
     def ensure_escalation(email_subject, custom_recipients = nil, log_context = {})
+      ActiveSupport::Deprecation.warn('ensure_escalation is deprecated as of exception_handling 3.0')
       yield
     rescue => ex
       escalate_error(ex, email_subject, custom_recipients, log_context)
