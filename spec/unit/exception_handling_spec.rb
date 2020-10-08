@@ -1198,22 +1198,22 @@ describe ExceptionHandling do
   context "ExceptionHandling < 3.0 " do
     it "should return a deprecation warning" do
       ExceptionHandling.production_support_recipients = "prodsupport@example.com"
-      expect { ExceptionHandling.escalate_to_production_support("blah", "test@gmail.com") }
+      expect { ExceptionHandling.escalate_to_production_support("blah", "invoca@example.com") }
           .to output(/DEPRECATION WARNING: escalate_to_production_support is deprecated as of exception_handling 3.0/).to_stderr
     end
 
     it "should return a deprecation warning" do
-      expect { ExceptionHandling.escalate_error("blah", "test@gmail.com") }
+      expect { ExceptionHandling.escalate_error("blah", "invoca@example.com") }
           .to output(/DEPRECATION WARNING: escalate_error is deprecated as of exception_handling 3.0/).to_stderr
     end
 
     it "should return a deprecation warning" do
-      expect { ExceptionHandling.escalate_warning("blah", "test@gmail.com") }
+      expect { ExceptionHandling.escalate_warning("blah", "invoca@example.com") }
           .to output(/DEPRECATION WARNING: escalate_warning is deprecated as of exception_handling 3.0/).to_stderr
     end
 
     it "should return a deprecation warning" do
-      expect { ExceptionHandling.ensure_escalation("blah", "test@gmail.com") }
+      expect { ExceptionHandling.ensure_escalation("blah", "invoca@example.com") }
           .to output(/DEPRECATION WARNING: ensure_escalation is deprecated as of exception_handling 3.0/).to_stderr
     end
   end
