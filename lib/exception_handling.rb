@@ -348,10 +348,7 @@ module ExceptionHandling # never included
       nil
     end
 
-    deprecate :escalate_to_production_support,
-      :escalate_error,
-      :escalate_warning,
-      :ensure_escalation,
+    deprecate :escalate_to_production_support, :escalate_error, :escalate_warning, :ensure_escalation,
       deprecator: ActiveSupport::Deprecation.new('3.0', 'ExceptionHandling')
 
     def alert_warning(exception_or_string, alert_name, exception_context, log_context)
