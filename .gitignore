@@ -1,6 +1,6 @@
 .idea
 .DS_Store
 .rubocop-http*
-test/reports/*
+spec/reports/*
 gemfiles/*.lock
 pkg/

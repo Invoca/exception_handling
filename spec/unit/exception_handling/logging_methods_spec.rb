@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
-require_relative '../../test_helper'
+
+require File.expand_path('../../spec_helper',  __dir__)
+
 require_relative '../../helpers/exception_helpers'
 
 require "exception_handling/testing"
 
 module ExceptionHandling
-  class LoggingMethodsTest < ActiveSupport::TestCase
+  describe LoggingMethods do
     include ExceptionHelpers
 
     def dont_stub_log_error
@@ -14,21 +16,21 @@ module ExceptionHandling
     end
 
     context "ExceptionHandling::LoggingMethods" do
-      setup do
+      before do
         @controller = Testing::LoggingMethodsControllerStub.new
         ExceptionHandling.stub_handler = nil
       end
 
       context "#log_warning" do
-        should "be available to the controller" do
+        it "be available to the controller" do
           klass = Class.new
           klass.include ExceptionHandling::LoggingMethods
           instance = klass.new
-          assert instance.methods.include?(:log_warning)
+          expect(instance.methods.include?(:log_warning)).to eq(true)
         end
 
-        should "call ExceptionHandling#log_warning" do
-          mock(ExceptionHandling).log_warning("Hi mom")
+        it "call ExceptionHandling#log_warning" do
+          expect(ExceptionHandling).to receive(:log_warning).with("Hi mom")
           @controller.send(:log_warning, "Hi mom")
         end
       end

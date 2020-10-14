@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require File.expand_path('../../test_helper',  __dir__)
+require File.expand_path('../../spec_helper',  __dir__)
 
 module ExceptionHandling
-  class HoneybadgerCallbacksTest < ActiveSupport::TestCase
+  describe HoneybadgerCallbacks do
 
     class TestPoroWithAttribute
       attr_reader :test_attribute
@@ -55,15 +55,15 @@ module ExceptionHandling
     end
 
     context "register_callbacks" do
-      should "store the callbacks in the honeybadger object" do
+      it "store the callbacks in the honeybadger object" do
         HoneybadgerCallbacks.register_callbacks
         result = Honeybadger.config.local_variable_filter.call(:variable_name, 'test', [])
-        assert_equal('test', result)
+        expect(result).to eq('test')
       end
     end
 
     context "local_variable_filter" do
-      should "not inspect String, Hash, Array, Set, Numeric, TrueClass, FalseClass, NilClass" do
+      it "not inspect String, Hash, Array, Set, Numeric, TrueClass, FalseClass, NilClass" do
         [
           ['test', String],
           [{ a: 1 }, Hash],
@@ -75,46 +75,46 @@ module ExceptionHandling
           [nil, NilClass]
         ].each do |object, expected_class|
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, object, [])
-          assert result.is_a?(expected_class), "Expected #{expected_class.name} but got #{result.class.name}"
+          expect(result.is_a?(expected_class)).to be_truthy
         end
       end
 
-      should "inspect other classes" do
+      it "inspect other classes" do
         result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestPoroWithAttribute.new, ['password'])
-        assert_match(/#<ExceptionHandling::HoneybadgerCallbacksTest::TestPoroWithAttribute:.* @test_attribute="test">/, result)
+        expect(result).to match(/#<ExceptionHandling::TestPoroWithAttribute:.* @test_attribute="test">/)
       end
 
       context "when inspect raises exceptions" do
-        should "handle exceptions for objects" do
+        it "handle exceptions for objects" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspect.new, ['password'])
-          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspect [error 'RuntimeError: some error' while calling #inspect]>", result
+          expect(result).to eq("#<ExceptionHandling::TestRaiseOnInspect [error 'RuntimeError: some error' while calling #inspect]>")
         end
 
-        should "handle exceptions for objects responding to id" do
+        it "handle exceptions for objects responding to id" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithId.new, ['password'])
-          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithId @id=123 [error 'RuntimeError: some error' while calling #inspect]>", result
+          expect(result).to eq("#<ExceptionHandling::TestRaiseOnInspectWithId @id=123 [error 'RuntimeError: some error' while calling #inspect]>")
         end
 
-        should "handle exceptions for objects responding to to_pk" do
+        it "handle exceptions for objects responding to to_pk" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestRaiseOnInspectWithToPk.new, ['password'])
-          assert_equal "#<ExceptionHandling::HoneybadgerCallbacksTest::TestRaiseOnInspectWithToPk @pk=SomeRecord-123 [error 'RuntimeError: some error' while calling #inspect]>", result
+          expect(result).to eq("#<ExceptionHandling::TestRaiseOnInspectWithToPk @pk=SomeRecord-123 [error 'RuntimeError: some error' while calling #inspect]>")
         end
       end
 
       context "not inspect objects that contain filter keys" do
-        should "use to_pk if available, even if id is available" do
+        it "use to_pk if available, even if id is available" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestPoroWithFilteredAttributePkAndId.new, ['password'])
-          assert_match(/#<ExceptionHandling::HoneybadgerCallbacksTest::TestPoroWithFilteredAttributePkAndId @pk=TestPoroWithFilteredAttributePkAndId_1, \[FILTERED\]>/, result)
+          expect(result).to match(/#<ExceptionHandling::TestPoroWithFilteredAttributePkAndId @pk=TestPoroWithFilteredAttributePkAndId_1, \[FILTERED\]>/)
         end
 
-        should "use id if to_pk is not available" do
+        it "use id if to_pk is not available" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestPoroWithFilteredAttributeAndId.new, ['password'])
-          assert_match(/#<ExceptionHandling::HoneybadgerCallbacksTest::TestPoroWithFilteredAttributeAndId @id=1, \[FILTERED\]>/, result)
+          expect(result).to match(/#<ExceptionHandling::TestPoroWithFilteredAttributeAndId @id=1, \[FILTERED\]>/)
         end
 
-        should "print the object name if no id or to_pk" do
+        it "print the object name if no id or to_pk" do
           result = HoneybadgerCallbacks.send(:local_variable_filter, :variable_name, TestPoroWithFilteredAttribute.new, ['password'])
-          assert_match(/#<ExceptionHandling::HoneybadgerCallbacksTest::TestPoroWithFilteredAttribute \[FILTERED\]>/, result)
+          expect(result).to match(/#<ExceptionHandling::TestPoroWithFilteredAttribute \[FILTERED\]>/)
         end
       end
     end

@@ -7,7 +7,7 @@ module ExceptionHelpers
 
   def exception_with_nil_message
     exception_with_nil_message = RuntimeError.new(nil)
-    stub(exception_with_nil_message).message { nil }
+    allow(exception_with_nil_message).to receive(:message).and_return(nil)
     exception_with_nil_message
   end
 
@@ -15,6 +15,6 @@ module ExceptionHelpers
 
   def capture_notifications
     @sent_notifications = []
-    stub(ExceptionHandling).send_exception_to_honeybadger(anything) { |exception_info| @sent_notifications << exception_info }
+    allow(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(anything) { |exception_info| @sent_notifications << exception_info }
   end
 end
