@@ -10,7 +10,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Deprecated
 - Deprecated `Methods` in favor of `LoggingMethods`.
 
-## [2.6.1] - Unreleased
+## [2.6.1] - 2020-10-14
 ### Fixed
 - Fixed honeybadger_context_data to always merge `current_context_for_thread`, even if `log_context:` is passed as `nil`.
 
