@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.6.1] - Unreleased
+## [2.6.1] - 2020-10-14
 ### Fixed
 - Fixed honeybadger_context_data to always merge `current_context_for_thread`, even if `log_context:` is passed as `nil`.
 
