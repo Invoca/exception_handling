@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 require File.expand_path('../../spec_helper',  __dir__)
 
 require_relative '../../helpers/exception_helpers'

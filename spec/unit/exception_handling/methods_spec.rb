@@ -41,7 +41,7 @@ module ExceptionHandling
 
       it "report long running controller action" do
         expect(@controller.send(:long_controller_action_timeout)).to eq(2)
-        expect(ExceptionHandling).to receive(:log_error).with(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/, anything, anything)
+        expect(ExceptionHandling).to receive(:log_error).with(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/)
         @controller.simulate_around_filter do
           sleep(3)
         end
