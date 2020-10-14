@@ -13,14 +13,14 @@ module ExceptionHandling
       true
     end
 
-    context "ExceptionHandling.Methods" do
+    context "ExceptionHandling::Methods" do
       before do
-        @controller = Testing::ControllerStub.new
+        @controller = Testing::MethodsControllerStub.new
         ExceptionHandling.stub_handler = nil
       end
 
       it "set the around filter" do
-        expect(Testing::ControllerStub.around_filter_method).to eq(:set_current_controller)
+        expect(Testing::MethodsControllerStub.around_filter_method).to eq(:set_current_controller)
         expect(ExceptionHandling.current_controller).to be_nil
         @controller.simulate_around_filter do
           expect(ExceptionHandling.current_controller).to eq(@controller)
@@ -41,7 +41,7 @@ module ExceptionHandling
 
       it "report long running controller action" do
         expect(@controller.send(:long_controller_action_timeout)).to eq(2)
-        expect(ExceptionHandling).to receive(:log_error).with(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/, anything, anything)
+        expect(ExceptionHandling).to receive(:log_error).with(/Long controller action detected in #{@controller.class.name.split("::").last}::test_action/)
         @controller.simulate_around_filter do
           sleep(3)
         end
@@ -73,11 +73,32 @@ module ExceptionHandling
         it "be available to the controller" do
           expect(@controller.methods.include?(:log_warning)).to eq(true)
         end
+      end
 
-        it "call ExceptionHandling#log_warning" do
-          expect(ExceptionHandling).to receive(:log_warning).with("Hi mom")
-          @controller.send(:log_warning, "Hi mom")
+      context  "included deprecation" do
+        before do
+          mock_deprecation_3_0
         end
+
+        it "deprecate when no around_filter in included hook" do
+          k = Class.new
+          k.include ExceptionHandling::Methods
+        end
+
+        it "deprecate controller around_filter in included hook" do
+          controller = Class.new
+          class << controller
+            def around_filter(*)
+            end
+          end
+          controller.include ExceptionHandling::Methods
+        end
+      end
+
+      private
+
+      def mock_deprecation_3_0
+        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING: ExceptionHandling::Methods is deprecated and will be removed from exception_handling 3\.0/)
       end
     end
   end
