@@ -4,11 +4,17 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.7.0] - Unreleased
+## [2.8.0] - Unreleased
 ### Deprecated
 - Deprecated Email Escalation Methods: `escalate_to_production_support`, `escalate_error`, `escalate_warning`, `ensure_escalation`
 
-## [2.6.1] - Unreleased
+## [2.7.0] - 2020-10-14
+### Added
+- Added `LoggingMethods` as a replacement for `Methods` without setting controller or checking for long controller action.
+### Deprecated
+- Deprecated `Methods` in favor of `LoggingMethods`.
+
+## [2.6.1] - 2020-10-14
 ### Fixed
 - Fixed honeybadger_context_data to always merge `current_context_for_thread`, even if `log_context:` is passed as `nil`.
 
@@ -50,6 +56,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.7.0]: https://github.com/Invoca/exception_handling/compare/v2.6.1...v2.7.0
 [2.6.1]: https://github.com/Invoca/exception_handling/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Invoca/exception_handling/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/Invoca/exception_handling/compare/v2.4.4...v2.5.0
