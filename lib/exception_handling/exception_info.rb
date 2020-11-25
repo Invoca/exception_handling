@@ -82,9 +82,10 @@ module ExceptionHandling
     end
 
     def controller_name
-      @controller_name ||= if @controller
-                             @controller.request.parameters.with_indifferent_access[:controller]
-                           end.to_s
+      @controller_name ||= (
+        @merged_log_context[:honeybadger_grouping] ||
+          (@controller && @controller.request.parameters.with_indifferent_access[:controller])
+      ).to_s
     end
 
     private
