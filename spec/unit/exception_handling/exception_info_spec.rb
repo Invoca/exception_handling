@@ -361,6 +361,26 @@ module ExceptionHandling
         }
       end
 
+      it "returns honeybadger_grouping from the log context" do
+        allow(ExceptionHandling.logger).to receive(:current_context_for_thread).and_return({ honeybadger_grouping: 'Group 1' })
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp)
+
+        expect(exception_info.controller_name).to eq('Group 1')
+      end
+
+      it "returns honeybadger_grouping from log context even if controller is defined" do
+        allow(ExceptionHandling.logger).to receive(:current_context_for_thread).and_return({ honeybadger_grouping: 'Group 1' })
+
+        env         = { server:     'fe98' }
+        parameters  = { controller: 'some_controller' }
+        session     = { username:   'smith' }
+        request_uri = "host/path"
+        controller  = create_dummy_controller(env, parameters, session, request_uri)
+        exception_info = ExceptionInfo.new(@exception, @exception_context, @timestamp, controller: controller)
+
+        expect(exception_info.controller_name).to eq('Group 1')
+      end
+
       it "return controller_name when controller is present" do
         env         = { server:     'fe98' }
         parameters  = { controller: 'some_controller' }

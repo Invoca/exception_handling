@@ -8,7 +8,7 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (2.8.0)
+    exception_handling (2.8.1)
       actionmailer (>= 4.2, < 7.0)
       actionpack (>= 4.2, < 7.0)
       activesupport (>= 4.2, < 7.0)
@@ -61,7 +61,7 @@ GEM
       json
     crass (1.0.6)
     diff-lcs (1.4.4)
-    erubi (1.9.0)
+    erubi (1.10.0)
     eventmachine (1.2.7)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
@@ -70,7 +70,7 @@ GEM
     invoca-utils (0.4.1)
     jaro_winkler (1.5.3)
     json (2.3.1)
-    loofah (2.7.0)
+    loofah (2.8.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
     mail (2.7.1)
@@ -128,10 +128,10 @@ GEM
       power_assert
     thor (1.0.1)
     thread_safe (0.3.6)
-    tzinfo (1.2.7)
+    tzinfo (1.2.8)
       thread_safe (~> 0.1)
     unicode-display_width (1.6.0)
-    zeitwerk (2.4.0)
+    zeitwerk (2.4.2)
 
 PLATFORMS
   ruby
