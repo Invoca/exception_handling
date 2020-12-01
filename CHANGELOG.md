@@ -6,7 +6,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 
 ## [2.8.1] - Unreleased
 ### Added
-- Option to set Honeybadger `controller` via `log_context` in `HoneyBadger.notify()`.
+- If the `log_context` key `honeybadger_grouping:` is set, pass that value to the `controller:` keyword argument of `HoneyBadger.notify`.
 
 ## [2.8.0] - Unreleased
 ### Deprecated
