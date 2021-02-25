@@ -7,14 +7,15 @@ require 'contextual_logger'
 
 require 'invoca/utils'
 
-require "exception_handling/mailer"
-require "exception_handling/sensu"
-require "exception_handling/methods"
-require "exception_handling/log_stub_error"
-require "exception_handling/exception_description"
-require "exception_handling/exception_catalog"
-require "exception_handling/exception_info"
-require "exception_handling/honeybadger_callbacks.rb"
+require 'exception_handling/mailer'
+require 'exception_handling/sensu'
+require 'exception_handling/methods'
+require 'exception_handling/log_stub_error'
+require 'exception_handling/exception_description'
+require 'exception_handling/exception_catalog'
+require 'exception_handling/exception_info'
+require 'exception_handling/honeybadger_callbacks'
+require 'exception_handling/escalate_callback'
 
 _ = ActiveSupport::HashWithIndifferentAccess
 
@@ -484,4 +485,6 @@ module ExceptionHandling # never included
       end
     end
   end
+
+  EscalateCallback.register!
 end
