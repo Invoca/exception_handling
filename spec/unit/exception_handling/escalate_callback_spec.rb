@@ -13,11 +13,11 @@ module ExceptionHandling
         include Escalate.mixin
       end
       TestGem.logger = logger
-      Escalate.clear_all_on_escalate_blocks
+      Escalate.clear_on_escalate_callbacks
     end
 
     after do
-      Escalate.clear_all_on_escalate_blocks
+      Escalate.clear_on_escalate_callbacks
     end
 
     let(:exception) do
