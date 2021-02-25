@@ -13,7 +13,7 @@ PATH
       actionpack (>= 4.2, < 7.0)
       activesupport (>= 4.2, < 7.0)
       contextual_logger (~> 0.7)
-      escalate (~> 0.1)
+      escalate (= 0.2.0.pre.1)
       eventmachine (~> 1.0)
       invoca-utils (~> 0.3)
 
@@ -63,7 +63,7 @@ GEM
     crass (1.0.6)
     diff-lcs (1.4.4)
     erubi (1.10.0)
-    escalate (0.1.0)
+    escalate (0.2.0.pre.1)
       activesupport
     eventmachine (1.2.7)
     globalid (0.4.2)
@@ -81,7 +81,7 @@ GEM
     method_source (0.9.2)
     mini_mime (1.0.2)
     mini_portile2 (2.5.0)
-    minitest (5.14.3)
+    minitest (5.14.4)
     nokogiri (1.11.1)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
@@ -145,6 +145,7 @@ DEPENDENCIES
   actionmailer (< 6.1)
   activesupport (< 6.1)
   appraisal (~> 2.2)
+  escalate (= 0.2.0.pre.1)
   exception_handling!
   honeybadger (= 3.3.1.pre.1)!
   pry
