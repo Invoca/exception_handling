@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.9.0] - Unreleased
+## [2.9.0] - 2020-03-02
 ### Added
 - Automatically registers with the `escalate` gem's `on_escalate` callback.
 

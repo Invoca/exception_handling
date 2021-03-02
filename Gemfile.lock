@@ -8,12 +8,12 @@ GIT
 PATH
   remote: .
   specs:
-    exception_handling (2.9.0.pre.1)
+    exception_handling (2.9.0)
       actionmailer (>= 4.2, < 7.0)
       actionpack (>= 4.2, < 7.0)
       activesupport (>= 4.2, < 7.0)
       contextual_logger (~> 0.7)
-      escalate (= 0.2.0.pre.4)
+      escalate (~> 0.2)
       eventmachine (~> 1.0)
       invoca-utils (~> 0.3)
 
@@ -63,7 +63,7 @@ GEM
     crass (1.0.6)
     diff-lcs (1.4.4)
     erubi (1.10.0)
-    escalate (0.2.0.pre.4)
+    escalate (0.2.0)
       activesupport
     eventmachine (1.2.7)
     globalid (0.4.2)
