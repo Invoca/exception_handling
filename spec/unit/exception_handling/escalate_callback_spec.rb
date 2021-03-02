@@ -29,14 +29,53 @@ module ExceptionHandling
     let(:context_hash) { { cuid: 'AABBCD' } }
     let(:logger) { double("logger") }
 
-    it 'registers a callback' do
-      EscalateCallback.register!
+    describe '.register_if_configured!' do
+      context 'when already configured' do
+        before do
+          @original_logger = ExceptionHandling.logger
+          ExceptionHandling.logger = ::Logger.new('/dev/null')
+        end
 
-      expect(logger).to_not receive(:error)
-      expect(logger).to_not receive(:fatal)
-      expect(ExceptionHandling).to receive(:log_error).with(exception, location_message, context_hash)
+        after do
+          ExceptionHandling.logger = @original_logger
+        end
 
-      TestGem.escalate(exception, location_message, context_hash)
+        it 'registers a callback' do
+          EscalateCallback.register_if_configured!
+
+          expect(logger).to_not receive(:error)
+          expect(logger).to_not receive(:fatal)
+          expect(ExceptionHandling).to receive(:log_error).with(exception, location_message, context_hash)
+
+          TestGem.escalate(exception, location_message, context_hash)
+        end
+      end
+
+      context 'when not yet configured' do
+        before do
+          @original_logger = ExceptionHandling.logger
+          ExceptionHandling.logger = nil
+        end
+
+        after do
+          ExceptionHandling.logger = @original_logger
+        end
+
+        it 'registers a callback once the logger is set' do
+          EscalateCallback.register_if_configured!
+
+          expect(Escalate.on_escalate_callbacks).to be_empty
+
+          ExceptionHandling.logger = ::Logger.new('/dev/null')
+          expect(Escalate.on_escalate_callbacks).to_not be_empty
+
+          expect(logger).to_not receive(:error)
+          expect(logger).to_not receive(:fatal)
+          expect(ExceptionHandling).to receive(:log_error).with(exception, location_message, context_hash)
+
+          TestGem.escalate(exception, location_message, context_hash)
+        end
+      end
     end
   end
 end

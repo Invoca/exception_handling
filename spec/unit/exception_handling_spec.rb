@@ -117,7 +117,7 @@ describe ExceptionHandling do
       before { @original_logger = ExceptionHandling.logger }
       after { ExceptionHandling.logger = @original_logger }
 
-      it "store logger as-is if it has ContextualLogger::Mixin" do
+      it "stores logger as-is if it has ContextualLogger::Mixin" do
         logger = Logger.new('/dev/null')
         logger.extend(ContextualLogger::LoggerMixin)
         ancestors = logger.singleton_class.ancestors.*.name
@@ -126,33 +126,33 @@ describe ExceptionHandling do
         expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to eq(ancestors)
       end
 
-      it "allow logger = nil (no deprecation warning)" do
+      it "allows logger = nil (no deprecation warning)" do
         expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING/).never
         ExceptionHandling.logger = nil
       end
 
-      it "[deprecated] mix in ContextualLogger::Mixin if not there" do
+      it "[deprecated] mixes in ContextualLogger::Mixin if not there" do
         expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
         logger = Logger.new('/dev/null')
         ancestors = logger.singleton_class.ancestors.*.name
 
         ExceptionHandling.logger = logger
-        expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to_not eq(ancestors)
         expect(ExceptionHandling.logger).to be_kind_of(ContextualLogger::LoggerMixin)
-      end
-    end
-
-    context "#log_error" do
-      it "take in additional logging context hash and pass it to the logger" do
-        ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
-        expect(logged_excluding_reload_filter.last[:message]).to match(/This is an Error/)
-        expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
-        expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
+        expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to_not eq(ancestors)
       end
 
-      it "log with Severity::FATAL" do
-        ExceptionHandling.log_error('This is a Warning', service_name: 'exception_handling')
-        expect('FATAL').to eq(logged_excluding_reload_filter.last[:severity])
+      context "#log_error" do
+        it "takes in additional logging context hash and pass it to the logger" do
+          ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')
+          expect(logged_excluding_reload_filter.last[:message]).to match(/This is an Error/)
+          expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
+          expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
+        end
+
+        it "logs with Severity::FATAL" do
+          ExceptionHandling.log_error('This is a Warning', service_name: 'exception_handling')
+          expect('FATAL').to eq(logged_excluding_reload_filter.last[:severity])
+        end
       end
     end
 

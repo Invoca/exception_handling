@@ -5,6 +5,10 @@ require 'escalate'
 module ExceptionHandling
   module EscalateCallback
     class << self
+      def register_if_configured!
+        register! if ::ExceptionHandling.configured?
+      end
+
       def register!
         Escalate.on_escalate(log_first: false) do |exception, location_message, **context|
           ::ExceptionHandling.log_error(exception, location_message, **context)

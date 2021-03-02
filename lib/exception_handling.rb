@@ -53,6 +53,10 @@ module ExceptionHandling # never included
       @exception_recipients or raise ArgumentError, "You must assign a value to #{name}.exception_recipients"
     end
 
+    def configured?
+      !@logger.nil?
+    end
+
     def logger
       @logger or raise ArgumentError, "You must assign a value to #{name}.logger"
     end
@@ -64,6 +68,7 @@ module ExceptionHandling # never included
                   Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include into your logger class first')
                   logger.extend(ContextualLogger::LoggerMixin)
                 end
+      EscalateCallback.register_if_configured!
     end
 
     def default_metric_name(exception_data, exception, treat_like_warning)
@@ -486,5 +491,5 @@ module ExceptionHandling # never included
     end
   end
 
-  EscalateCallback.register!
+  EscalateCallback.register_if_configured!
 end
