@@ -13,7 +13,7 @@ PATH
       actionpack (>= 4.2, < 7.0)
       activesupport (>= 4.2, < 7.0)
       contextual_logger (~> 0.7)
-      escalate (~> 0.2)
+      escalate (~> 0.3)
       eventmachine (~> 1.0)
       invoca-utils (~> 0.3)
 
@@ -63,8 +63,7 @@ GEM
     crass (1.0.6)
     diff-lcs (1.4.4)
     erubi (1.10.0)
-    escalate (0.2.0)
-      activesupport
+    escalate (0.3.0)
     eventmachine (1.2.7)
     globalid (0.4.2)
       activesupport (>= 4.2.0)

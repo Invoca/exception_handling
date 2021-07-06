@@ -47,7 +47,7 @@ module ExceptionHandling
           expect(logger).to_not receive(:fatal)
           expect(ExceptionHandling).to receive(:log_error).with(exception, location_message, context_hash)
 
-          TestGem.escalate(exception, location_message, context_hash)
+          TestGem.escalate(exception, location_message, context: context_hash)
         end
       end
 
@@ -73,7 +73,7 @@ module ExceptionHandling
           expect(logger).to_not receive(:fatal)
           expect(ExceptionHandling).to receive(:log_error).with(exception, location_message, context_hash)
 
-          TestGem.escalate(exception, location_message, context_hash)
+          TestGem.escalate(exception, location_message, context: context_hash)
         end
       end
     end
