@@ -1,5 +1,5 @@
 GIT
-  remote: git@github.com:Invoca/honeybadger-ruby
+  remote: https://github.com/Invoca/honeybadger-ruby.git
   revision: bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6
   ref: bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6
   specs:
