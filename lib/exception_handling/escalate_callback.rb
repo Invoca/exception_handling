@@ -11,7 +11,7 @@ module ExceptionHandling
 
       def register!
         Escalate.on_escalate(log_first: false) do |exception, location_message, **context|
-          ::ExceptionHandling.log_error(exception, location_message, **context)
+          ::ExceptionHandling.log_error(exception, location_message, escalate_context: context)
         end
       end
     end
