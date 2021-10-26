@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - Unreleased
+### Fixed
+- Fixed a bug where escalated context can override static context
+
 ## [2.9.0] - 2020-03-02
 ### Added
 - Automatically registers with the `escalate` gem's `on_escalate` callback.
@@ -49,7 +53,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 - In `ExceptionHandling.logger=`, implicit `logger.extend ContextualLogger::LoggerMixin` is now deprecated.
   This will be removed in version 3.0 and an `ArgumentError` will be raised if the logger
   doesn't have that mixin. Instead of this implicit behavior, you should explicitly either `extend`
-  your logger instance or `include` that mixin into your `Logger` class. 
+  your logger instance or `include` that mixin into your `Logger` class.
 
 ## [2.4.2] - 2020-05-11
 ### Added
@@ -64,6 +68,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.9.1]: https://github.com/Invoca/exception_handling/compare/v2.9.0...v2.9.1
 [2.9.0]: https://github.com/Invoca/exception_handling/compare/v2.8.1...v2.9.0
 [2.8.1]: https://github.com/Invoca/exception_handling/compare/v2.8.0...v2.8.1
 [2.8.0]: https://github.com/Invoca/exception_handling/compare/v2.7.0...v2.8.0
