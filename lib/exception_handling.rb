@@ -14,7 +14,6 @@ require 'exception_handling/log_stub_error'
 require 'exception_handling/exception_description'
 require 'exception_handling/exception_catalog'
 require 'exception_handling/exception_info'
-require 'exception_handling/honeybadger_callbacks'
 require 'exception_handling/escalate_callback'
 
 _ = ActiveSupport::HashWithIndifferentAccess

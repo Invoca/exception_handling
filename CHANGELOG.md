@@ -4,6 +4,14 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - Unreleased
+### Removed
+- Remove custom object inspection
+  This removed Honeybadger-specific callbacks (`lib/exception_handling/honeybadger_callbacks.rb`)
+
+### Deprecated
+- Deprecated use of Honeybadger fork
+
 ## [2.9.0] - 2020-03-02
 ### Added
 - Automatically registers with the `escalate` gem's `on_escalate` callback.

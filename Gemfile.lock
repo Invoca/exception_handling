@@ -1,10 +1,3 @@
-GIT
-  remote: https://github.com/Invoca/honeybadger-ruby.git
-  revision: bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6
-  ref: bb5f2b8a86e4147c38a6270d39ad610fab4dd5e6
-  specs:
-    honeybadger (3.3.1.pre.1)
-
 PATH
   remote: .
   specs:
@@ -67,6 +60,7 @@ GEM
     eventmachine (1.2.7)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
+    honeybadger (4.11.0)
     i18n (1.8.9)
       concurrent-ruby (~> 1.0)
     invoca-utils (0.4.1)
@@ -145,7 +139,7 @@ DEPENDENCIES
   activesupport (< 6.1)
   appraisal (~> 2.2)
   exception_handling!
-  honeybadger (= 3.3.1.pre.1)!
+  honeybadger
   pry
   pry-byebug
   rake
