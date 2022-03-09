@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.10.0] - Unreleased
+## [2.10.0] - 2022-03-09
 ### Removed
 - Remove custom object inspection
   This removed Honeybadger-specific callbacks (`lib/exception_handling/honeybadger_callbacks.rb`)
