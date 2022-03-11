@@ -139,7 +139,7 @@ DEPENDENCIES
   activesupport (< 6.1)
   appraisal (~> 2.2)
   exception_handling!
-  honeybadger
+  honeybadger (~> 4.11)
   pry
   pry-byebug
   rake
