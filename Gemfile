@@ -12,7 +12,7 @@ gemspec
 gem 'actionmailer', '< 6.1'
 gem 'activesupport', '< 6.1'
 gem 'appraisal', '~> 2.2'
-gem 'honeybadger'
+gem 'honeybadger', '~> 4.11'
 gem 'pry'
 gem 'pry-byebug'
 gem 'rake'
