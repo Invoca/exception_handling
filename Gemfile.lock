@@ -2,9 +2,9 @@ PATH
   remote: .
   specs:
     exception_handling (2.10.0)
-      actionmailer (>= 4.2, < 7.0)
-      actionpack (>= 4.2, < 7.0)
-      activesupport (>= 4.2, < 7.0)
+      actionmailer (>= 5.2, < 7.0)
+      actionpack (>= 5.2, < 7.0)
+      activesupport (>= 5.2, < 7.0)
       contextual_logger (~> 0.7)
       escalate (~> 0.3)
       eventmachine (~> 1.0)
