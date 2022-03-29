@@ -27,4 +27,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'escalate',          '~> 0.3'
   spec.add_dependency 'eventmachine',      '~> 1.0'
   spec.add_dependency 'invoca-utils',      '~> 0.3'
+  spec.add_dependency 'psych',             '~> 3.0'
+  spec.add_dependency 'net-smtp'
 end
