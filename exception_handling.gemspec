@@ -20,11 +20,13 @@ Gem::Specification.new do |spec|
     "allowed_push_host" => "https://rubygems.org"
   }
 
-  spec.add_dependency 'actionmailer',      '>= 4.2', '< 7.0'
-  spec.add_dependency 'actionpack',        '>= 4.2', '< 7.0'
-  spec.add_dependency 'activesupport',     '>= 4.2', '< 7.0'
+  spec.add_dependency 'actionmailer',      '>= 5.2', '< 7.0'
+  spec.add_dependency 'actionpack',        '>= 5.2', '< 7.0'
+  spec.add_dependency 'activesupport',     '>= 5.2', '< 7.0'
   spec.add_dependency 'contextual_logger', '~> 0.7'
   spec.add_dependency 'escalate',          '~> 0.3'
   spec.add_dependency 'eventmachine',      '~> 1.0'
   spec.add_dependency 'invoca-utils',      '~> 0.3'
+  spec.add_dependency 'psych',             '~> 3.0'
+  spec.add_dependency 'net-smtp'
 end

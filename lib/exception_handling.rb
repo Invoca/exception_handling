@@ -288,7 +288,7 @@ module ExceptionHandling # never included
     #
     # Expects passed in hash to only include keys which be directly set on the Honeybadger config
     #
-    def enable_honeybadger(config = {})
+    def enable_honeybadger(**config)
       Bundler.require(:honeybadger)
       Honeybadger.configure do |config_klass|
         config.each do |k, v|
@@ -297,28 +297,28 @@ module ExceptionHandling # never included
       end
     end
 
-    def log_warning(message, log_context = {})
+    def log_warning(message, **log_context)
       warning = Warning.new(message)
       warning.set_backtrace([])
       log_error(warning, **log_context)
     end
 
-    def log_info(message, log_context = {})
+    def log_info(message, **log_context)
       ExceptionHandling.logger.info(message, log_context)
     end
 
-    def log_debug(message, log_context = {})
+    def log_debug(message, **log_context)
       ExceptionHandling.logger.debug(message, log_context)
     end
 
-    def ensure_safe(exception_context = "", log_context = {})
+    def ensure_safe(exception_context = "", **log_context)
       yield
     rescue => ex
       log_error(ex, exception_context, **log_context)
       nil
     end
 
-    def ensure_completely_safe(exception_context = "", log_context = {})
+    def ensure_completely_safe(exception_context = "", **log_context)
       yield
     rescue SystemExit, SystemStackError, NoMemoryError, SecurityError, SignalException
       raise
@@ -333,29 +333,29 @@ module ExceptionHandling # never included
       escalate(email_subject, ex, last_exception_timestamp, production_support_recipients)
     end
 
-    def escalate_error(exception_or_string, email_subject, custom_recipients = nil, log_context = {})
+    def escalate_error(exception_or_string, email_subject, custom_recipients = nil, **log_context)
       ex = make_exception(exception_or_string)
       log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
-    def escalate_warning(message, email_subject, custom_recipients = nil, log_context = {})
+    def escalate_warning(message, email_subject, custom_recipients = nil, **log_context)
       ex = Warning.new(message)
       log_error(ex, **log_context)
       escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
     end
 
-    def ensure_escalation(email_subject, custom_recipients = nil, log_context = {})
+    def ensure_escalation(email_subject, custom_recipients = nil, **log_context)
       yield
     rescue => ex
-      escalate_error(ex, email_subject, custom_recipients, log_context)
+      escalate_error(ex, email_subject, custom_recipients, **log_context)
       nil
     end
 
     deprecate :escalate_to_production_support, :escalate_error, :escalate_warning, :ensure_escalation,
       deprecator: ActiveSupport::Deprecation.new('3.0', 'ExceptionHandling')
 
-    def alert_warning(exception_or_string, alert_name, exception_context, log_context)
+    def alert_warning(exception_or_string, alert_name, exception_context, **log_context)
       ex = make_exception(exception_or_string)
       log_error(ex, exception_context, **log_context)
       begin
@@ -365,10 +365,10 @@ module ExceptionHandling # never included
       end
     end
 
-    def ensure_alert(alert_name, exception_context, log_context = {})
+    def ensure_alert(alert_name, exception_context, **log_context)
       yield
     rescue => ex
-      alert_warning(ex, alert_name, exception_context, log_context)
+      alert_warning(ex, alert_name, exception_context, **log_context)
       nil
     end
 
@@ -385,7 +385,7 @@ module ExceptionHandling # never included
       result
     end
 
-    def log_periodically(exception_key, interval, message, log_context = {})
+    def log_periodically(exception_key, interval, message, **log_context)
       self.periodic_exception_intervals ||= {}
       last_logged = self.periodic_exception_intervals[exception_key]
       if !last_logged || ((last_logged + interval) < Time.now)

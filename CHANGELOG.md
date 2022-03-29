@@ -4,6 +4,13 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - Unreleased
+### Added
+- Added support for rails 2.7 and 3+
+
+### Removed
+- Removed support for Rails 4
+
 ## [2.10.0] - 2022-03-09
 ### Removed
 - Remove custom object inspection
@@ -57,7 +64,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 - In `ExceptionHandling.logger=`, implicit `logger.extend ContextualLogger::LoggerMixin` is now deprecated.
   This will be removed in version 3.0 and an `ArgumentError` will be raised if the logger
   doesn't have that mixin. Instead of this implicit behavior, you should explicitly either `extend`
-  your logger instance or `include` that mixin into your `Logger` class. 
+  your logger instance or `include` that mixin into your `Logger` class.
 
 ## [2.4.2] - 2020-05-11
 ### Added

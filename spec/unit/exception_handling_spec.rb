@@ -158,7 +158,12 @@ describe ExceptionHandling do
 
     context "#log_warning" do
       it "have empty array as a backtrace" do
-        expect(ExceptionHandling).to receive(:log_error).with((ExceptionHandling::Warning), anything) do |error|
+        expected_args = if RUBY_VERSION < '2.7'
+                          [ExceptionHandling::Warning, anything]
+                        else
+                          [ExceptionHandling::Warning]
+                        end
+        expect(ExceptionHandling).to receive(:log_error).with(*expected_args) do |error|
           expect(error.backtrace).to eq([])
         end
         ExceptionHandling.log_warning('Now with empty array as a backtrace!')
