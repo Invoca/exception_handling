@@ -31,7 +31,7 @@ module ExceptionHandling
       it "use the current_controller when available" do
         capture_notifications
 
-        expect(ExceptionHandling.logger).to receive(:fatal).with(/blah/, anything).at_least(:once)
+        expect(ExceptionHandling.logger).to receive(:fatal).with(/blah/, any_args).at_least(:once)
         @controller.simulate_around_filter do
           ExceptionHandling.log_error(ArgumentError.new("blah"))
           expect(sent_notifications.size).to eq(1)

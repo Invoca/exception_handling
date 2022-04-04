@@ -230,9 +230,9 @@ module ExceptionHandling # never included
         log_message = "#{exception_context}\n#{ex.class}: (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n"
 
         if ex.is_a?(Warning)
-          ExceptionHandling.logger.warn("\nExceptionHandlingWarning (Warning:#{timestamp}) #{log_message}", log_context)
+          ExceptionHandling.logger.warn("\nExceptionHandlingWarning (Warning:#{timestamp}) #{log_message}", **log_context)
         else
-          ExceptionHandling.logger.fatal("\nExceptionHandlingError (Error:#{timestamp}) #{log_message}", log_context)
+          ExceptionHandling.logger.fatal("\nExceptionHandlingError (Error:#{timestamp}) #{log_message}", **log_context)
         end
       end
     end

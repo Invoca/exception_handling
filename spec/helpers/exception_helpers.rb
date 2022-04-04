@@ -15,6 +15,6 @@ module ExceptionHelpers
 
   def capture_notifications
     @sent_notifications = []
-    allow(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(anything) { |exception_info| @sent_notifications << exception_info }
+    allow(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(any_args) { |exception_info| @sent_notifications << exception_info }
   end
 end
