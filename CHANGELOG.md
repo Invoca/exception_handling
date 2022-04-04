@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.1] - Unreleased
+### Fixed
+- Fixed bug in ruby 3+ where `contextual_logger` was missing ruby 3+ support
+
 ## [2.11.0] - 2022-03-29
 ### Added
 - Added support for rails 2.7 and 3+
@@ -79,6 +83,9 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.11.1]: https://github.com/Invoca/exception_handling/compare/v2.11.0...v2.11.1
+[2.11.0]: https://github.com/Invoca/exception_handling/compare/v2.10.0...v2.11.0
+[2.10.0]: https://github.com/Invoca/exception_handling/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/Invoca/exception_handling/compare/v2.8.1...v2.9.0
 [2.8.1]: https://github.com/Invoca/exception_handling/compare/v2.8.0...v2.8.1
 [2.8.0]: https://github.com/Invoca/exception_handling/compare/v2.7.0...v2.8.0
