@@ -109,8 +109,8 @@ describe ExceptionHandling do
 
   context "with warn and honeybadger notify stubbed" do
     before do
-      allow(ExceptionHandling).to receive(:warn).with(anything)
-      allow(Honeybadger).to receive(:notify).with(anything)
+      allow(ExceptionHandling).to receive(:warn).with(any_args)
+      allow(Honeybadger).to receive(:notify).with(any_args)
     end
 
     context "with logger stashed" do
@@ -372,13 +372,13 @@ describe ExceptionHandling do
 
       context "ExceptionHandling.ensure_safe" do
         it "log an exception with call stack if an exception is raised." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
         end
 
         if ActionView::VERSION::MAJOR >= 5
           it "log an exception with call stack if an ActionView template exception is raised." do
-            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
+            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, any_args)
             ExceptionHandling.ensure_safe do
               begin
                 # Rails 5 made the switch from ActionView::TemplateError taking in the original exception
@@ -391,7 +391,7 @@ describe ExceptionHandling do
           end
         else
           it "log an exception with call stack if an ActionView template exception is raised." do
-            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, anything)
+            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, any_args)
             ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
           end
         end
@@ -408,13 +408,13 @@ describe ExceptionHandling do
         end
 
         it "return nil if an exception is raised during an assignment" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           b = ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
 
         it "allow a message to be appended to the error when logged." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, any_args)
           b = ExceptionHandling.ensure_safe("mooo") { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
@@ -422,7 +422,7 @@ describe ExceptionHandling do
         it "only rescue StandardError and descendents" do
           expect { ExceptionHandling.ensure_safe("mooo") { raise Exception } }.to raise_exception(Exception)
 
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nStandardError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nStandardError: \(blah\):\n.*exception_handling_spec\.rb/, any_args)
 
           b = ExceptionHandling.ensure_safe("mooo") { raise StandardError, "blah" }
           expect(b).to be_nil
@@ -431,7 +431,7 @@ describe ExceptionHandling do
 
       context "ExceptionHandling.ensure_completely_safe" do
         it "log an exception if an exception is raised." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
         end
 
@@ -447,19 +447,19 @@ describe ExceptionHandling do
         end
 
         it "return nil if an exception is raised during an assignment" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything) { nil }
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args) { nil }
           b = ExceptionHandling.ensure_completely_safe { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
 
         it "allow a message to be appended to the error when logged." do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/mooo\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, any_args)
           b = ExceptionHandling.ensure_completely_safe("mooo") { raise ArgumentError, "blah" }
           expect(b).to be_nil
         end
 
         it "rescue any instance or child of Exception" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_completely_safe { raise Exception, "blah" }
         end
 
@@ -481,7 +481,7 @@ describe ExceptionHandling do
         end
 
         it "log the exception as usual and send the proper email" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
           expect(ActionMailer::Base.deliveries.count).to eq(1)
           expect(sent_notifications.size).to eq(1), sent_notifications.inspect
@@ -516,7 +516,7 @@ describe ExceptionHandling do
 
         it "allow the caller to specify custom recipients" do
           custom_recipients = ['something@invoca.com']
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_escalation("Favorite Feature", custom_recipients) { raise ArgumentError, "blah" }
           expect(ActionMailer::Base.deliveries.count).to eq(1)
           expect(sent_notifications.size).to eq(1), sent_notifications.inspect
@@ -532,7 +532,7 @@ describe ExceptionHandling do
       context "ExceptionHandling.ensure_alert" do
         it "log the exception as usual and fire a sensu event" do
           expect(ExceptionHandling::Sensu).to receive(:generate_event).with("Favorite Feature", "test context\nblah")
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError, "blah" }
         end
 
@@ -544,8 +544,8 @@ describe ExceptionHandling do
 
         it "log if the sensu event could not be sent" do
           expect(ExceptionHandling::Sensu).to receive(:send_event).with(anything) { raise "Failed to send" }
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/first_test_exception/, anything)
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to send/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/first_test_exception/, any_args)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to send/, any_args)
           ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError, "first_test_exception" }
         end
 
@@ -575,7 +575,7 @@ describe ExceptionHandling do
         it "include the timestamp when the exception is logged" do
           capture_notifications
 
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, anything)
+          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:517033020\) context\nArgumentError: \(blah\):\n.*exception_handling_spec\.rb/, any_args)
           b = ExceptionHandling.ensure_safe("context") { raise ArgumentError, "blah" }
           expect(b).to be_nil
 
@@ -850,7 +850,7 @@ describe ExceptionHandling do
       allow(ExceptionHandling).to receive(:make_exception) { raise ArgumentError, "Bad argument" }
       expect(ExceptionHandling).to receive(:write_exception_to_log).with(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['ExceptionHandlingError: log_error rescued exception while logging Runtime message'] },
-                                                     anything)
+                                                     any_args)
       ExceptionHandling.log_error(RuntimeError.new("A runtime error"), "Runtime message")
     end
 
@@ -858,7 +858,7 @@ describe ExceptionHandling do
       expect(ExceptionHandling).to receive(:write_exception_to_log).with(satisfy { |ex| ex.to_s['Bad argument'] },
                                                      satisfy { |context| context['Context message'] },
                                                      anything,
-                                                     anything)
+                                                     any_args)
       ExceptionHandling.log_error(ArgumentError.new("Bad argument"), "Context message") { |_data| raise 'Error!!!' }
     end
 
@@ -963,7 +963,7 @@ describe ExceptionHandling do
       it "omit environment defaults" do
         capture_notifications
 
-        allow(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(anything) { |exception_info| sent_notifications << exception_info }
+        allow(ExceptionHandling).to receive(:send_exception_to_honeybadger).with(any_args) { |exception_info| sent_notifications << exception_info }
 
         ExceptionHandling.log_error("some message") do |data|
           data[:environment] = { SERVER_PORT: '80', SERVER_PROTOCOL: "HTTP/1.0" }
@@ -1052,7 +1052,7 @@ describe ExceptionHandling do
               ActionMailer::Base.deliveries.clear
 
               set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientErrbackStub)
-              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, anything)
+              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, any_args)
               expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to email by SMTP: "credential mismatch"/)
 
               ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
@@ -1064,7 +1064,7 @@ describe ExceptionHandling do
               expect((SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }).to eq(EXPECTED_SMTP_HASH), SmtpClientErrbackStub.send_hash.inspect            end
 
             it "log fatal on EventMachine dns resolver errback" do
-              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, anything)
+              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, any_args)
               expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to resolv DNS for localhost: "softlayer sucks"/)
 
               ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }

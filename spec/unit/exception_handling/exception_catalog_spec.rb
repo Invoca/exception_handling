@@ -41,7 +41,7 @@ module ExceptionHandling
         @exception_catalog = ExceptionCatalog.new(ExceptionHandling.filter_list_filename)
 
         expect(ExceptionHandling).to receive(:log_error).never
-        expect(ExceptionHandling).to receive(:write_exception_to_log).with(anything, "ExceptionCatalog#refresh_filters: ./config/exception_filters.yml", anything)
+        expect(ExceptionHandling).to receive(:write_exception_to_log).with(anything, "ExceptionCatalog#refresh_filters: ./config/exception_filters.yml", any_args)
         expect(@exception_catalog).to receive(:load_file) { raise "noooooo" }
 
         @exception_catalog.find({})
