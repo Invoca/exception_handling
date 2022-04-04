@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.11.2] - Unreleased
+## [2.11.2] - 2022-04-04
 ### Fixed
 - Fixed Ruby 3+ bug where arguments where not being passed using ** operator when writing to the logger
 
