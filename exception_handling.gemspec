@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'actionmailer',      '>= 5.2', '< 7.0'
   spec.add_dependency 'actionpack',        '>= 5.2', '< 7.0'
   spec.add_dependency 'activesupport',     '>= 5.2', '< 7.0'
-  spec.add_dependency 'contextual_logger', '~> 0.7'
+  spec.add_dependency 'contextual_logger', '~> 1.0'
   spec.add_dependency 'escalate',          '~> 0.3'
   spec.add_dependency 'eventmachine',      '~> 1.0'
   spec.add_dependency 'invoca-utils',      '~> 0.3'
