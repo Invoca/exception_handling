@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.11.1] - Unreleased
+## [2.11.1] - 2022-04-04
 ### Fixed
 - Fixed bug in ruby 3+ where `contextual_logger` was missing ruby 3+ support
 
