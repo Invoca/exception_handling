@@ -304,11 +304,11 @@ module ExceptionHandling # never included
     end
 
     def log_info(message, **log_context)
-      ExceptionHandling.logger.info(message, log_context)
+      ExceptionHandling.logger.info(message, **log_context)
     end
 
     def log_debug(message, **log_context)
-      ExceptionHandling.logger.debug(message, log_context)
+      ExceptionHandling.logger.debug(message, **log_context)
     end
 
     def ensure_safe(exception_context = "", **log_context)
