@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.3] - 2022-04-07
+### Fixed
+- Fixed bug in ruby 2.7+ where `digest` was not required by default
+
 ## [2.11.2] - 2022-04-04
 ### Fixed
 - Fixed Ruby 3+ bug where arguments where not being passed using ** operator when writing to the logger
@@ -87,6 +91,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.11.3]: https://github.com/Invoca/exception_handling/compare/v2.11.2...v2.11.3
 [2.11.2]: https://github.com/Invoca/exception_handling/compare/v2.11.1...v2.11.2
 [2.11.1]: https://github.com/Invoca/exception_handling/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/Invoca/exception_handling/compare/v2.10.0...v2.11.0
