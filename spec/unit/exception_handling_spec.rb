@@ -158,7 +158,7 @@ describe ExceptionHandling do
 
     context "#log_warning" do
       it "have empty array as a backtrace" do
-        expected_args = if RUBY_VERSION < '2.7'
+        expected_args = if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
                           [ExceptionHandling::Warning, anything]
                         else
                           [ExceptionHandling::Warning]
