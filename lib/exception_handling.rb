@@ -271,7 +271,8 @@ module ExceptionHandling # never included
                                     error_message: exception.message.to_s,
                                     exception:     exception,
                                     context:       exception_info.honeybadger_context_data,
-                                    controller:    exception_info.controller_name)
+                                    controller:    exception_info.controller_name,
+                                    backtrace:     exception_info.honeybadger_context_data[:backtrace])
       response ? :success : :failure
     rescue Exception => ex
       warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")

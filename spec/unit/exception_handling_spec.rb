@@ -718,7 +718,11 @@ describe ExceptionHandling do
                   ],
                   event_response: "Event successfully received",
                   log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
-                }
+                },
+                backtrace: [
+                  "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
+                  "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                ]
               }
               expect(honeybadger_data).to eq(expected_data)
             end
@@ -763,11 +767,15 @@ describe ExceptionHandling do
                     "SERVER_NAME" => "exceptional.com"
                   },
                   backtrace: [
-                               "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
-                               "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
-                             ],
+                    "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
+                    "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                  ],
                   event_response: "Event successfully received"
-                }
+                },
+                backtrace: [
+                  "spec/unit/exception_handling_spec.rb:847:in `exception_1'",
+                  "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
+                ]
               }
               expect(honeybadger_data).to eq(expected_data)
             end
