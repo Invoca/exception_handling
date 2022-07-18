@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    exception_handling (2.11.3)
+    exception_handling (2.11.4.gfaza.1)
       actionmailer (>= 5.2, < 7.0)
       actionpack (>= 5.2, < 7.0)
       activesupport (>= 5.2, < 7.0)
@@ -68,7 +68,7 @@ GEM
       concurrent-ruby (~> 1.0)
     invoca-utils (0.4.1)
     jaro_winkler (1.5.3)
-    json (2.6.1)
+    json (2.6.2)
     loofah (2.15.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
@@ -136,7 +136,7 @@ GEM
       power_assert
     thor (1.0.1)
     thread_safe (0.3.6)
-    timeout (0.2.0)
+    timeout (0.3.0)
     tzinfo (1.2.9)
       thread_safe (~> 0.1)
     unicode-display_width (1.6.0)
