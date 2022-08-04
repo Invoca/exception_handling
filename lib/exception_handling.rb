@@ -293,7 +293,11 @@ module ExceptionHandling # never included
       Bundler.require(:honeybadger)
       Honeybadger.configure do |config_klass|
         config.each do |k, v|
-          config_klass.send(:"#{k}=", v)
+          if k == :before_notify
+            config_klass.send(k, v)
+          else
+            config_klass.send(:"#{k}=", v)
+          end
         end
       end
     end

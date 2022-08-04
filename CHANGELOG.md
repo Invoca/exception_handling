@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0.gfaza.1] - Unreleased
+### Added
+- Support for passing additional Honeybadger configuration parameters
+
 ## [2.11.3] - 2022-04-07
 ### Fixed
 - Fixed bug in ruby 2.7+ where `digest` was not required by default
