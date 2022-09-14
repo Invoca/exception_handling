@@ -307,42 +307,91 @@ describe ExceptionHandling do
 
     context "Exception Handling" do
       context "default_metric_name" do
-        context "when metric_name is present in exception_data" do
-          it "include metric_name in resulting metric name" do
-            exception = StandardError.new('this is an exception')
-            metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true)
-            expect(metric).to eq('exception_handling.special_metric')
+        context "with include_prefix true" do
+          it "logs a deprecation warning" do
+            expect { ExceptionHandling.default_metric_name({}, StandardError.new('this is an exception'), false) }
+              .to output(/DEPRECATION WARNING: the 'expection_handling\.' prefix in ExceptionHandling::default_metric_name is deprecated/).to_stderr
+          end
+
+          context "when metric_name is present in exception_data" do
+            it "include metric_name in resulting metric name" do
+              exception = StandardError.new('this is an exception')
+              metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true, include_prefix: true)
+              expect(metric).to eq('exception_handling.special_metric')
+            end
+          end
+
+          context "when metric_name is not present in exception_data" do
+            it "return exception_handling.warning when using log warning" do
+              warning = ExceptionHandling::Warning.new('this is a warning')
+              metric  = ExceptionHandling.default_metric_name({}, warning, false, include_prefix: true)
+              expect(metric).to eq('exception_handling.warning')
+            end
+
+            it "return exception_handling.exception when using log error" do
+              exception = StandardError.new('this is an exception')
+              metric    = ExceptionHandling.default_metric_name({}, exception, false, include_prefix: true)
+              expect(metric).to eq('exception_handling.exception')
+            end
+
+            context "when using log error with treat_like_warning" do
+              it "return exception_handling.unforwarded_exception when exception not present" do
+                metric = ExceptionHandling.default_metric_name({}, nil, true, include_prefix: true)
+                expect(metric).to eq('exception_handling.unforwarded_exception')
+              end
+
+              it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
+                module SomeModule
+                  class SomeException < StandardError
+                  end
+                end
+
+                exception = SomeModule::SomeException.new('this is an exception')
+                metric    = ExceptionHandling.default_metric_name({}, exception, true, include_prefix: true)
+                expect(metric).to eq('exception_handling.unforwarded_exception_SomeException')
+              end
+            end
           end
         end
 
-        context "when metric_name is not present in exception_data" do
-          it "return exception_handling.warning when using log warning" do
-            warning = ExceptionHandling::Warning.new('this is a warning')
-            metric  = ExceptionHandling.default_metric_name({}, warning, false)
-            expect(metric).to eq('exception_handling.warning')
+        context "with include_prefix false" do
+          context "when metric_name is present in exception_data" do
+            it "include metric_name in resulting metric name" do
+              exception = StandardError.new('this is an exception')
+              metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true, include_prefix: false)
+              expect(metric).to eq('special_metric')
+            end
           end
 
-          it "return exception_handling.exception when using log error" do
-            exception = StandardError.new('this is an exception')
-            metric    = ExceptionHandling.default_metric_name({}, exception, false)
-            expect(metric).to eq('exception_handling.exception')
-          end
-
-          context "when using log error with treat_like_warning" do
-            it "return exception_handling.unforwarded_exception when exception not present" do
-              metric = ExceptionHandling.default_metric_name({}, nil, true)
-              expect(metric).to eq('exception_handling.unforwarded_exception')
+          context "when metric_name is not present in exception_data" do
+            it "return exception_handling.warning when using log warning" do
+              warning = ExceptionHandling::Warning.new('this is a warning')
+              metric  = ExceptionHandling.default_metric_name({}, warning, false, include_prefix: false)
+              expect(metric).to eq('warning')
             end
 
-            it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
-              module SomeModule
-                class SomeException < StandardError
-                end
+            it "return exception_handling.exception when using log error" do
+              exception = StandardError.new('this is an exception')
+              metric    = ExceptionHandling.default_metric_name({}, exception, false, include_prefix: false)
+              expect(metric).to eq('exception')
+            end
+
+            context "when using log error with treat_like_warning" do
+              it "return exception_handling.unforwarded_exception when exception not present" do
+                metric = ExceptionHandling.default_metric_name({}, nil, true, include_prefix: false)
+                expect(metric).to eq('unforwarded_exception')
               end
 
-              exception = SomeModule::SomeException.new('this is an exception')
-              metric    = ExceptionHandling.default_metric_name({}, exception, true)
-              expect(metric).to eq('exception_handling.unforwarded_exception_SomeException')
+              it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
+                module SomeModule
+                  class SomeException < StandardError
+                  end
+                end
+
+                exception = SomeModule::SomeException.new('this is an exception')
+                metric    = ExceptionHandling.default_metric_name({}, exception, true, include_prefix: false)
+                expect(metric).to eq('unforwarded_exception_SomeException')
+              end
             end
           end
         end
