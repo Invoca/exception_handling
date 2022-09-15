@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - Unreleased
+### Added
+- Added an option for removing the 'exception_handling.' prefix from metric names in ExceptionHandling::default_metric_name
+
 ## [2.12.0] - 2022-08-04
 ### Added
 - Support for passing additional Honeybadger configuration parameters
@@ -95,6 +99,7 @@ Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.13.0]: https://github.com/Invoca/exception_handling/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/Invoca/exception_handling/compare/v2.11.3...v2.12.0
 [2.11.3]: https://github.com/Invoca/exception_handling/compare/v2.11.2...v2.11.3
 [2.11.2]: https://github.com/Invoca/exception_handling/compare/v2.11.1...v2.11.2

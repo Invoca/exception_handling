@@ -71,7 +71,10 @@ module ExceptionHandling # never included
       EscalateCallback.register_if_configured!
     end
 
-    def default_metric_name(exception_data, exception, treat_like_warning)
+    def default_metric_name(exception_data, exception, treat_like_warning, include_prefix: true)
+      include_prefix and Deprecation3_0.deprecation_warning("the 'expection_handling.' prefix in ExceptionHandling::default_metric_name",
+                                                            "do not rely on metric names including the 'exception_handling.' prefix.")
+
       metric_name = if exception_data['metric_name']
                       exception_data['metric_name']
                     elsif exception.is_a?(ExceptionHandling::Warning)
@@ -83,7 +86,7 @@ module ExceptionHandling # never included
                       "exception"
                     end
 
-      "exception_handling.#{metric_name}"
+      "#{'exception_handling.' if include_prefix}#{metric_name}"
     end
 
     def default_honeybadger_metric_name(honeybadger_status)
