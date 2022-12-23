@@ -727,7 +727,7 @@ describe ExceptionHandling do
               expect(Honeybadger).to receive(:notify).with(any_args) do |data|
                 honeybadger_data = data
               end
-              ExceptionHandling.logger.global_context = { service_name: "rails", region: "AWS-us-east-1" }
+              ExceptionHandling.logger.global_context = { service_name: "rails", region: "AWS-us-east-1", honeybadger_tags: ['Data Services', 'web'] }
               log_context = { log_source: "gem/listen", service_name: "bin/console" }
               ExceptionHandling.log_error(@exception, @exception_context, @controller, **log_context) do |data|
                 data[:scm_revision] = "5b24eac37aaa91f5784901e9aabcead36fd9df82"
@@ -741,6 +741,7 @@ describe ExceptionHandling do
                 error_message: "Some Exception",
                 controller: "some_controller",
                 exception: @exception,
+                tags: "Data Services, web",
                 context: {
                   timestamp: Time.now.to_i,
                   error_class: "StandardError",
@@ -766,7 +767,7 @@ describe ExceptionHandling do
                     "spec/unit/exception_handling_spec.rb:455:in `block (4 levels) in <class:ExceptionHandlingTest>'"
                   ],
                   event_response: "Event successfully received",
-                  log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen" }
+                  log_context: { "service_name" => "bin/console", "region" => "AWS-us-east-1", "log_source" => "gem/listen", "honeybadger_tags" => ['Data Services', 'web'] }
                 }
               }
               expect(honeybadger_data).to eq(expected_data)
@@ -791,6 +792,7 @@ describe ExceptionHandling do
                 error_message: "Some Exception",
                 controller: "some_controller",
                 exception: @exception,
+                tags: "",
                 context: {
                   timestamp: Time.now.to_i,
                   error_class: "StandardError",

@@ -44,6 +44,23 @@ module ExceptionHandling
           expect(exception_info.controller).to be_nil
         end
       end
+
+      context "honeybadger_tags" do
+        it "retrieved from log_context" do
+          exception_info = ExceptionInfo.new(@exception, "string context", @timestamp, log_context: { honeybadger_tags: ['Data Services'] })
+          expect(exception_info.honeybadger_tags).to eq(['Data Services'])
+        end
+
+        it "retrieved from log_context and normalized to array if a string" do
+          exception_info = ExceptionInfo.new(@exception, "string context", @timestamp, log_context: { honeybadger_tags: 'Data Services' })
+          expect(exception_info.honeybadger_tags).to eq(['Data Services'])
+        end
+
+        it "defaults to empty array if nil" do
+          exception_info = ExceptionInfo.new(@exception, "string context", @timestamp)
+          expect(exception_info.honeybadger_tags).to eq([])
+        end
+      end
     end
 
     context "data" do

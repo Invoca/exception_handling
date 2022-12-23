@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    exception_handling (2.13.0)
+    exception_handling (2.14.0.pre.gk.0)
       actionmailer (>= 5.2, < 7.0)
       actionpack (>= 5.2, < 7.0)
       activesupport (>= 5.2, < 7.0)
