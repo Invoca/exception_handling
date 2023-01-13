@@ -59,7 +59,7 @@ module ExceptionHandling
       @data_callback = data_callback
       # merge into the surrounding context just like ContextualLogger does when logging
       @merged_log_context = ExceptionHandling.logger.current_context_for_thread.deep_merge(log_context || {})
-      @honeybadger_tags = [@merged_log_context[:honeybadger_tags]].flatten.compact
+      @honeybadger_tags = Array(@merged_log_context[:honeybadger_tags] || [])
     end
 
     def data

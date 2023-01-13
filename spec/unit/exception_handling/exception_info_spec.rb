@@ -56,7 +56,7 @@ module ExceptionHandling
           expect(exception_info.honeybadger_tags).to eq(['Data Services'])
         end
 
-        it "defaults to empty array if nil" do
+        it "defaults to empty array if not given" do
           exception_info = ExceptionInfo.new(@exception, "string context", @timestamp)
           expect(exception_info.honeybadger_tags).to eq([])
         end
