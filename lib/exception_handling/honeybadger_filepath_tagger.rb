@@ -28,6 +28,9 @@ module ExceptionHandling
         end
     end
 
+    # @param exception_info [ExceptionInfo]
+    #
+    # @return [Array<String>]
     def matching_tags(exception_info)
       exception_info.is_a?(ExceptionInfo) or raise ArgumentError, "Expected ExceptionInfo object, received #{exception_info.inspect}"
       if (backtrace = exception_info.enhanced_data[:backtrace])

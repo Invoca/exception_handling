@@ -23,10 +23,11 @@ module ExceptionHandling
       end
     end
 
-    # @param exception [Exception]
+    # @param exception [ExceptionInfo]
     #
     # @return [Array<String>]
-    def matching_tags(exception)
+    def matching_tags(exception_info)
+      exception = exception_info.exception
       matching_exception_name_tags(exception) + matching_exception_class_tags(exception)
     end
 

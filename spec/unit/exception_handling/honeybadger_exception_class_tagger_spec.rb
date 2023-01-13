@@ -7,6 +7,10 @@ class AdditionalExampleError < StandardError; end
 
 module ExceptionHandling
   describe HoneybadgerExceptionClassTagger do
+    def exception_info(exception)
+      ExceptionInfo.new(exception, nil, Time.now.to_i)
+    end
+
     subject { HoneybadgerExceptionClassTagger.new(config_hash) }
 
     context "without config_hash" do
@@ -44,7 +48,7 @@ module ExceptionHandling
         rescue => ex
           exception = ex
         end
-        expect(subject.matching_tags(exception)).to match_array(["calls-team", "cereals"])
+        expect(subject.matching_tags(exception_info(exception))).to match_array(["calls-team", "cereals"])
       end
 
       it "returns tags for matching exception classes" do
@@ -54,7 +58,7 @@ module ExceptionHandling
         rescue => ex
           exception = ex
         end
-        expect(subject.matching_tags(exception)).to match_array(["ivr-campaigns-team", "calls-team"])
+        expect(subject.matching_tags(exception_info(exception))).to match_array(["ivr-campaigns-team", "calls-team"])
       end
 
       it "returns empty array for exception classes that are not matching" do
@@ -64,7 +68,7 @@ module ExceptionHandling
         rescue => ex
           exception = ex
         end
-        expect(subject.matching_tags(exception)).to match_array([])
+        expect(subject.matching_tags(exception_info(exception))).to match_array([])
       end
     end
   end
