@@ -24,10 +24,10 @@ module ExceptionHandling
           "cereals" => [ # Example showing that the labels can be arbitrary
             "captain_crunch.rb",
             "cocoa_puffs.rb",
-            "exception_handling/honeybadger_filepath_tagger_spec",
+            "exception_handling/honeybadger_filepath_tagger_spec\.rb",
           ],
           "ivr-campaigns-team" => [
-            "exception_handling/honeybadger_filepath_tagger_spec"
+            "exception_handling/honeybadger_filepath_tagger.*"
           ],
           "gems" => [ # Here to confirm we're ignoring gem paths
             "rspec",
