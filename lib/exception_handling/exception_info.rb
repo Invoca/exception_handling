@@ -88,6 +88,18 @@ module ExceptionHandling
       ).to_s
     end
 
+    # @return [Array<String>]
+    def honeybadger_tags
+      case @merged_log_context[:honeybadger_tags]
+      when Array
+        @merged_log_context[:honeybadger_tags]
+      when String
+        @merged_log_context[:honeybadger_tags].split(",")
+      else
+        []
+      end.map(&:strip).map(&:presence).compact
+    end
+
     private
 
     def controller_from_context(exception_context)
