@@ -17,6 +17,7 @@ require 'exception_handling/exception_catalog'
 require 'exception_handling/exception_info'
 require 'exception_handling/escalate_callback'
 require 'exception_handling/honeybadger_exception_class_tagger'
+require 'exception_handling/honeybadger_filepath_tagger'
 
 _ = ActiveSupport::HashWithIndifferentAccess
 
