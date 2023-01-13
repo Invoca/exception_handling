@@ -4,6 +4,10 @@ require File.expand_path('../../spec_helper',  __dir__)
 
 module ExceptionHandling
   describe HoneybadgerFilepathTagger do
+    def exception_info(exception)
+      ExceptionInfo.new(exception, nil, Time.now.to_i)
+    end
+
     subject { HoneybadgerFilepathTagger.new(config_hash) }
 
     context "without config_hash" do
@@ -43,13 +47,13 @@ module ExceptionHandling
         rescue => ex
           exception = ex
         end
-        expect(subject.matching_tags(exception)).to match_array(["cereals", "ivr-campaigns-team"])
+        expect(subject.matching_tags(exception_info(exception))).to match_array(["cereals", "ivr-campaigns-team"])
       end
 
       it "returns empty array for exceptions without a backtrace" do
         exception = ArgumentError.new("example arg error")
         expect(exception.backtrace).to be_nil
-        expect(subject.matching_tags(exception)).to match_array([])
+        expect(subject.matching_tags(exception_info(exception))).to match_array([])
       end
 
       it "does not return tags for filepaths that are not matching (ignoring gem paths) - Ringswitch example" do
@@ -89,7 +93,7 @@ module ExceptionHandling
           "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:57:in `block in next_tick'",
           "bundle/ruby/2.7.0/gems/em-synchrony-1.0.6/lib/em-synchrony.rb:115:in `block (2 levels) in next_tick'"
         ])
-        expect(subject.matching_tags(exception)).to match_array([])
+        expect(subject.matching_tags(exception_info(exception))).to match_array([])
       end
 
       it "does not return tags for filepaths that are not matching (ignoring gem paths) - Web example" do
@@ -206,7 +210,7 @@ module ExceptionHandling
           "sidekiq (5.1.3) lib/sidekiq/util.rb:16:in `watchdog'",
           "sidekiq (5.1.3) lib/sidekiq/util.rb:25:in `block in safe_thread'"
         ])
-        expect(subject.matching_tags(exception)).to match_array([])
+        expect(subject.matching_tags(exception_info(exception))).to match_array([])
       end
     end
   end

@@ -14,6 +14,7 @@ module ExceptionHandling
       /^\/usr\/local\/lib\/ruby/                    # Example: "/usr/local/lib/ruby/2.7.0/benchmark.rb:308:in `realtime'"
     ].freeze
 
+    # @param config [Hash]
     def initialize(config)
       config or raise ArgumentError, "config required for HoneybadgerFilepathTagger"
 
@@ -27,8 +28,13 @@ module ExceptionHandling
         end
     end
 
-    def matching_tags(exception)
-      exception.backtrace ? matching_tags_for_backtrace(exception.backtrace) : []
+    def matching_tags(exception_info)
+      exception_info.is_a?(ExceptionInfo) or raise ArgumentError, "Expected ExceptionInfo object, received #{exception_info.inspect}"
+      if (backtrace = exception_info.enhanced_data[:backtrace])
+        matching_tags_for_backtrace(backtrace)
+      else
+        []
+      end
     end
 
     private
