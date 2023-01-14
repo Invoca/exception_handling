@@ -25,24 +25,27 @@ Or install it yourself as:
 Add some code to initialize the settings in your application.
 For example:
 
-    require "exception_handling"
+```ruby
+require "exception_handling"
 
-    # required
-    ExceptionHandling.server_name             = Cluster['server_name']
-    ExceptionHandling.sender_address          = %("Exceptions" <exceptions@example.com>)
-    ExceptionHandling.exception_recipients    = ['exceptions@example.com']
-    ExceptionHandling.logger                  = Rails.logger
+# required
+ExceptionHandling.server_name             = Cluster['server_name']
+ExceptionHandling.sender_address          = %("Exceptions" <exceptions@example.com>)
+ExceptionHandling.exception_recipients    = ['exceptions@example.com']
+ExceptionHandling.logger                  = Rails.logger
 
-    # optional
-    ExceptionHandling.escalation_recipients   = ['escalation@example.com']
-    ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
-    ExceptionHandling.email_environment       = Rails.env
-    ExceptionHandling.eventmachine_safe       = false
-    ExceptionHandling.eventmachine_synchrony  = false
-    ExceptionHandling.sensu_host              = "127.0.0.1"
-    ExceptionHandling.sensu_port              = 3030
-    ExceptionHandling.sensu_prefix            = ""
-
+# optional
+ExceptionHandling.escalation_recipients   = ['escalation@example.com']
+ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
+ExceptionHandling.email_environment       = Rails.env
+ExceptionHandling.eventmachine_safe       = false
+ExceptionHandling.eventmachine_synchrony  = false
+ExceptionHandling.sensu_host              = "127.0.0.1"
+ExceptionHandling.sensu_port              = 3030
+ExceptionHandling.sensu_prefix            = ""
+ExceptionHandling.honeybadger_filepath_tagger        = {} # See "Automatically Tagging Exceptions" section below for specific examples
+ExceptionHandling.honeybadger_exception_class_tagger = {} # See "Automatically Tagging Exceptions" section below for specific examples
+```
 
 ## Usage
 
@@ -61,6 +64,106 @@ Then call any method available in the `ExceptionHandling::Methods` mixin:
       log_error( ex, "A specific error occurred." )
       flash.now['error'] = "A specific error occurred. Support has been notified."
     end
+
+### Tagging Exceptions in Honeybadger
+
+#### Manually Tagging Exceptions
+
+Add `:honeybadger_tags` to your `log_context` usage with an array of strings.
+
+```ruby
+log_error(ex, "A specific error occurred.", honeybadger_tags: ["critical", "sequoia"])
+```
+
+**Note**: Manual tags will be merged with any automatic tags.
+
+#### Automatically Tagging Exceptions
+
+Configure exception handling so that you can automatically apply multiple tags to exceptions sent to honeybadger.
+
+##### Auto Tag by File Paths in the Exception Backtrace (`honeybadger_filepath_tagger=`)
+
+- The key is the tag name to be auto-tagged and the corresponding value array is the file path patterns that are cross referenced against the exception's backtrace for a match.
+    - If any file in the backtrace matches, the tag will be applied.
+    - Ruby gem paths will be ignored.
+- Multiple tags can be applied to the same exception.
+- Specific line numbers are not supported.
+- Any tags assigned by filepathwill be merged with any tags matched by exception class, if also using the `honeybadger_exception_class_tagger`.
+
+⚠️ **The performance of the auto-tagger is directly correlated to the size of the config. The larger the config is, the worse the potential performance impact may be. Tread lightly.**
+
+Example static config:
+```ruby
+ExceptionHandling.honeybadger_filepath_tagger = {
+  "cereals" => [
+    "app/models/captain_crunch.rb", # Files can be the full file path
+    "app/models/cocoa_puffs.rb"
+  ],
+  "ivr-campaigns-team" => [
+    "app/models/user" # Filepaths that are not the full path may have multiple filepaths match (e.g. user.rb and username.rb)
+  ],
+  "critical" => [
+    "app/models/user.rb" # It's ok to have overlaps, in this example an exception with `app/models/user.rb` in the backtrace will have "ivr-campaigns-team" and "critical" applied as tags.
+  ]
+  "external-api" => [
+    "lib/inteliquent/.*" # Regular expressions can be used to encapsulate entire folders
+  ]
+}
+```
+
+Example dynamic config:
+
+- This allows for the tag config to be defined dynamically, meaning you don't need to deploy or restart your service in order to change the tagging config.
+    - The expected shape of the return value of the Proc is the same as the static config example above.
+    - On every exception sent to Honeybadger the tagger will be regenerated based on the config hash returned from the Proc.
+- If the Proc raises an exception, no tags will be marked.
+- ⚠️ **WARNING**: Using a dynamic config will obviously have worse performance than static config. How much the performance will be affected is not exactly known.
+- ⚠️ **WARNING**: If using ProcessSettings, ensure your ProcessSettings changes have been defined, reviewed, and deployed before applying a dynamic config like the example below.
+
+```ruby
+ExceptionHandling.honeybadger_filepath_tagger = -> { ProcessSettings["web", "honeybadger_filepath_tagger_config"] }
+```
+
+##### Auto Tag by Exception Class (`honeybadger_exception_class_tagger=`)
+- The key is the tag name to be auto-tagged and the corresponding value array is the exception classes or names that match the exception.
+    - Only exact classes will be matched. Exception inheritance will not be checked.
+- Exception class names must match the full class path (e.g. "Inteliquent::Api::ApiHelper::ResponseCodeError").
+- Any tags assigned by exception class will be merged with any tags matched by filepath, if also using the `honeybadger_filepath_tagger`.
+
+⚠️ **The performance of the auto-tagger is directly correlated to the size of the config. The larger the config is, the worse the potential performance impact may be. Tread lightly.**
+
+Example static config:
+```ruby
+ExceptionHandling.honeybadger_exception_class_tagger = {
+  "cereals" => [
+    "Cereals::CaptainCrunchException",
+    "Cereals::CocoaPuffsException",
+    ExampleStringNamedError
+  ],
+  "ivr-campaigns-team" => [
+    "SomeOtherErrorClass",
+    "RuntimeError"
+  ],
+  "calls-team" => [
+    "AnotherClass::SomeCallsSpecificException",
+    "ExampleStringNamedError",
+    RuntimeError
+  ]
+}
+```
+
+Example dynamic config:
+
+- This allows for the tag config to be defined dynamically, meaning you don't need to deploy or restart your service in order to change the tagging config.
+    - The expected shape of the return value of the Proc is the same as the static config example above.
+    - On every exception sent to Honeybadger the tagger will be regenerated based on the config hash returned from the Proc.
+- If the Proc raises an exception, no tags will be marked.
+- ⚠️ **WARNING**: Using a dynamic config will obviously have worse performance than static config. How much the performance will be affected is not exactly known.
+- ⚠️ **WARNING**: If using ProcessSettings, ensure your ProcessSettings changes have been defined, reviewed, and deployed before applying a dynamic config like the example below.
+
+```ruby
+ExceptionHandling.honeybadger_exception_class_tagger = -> { ProcessSettings["web", "honeybadger_exception_class_tagger_config"] }
+```
 
 ## Custom Hooks
 

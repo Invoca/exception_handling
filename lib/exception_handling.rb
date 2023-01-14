@@ -156,6 +156,48 @@ module ExceptionHandling # never included
       @exception_catalog ||= ExceptionCatalog.new(@filter_list_filename)
     end
 
+    # @param config [Hash|Proc] Either a Hash or a Proc that when called returns a hash
+    def honeybadger_filepath_tagger=(config)
+      case config
+      when nil
+        @honeybadger_filepath_tagger = nil
+      when Hash
+        @honeybadger_filepath_tagger = HoneybadgerFilepathTagger.new(config)
+      when Proc
+        @honeybadger_filepath_tagger_proc = -> do
+          begin
+            HoneybadgerFilepathTagger.new(config.call)
+          rescue # => ex
+            # TODO: ORabani - log or puts or something
+            nil
+          end
+        end
+      else
+        raise ArgumentError, "unexpected config for honeybadger_filepath_tagger: #{config.inspect}"
+      end
+    end
+
+    # @param config [Hash|Proc] Either a Hash or a Proc that when called returns a hash
+    def honeybadger_exception_class_tagger=(config)
+      case config
+      when nil
+        @honeybadger_exception_class_tagger = nil
+      when Hash
+        @honeybadger_exception_class_tagger = HoneybadgerExceptionClassTagger.new(config)
+      when Proc
+        @honeybadger_exception_class_tagger_proc = -> do
+          begin
+            HoneybadgerExceptionClassTagger.new(config.call)
+          rescue # => ex
+            # TODO: ORabani - log or puts or something
+            nil
+          end
+        end
+      else
+        raise ArgumentError, "unexpected config for honeybadger_exception_class_tagger: #{config.inspect}"
+      end
+    end
+
     #
     # internal settings (don't set directly)
     #
@@ -272,16 +314,46 @@ module ExceptionHandling # never included
     def send_exception_to_honeybadger(exception_info)
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
+      honeybadger_tags      = (honeybadger_auto_tags(exception_info) + exception_info.honeybadger_tags).join(",")
+      honeybadger_tags_param = { tags: honeybadger_tags.presence }.compact # Squash hash if tags are not present
+
       response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
                                     error_message: exception.message.to_s,
                                     exception:     exception,
                                     context:       exception_info.honeybadger_context_data,
-                                    controller:    exception_info.controller_name)
+                                    controller:    exception_info.controller_name,
+                                    **honeybadger_tags_param)
       response ? :success : :failure
     rescue Exception => ex
       warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
       :failure
+    end
+
+    # @param exception [ExceptionInfo]
+    #
+    # @return [Array<String>]
+    def honeybadger_auto_tags(exception_info)
+      tagger_tags = honeybadger_auto_taggers.map { _1.public_send(:matching_tags, exception_info) }
+      tagger_tags.flatten.map(&:strip).map(&:presence).compact
+    rescue # => ex
+      # TODO: ORabani - log or puts or something
+      []
+    end
+
+    # @return [Array<HoneybadgerFilepathTagger|HoneybadgerExceptionClassTagger>]
+    def honeybadger_auto_taggers
+      [honeybadger_filepath_tagger, honeybadger_exception_class_tagger].compact
+    end
+
+    # @return [Hash|NilClass]
+    def honeybadger_filepath_tagger
+      @honeybadger_filepath_tagger || @honeybadger_filepath_tagger_proc&.call
+    end
+
+    # @return [Hash|NilClass]
+    def honeybadger_exception_class_tagger
+      @honeybadger_exception_class_tagger || @honeybadger_exception_class_tagger_proc&.call
     end
 
     #
