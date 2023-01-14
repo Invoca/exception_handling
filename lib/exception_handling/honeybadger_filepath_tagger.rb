@@ -3,8 +3,9 @@
 module ExceptionHandling
   class HoneybadgerFilepathTagger
 
-    VERSIONING_PATTERN = /\d+\.\d+\.\d+(\.\d+)?/
+    VERSIONING_PATTERN = /\d+\.\d+\.\d+(\.\d+)?/.freeze
 
+    # rubocop:disable Layout::LineLength
     GEM_FILEPATH_PATTERNS = [
       /\(#{VERSIONING_PATTERN}\) lib\//,            # Example: activerecord (5.2.8.1) lib/active_record/relation/batches.rb:70:in `block (2 levels) in find_each'"
       /\/#{VERSIONING_PATTERN}\/lib\/ruby\/gems\//, # Example: "/Users/orabani/.rbenv/versions/2.7.5/lib/ruby/gems/2.7.0/gems/rspec-core-3.9.2/lib/rspec/core/reporter.rb"
@@ -13,6 +14,7 @@ module ExceptionHandling
       /^\(eval\)/,                                  # Example: "(eval):1:in `block (2 levels) in perform'"
       /^\/usr\/local\/lib\/ruby/                    # Example: "/usr/local/lib/ruby/2.7.0/benchmark.rb:308:in `realtime'"
     ].freeze
+    # rubocop:enable Layout::LineLength
 
     # @param config [Hash]
     def initialize(config)
