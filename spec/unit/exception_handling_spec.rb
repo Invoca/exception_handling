@@ -1265,16 +1265,18 @@ describe ExceptionHandling do
     context "#honeybadger_filepath_tagger=" do
       let(:exception) do
         exception = StandardError.new("This is an Error")
-        exception.set_backtrace([
-          "active_table_set (4.2.1) lib/active_table_set/extensions/abstract_mysql_adapter_override.rb:13:in `rescue in execute'",
-          "active_table_set (4.2.1) lib/active_table_set/extensions/abstract_mysql_adapter_override.rb:6:in `execute'",
-          "activerecord (5.2.8.1) lib/active_record/connection_adapters/mysql/database_statements.rb:28:in `execute'",
-          "active_table_set (4.2.1) lib/active_table_set/extensions/connection_extension.rb:10:in `execute'",
-          "invoca-mysql_improvements (0.2.0) lib/invoca/mysql_improvements/mysql2_adapter_kill_on_timeout_mixin.rb:20:in `execute'",
-          "app/models/network.rb:2086:in `block in rank_affiliates'",
-          "app/models/network.rb:2082:in `each'",
-          "app/models/network.rb:2082:in `rank_affiliates'",
-        ])
+        exception.set_backtrace(
+          [
+            "active_table_set (4.2.1) lib/active_table_set/extensions/abstract_mysql_adapter_override.rb:13:in `rescue in execute'",
+            "active_table_set (4.2.1) lib/active_table_set/extensions/abstract_mysql_adapter_override.rb:6:in `execute'",
+            "activerecord (5.2.8.1) lib/active_record/connection_adapters/mysql/database_statements.rb:28:in `execute'",
+            "active_table_set (4.2.1) lib/active_table_set/extensions/connection_extension.rb:10:in `execute'",
+            "invoca-mysql_improvements (0.2.0) lib/invoca/mysql_improvements/mysql2_adapter_kill_on_timeout_mixin.rb:20:in `execute'",
+            "app/models/network.rb:2086:in `block in rank_affiliates'",
+            "app/models/network.rb:2082:in `each'",
+            "app/models/network.rb:2082:in `rank_affiliates'",
+          ]
+        )
         exception
       end
 

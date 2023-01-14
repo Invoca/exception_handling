@@ -5,16 +5,14 @@ module ExceptionHandling
 
     VERSIONING_PATTERN = /\d+\.\d+\.\d+(\.\d+)?/.freeze
 
-    # rubocop:disable Layout::LineLength
     GEM_FILEPATH_PATTERNS = [
-      /\(#{VERSIONING_PATTERN}\) lib\//,            # Example: activerecord (5.2.8.1) lib/active_record/relation/batches.rb:70:in `block (2 levels) in find_each'"
-      /\/#{VERSIONING_PATTERN}\/lib\/ruby\/gems\//, # Example: "/Users/orabani/.rbenv/versions/2.7.5/lib/ruby/gems/2.7.0/gems/rspec-core-3.9.2/lib/rspec/core/reporter.rb"
-      /bundle\/ruby\/#{VERSIONING_PATTERN}\/gems/,  # Example: "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:58:in `block (2 levels) in next_tick'"
+      /\(#{VERSIONING_PATTERN}\) lib\//,            # Example: activerecord (5.2.8.1) lib/active_record/relation/batches.rb:70:in `block (2 levels) in find_each'" # rubocop:disable Layout/LineLength
+      /\/#{VERSIONING_PATTERN}\/lib\/ruby\/gems\//, # Example: "/Users/orabani/.rbenv/versions/2.7.5/lib/ruby/gems/2.7.0/gems/rspec-core-3.9.2/lib/rspec/core/reporter.rb" # rubocop:disable Layout/LineLength
+      /bundle\/ruby\/#{VERSIONING_PATTERN}\/gems/,  # Example: "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:58:in `block (2 levels) in next_tick'" # rubocop:disable Layout/LineLength
       /versions\/#{VERSIONING_PATTERN}\/bin/,       # Example: "/Users/orabani/.rbenv/versions/2.7.5/bin/rspec"
       /^\(eval\)/,                                  # Example: "(eval):1:in `block (2 levels) in perform'"
       /^\/usr\/local\/lib\/ruby/                    # Example: "/usr/local/lib/ruby/2.7.0/benchmark.rb:308:in `realtime'"
     ].freeze
-    # rubocop:enable Layout::LineLength
 
     # @param config [Hash]
     def initialize(config)

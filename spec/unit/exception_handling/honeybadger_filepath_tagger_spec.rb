@@ -87,8 +87,8 @@ module ExceptionHandling
             "services/ringswitch/lib/ringswitch/call_flow/deferred.rb:40:in `block in execute_with_next_tick'",
             "bundle/ruby/2.7.0/gems/exception_handling-2.11.3/lib/exception_handling.rb:323:in `ensure_completely_safe'",
             "services/ringswitch/lib/ringswitch/event_machine_proxy.rb:37:in `block in defer_with_next_tick'",
-            "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:58:in `block (2 levels) in next_tick'", # rubocop:disable Layout::LineLength
-            "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:122:in `block in ensure_completely_safe'", # rubocop:disable Layout::LineLength
+            "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:58:in `block (2 levels) in next_tick'", # rubocop:disable Layout/LineLength
+            "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:122:in `block in ensure_completely_safe'", # rubocop:disable Layout/LineLength
             "bundle/ruby/2.7.0/gems/exception_handling-2.11.3/lib/exception_handling.rb:323:in `ensure_completely_safe'",
             "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:121:in `ensure_completely_safe'",
             "bundle/ruby/2.7.0/gems/exceptional_synchrony-1.4.4/lib/exceptional_synchrony/event_machine_proxy.rb:57:in `block in next_tick'",
