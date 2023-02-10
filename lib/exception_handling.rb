@@ -270,12 +270,15 @@ module ExceptionHandling # never included
     def send_exception_to_honeybadger(exception_info)
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
+      # Note: Both commas and spaces are treated as delimiters for the :tags string. Space-delimiters are not officially documented.
+      # https://github.com/honeybadger-io/honeybadger-ruby/pull/422
+      tags = exception_info.honeybadger_tags.join(' ')
       response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
                                     error_message: exception.message.to_s,
                                     exception:     exception,
                                     context:       exception_info.honeybadger_context_data,
                                     controller:    exception_info.controller_name,
-                                    tags:          exception_info.honeybadger_tags.join(' '))
+                                    tags:          tags)
       response ? :success : :failure
     rescue Exception => ex
       warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
