@@ -135,7 +135,7 @@ GEM
     thor (1.0.1)
     thread_safe (0.3.6)
     timeout (0.3.2)
-    tzinfo (1.2.9)
+    tzinfo (1.2.11)
       thread_safe (~> 0.1)
     unicode-display_width (1.6.0)
     zeitwerk (2.5.4)
