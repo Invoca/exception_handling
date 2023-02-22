@@ -6,7 +6,7 @@ module ExceptionHandling
   describe Sensu do
     context "#generate_event" do
       it "create an event" do
-        expect(ExceptionHandling::Sensu).to receive(:send_event).with(name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1)
+        expect(ExceptionHandling::Sensu).to receive(:send_event).with({ name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1 })
 
         ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye")
       end
@@ -14,13 +14,13 @@ module ExceptionHandling
       it "add the sensu prefix" do
         ExceptionHandling.sensu_prefix = "cnn_"
 
-        expect(ExceptionHandling::Sensu).to receive(:send_event).with(name: "cnn_world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1)
+        expect(ExceptionHandling::Sensu).to receive(:send_event).with({ name: "cnn_world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 1 })
 
         ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye")
       end
 
       it "allow the level to be set to critical" do
-        expect(ExceptionHandling::Sensu).to receive(:send_event).with(name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 2)
+        expect(ExceptionHandling::Sensu).to receive(:send_event).with({ name: "world_is_ending", output: "stick head between knees and kiss ass goodbye", status: 2 })
 
         ExceptionHandling::Sensu.generate_event("world_is_ending", "stick head between knees and kiss ass goodbye", :critical)
       end
