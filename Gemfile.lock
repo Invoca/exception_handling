@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    exception_handling (2.14.0)
-      actionmailer (>= 5.2, < 7.0)
-      actionpack (>= 5.2, < 7.0)
-      activesupport (>= 5.2, < 7.0)
+    exception_handling (2.15.0.pre.1)
+      actionmailer (>= 5.2)
+      actionpack (>= 5.2)
+      activesupport (>= 5.2)
       contextual_logger (~> 1.0)
       escalate (~> 0.3)
       eventmachine (~> 1.0)
@@ -144,8 +144,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  actionmailer (< 6.1)
-  activesupport (< 6.1)
   appraisal (~> 2.2)
   exception_handling!
   honeybadger (~> 4.11)
