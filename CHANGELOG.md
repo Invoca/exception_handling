@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.15.0] - Pre-Release
+## [2.15.0] - 2023-03-07
 ### Added
 - Added support for ActionMailer 7.x
 - Added support for ActionPack 7.x
@@ -109,6 +109,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - No longer depends on hobo_support. Uses invoca-utils 0.3 instead.
 
+[2.15.0]: https://github.com/Invoca/exception_handling/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/Invoca/exception_handling/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/Invoca/exception_handling/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/Invoca/exception_handling/compare/v2.11.3...v2.12.0
