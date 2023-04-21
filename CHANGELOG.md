@@ -14,12 +14,9 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added support for ActionPack 7.x
 - Added support for ActiveSupport 7.x
 
-## [2.14.0] - UNRELEASED
+## [2.14.0] - 2023-02-22
 ### Added
-- Added `honeybadger_filepath_tagger=` and `honeybadger_exception_class_tagger=` support to auto-tag exceptions
-    - See README for instructions on usage.
-- Updated ability to manually tag exceptions by passing `:honeybadger_tags` in log_context.
-    - See README for instructions on usage.
+- Added support for plumbing tags through to honeybadger via the `honeybadger_tags` log context parameter
 
 ## [2.13.0] - 2022-09-15
 ### Added
