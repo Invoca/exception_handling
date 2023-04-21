@@ -301,8 +301,10 @@ module ExceptionHandling # never included
     # @return [Array<String>]
     def honeybadger_auto_tags(exception)
       @honeybadger_auto_tagger&.call(exception) || []
-    rescue # => ex
-      # TODO: ORabani - log or puts or something
+    rescue => ex
+      traces = ex.backtrace.join("\n")
+      message = "Unable to execute honeybadger_auto_tags callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}\n"
+      ExceptionHandling.log_info(message)
       []
     end
 
