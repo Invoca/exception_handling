@@ -116,6 +116,7 @@ module ExceptionHandling # never included
     attr_reader :filter_list_filename
     attr_reader :eventmachine_safe
     attr_reader :eventmachine_synchrony
+    attr_reader :honeybadger_auto_tagger
 
     @filter_list_filename = "./config/exception_filters.yml"
     @email_environment = ""
@@ -156,46 +157,10 @@ module ExceptionHandling # never included
       @exception_catalog ||= ExceptionCatalog.new(@filter_list_filename)
     end
 
-    # @param config [Hash|Proc] Either a Hash or a Proc that when called returns a hash
-    def honeybadger_filepath_tagger=(config)
-      case config
-      when nil
-        @honeybadger_filepath_tagger = nil
-      when Hash
-        @honeybadger_filepath_tagger = HoneybadgerFilepathTagger.new(config)
-      when Proc
-        @honeybadger_filepath_tagger_proc = -> do
-          begin
-            HoneybadgerFilepathTagger.new(config.call)
-          rescue # => ex
-            # TODO: ORabani - log or puts or something
-            nil
-          end
-        end
-      else
-        raise ArgumentError, "unexpected config for honeybadger_filepath_tagger: #{config.inspect}"
-      end
-    end
-
-    # @param config [Hash|Proc] Either a Hash or a Proc that when called returns a hash
-    def honeybadger_exception_class_tagger=(config)
-      case config
-      when nil
-        @honeybadger_exception_class_tagger = nil
-      when Hash
-        @honeybadger_exception_class_tagger = HoneybadgerExceptionClassTagger.new(config)
-      when Proc
-        @honeybadger_exception_class_tagger_proc = -> do
-          begin
-            HoneybadgerExceptionClassTagger.new(config.call)
-          rescue # => ex
-            # TODO: ORabani - log or puts or something
-            nil
-          end
-        end
-      else
-        raise ArgumentError, "unexpected config for honeybadger_exception_class_tagger: #{config.inspect}"
-      end
+    # @param value [Proc|nil] Proc that accepts 1 parameter that will be the exception object or nil to disable the auto-tagger.
+    #                         The proc is always expected to return an array of strings. The array can be empty.
+    def honeybadger_auto_tagger=(value)
+      @honeybadger_auto_tagger = value
     end
 
     #
@@ -315,13 +280,9 @@ module ExceptionHandling # never included
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
 
-      # TODO: ORabani - address this
-      # honeybadger_tags      = (honeybadger_auto_tags(exception_info) + exception_info.honeybadger_tags).join(",")
-      # honeybadger_tags_param = { tags: honeybadger_tags.presence }.compact # Squash hash if tags are not present
-
       # Note: Both commas and spaces are treated as delimiters for the :tags string. Space-delimiters are not officially documented.
       # https://github.com/honeybadger-io/honeybadger-ruby/pull/422
-      tags = exception_info.honeybadger_tags.join(' ')
+      tags = (honeybadger_auto_tags(exception) + exception_info.honeybadger_tags).join(' ')
       response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
                                     error_message: exception.message.to_s,
                                     exception:     exception,
@@ -335,30 +296,14 @@ module ExceptionHandling # never included
       :failure
     end
 
-    # @param exception [ExceptionInfo]
+    # @param exception [Exception]
     #
     # @return [Array<String>]
-    def honeybadger_auto_tags(exception_info)
-      tagger_tags = honeybadger_auto_taggers.map { _1.public_send(:matching_tags, exception_info) }
-      tagger_tags.flatten.map(&:strip).map(&:presence).compact
+    def honeybadger_auto_tags(exception)
+      @honeybadger_auto_tagger&.call(exception) || []
     rescue # => ex
       # TODO: ORabani - log or puts or something
       []
-    end
-
-    # @return [Array<HoneybadgerFilepathTagger|HoneybadgerExceptionClassTagger>]
-    def honeybadger_auto_taggers
-      [honeybadger_filepath_tagger, honeybadger_exception_class_tagger].compact
-    end
-
-    # @return [Hash|NilClass]
-    def honeybadger_filepath_tagger
-      @honeybadger_filepath_tagger || @honeybadger_filepath_tagger_proc&.call
-    end
-
-    # @return [Hash|NilClass]
-    def honeybadger_exception_class_tagger
-      @honeybadger_exception_class_tagger || @honeybadger_exception_class_tagger_proc&.call
     end
 
     #

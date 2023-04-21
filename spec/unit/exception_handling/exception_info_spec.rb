@@ -585,36 +585,6 @@ module ExceptionHandling
       end
     end
 
-    context "#honeybadger_tags" do
-      subject { exception_info.honeybadger_tags }
-      let(:exception) { StandardError.new("Exception") }
-      let(:exception_info) { ExceptionInfo.new(exception, nil, Time.now, log_context: { honeybadger_tags: honeybadger_tags }) }
-
-      context "when log_context contains String :honeybadger tags" do
-        let(:honeybadger_tags) { "  sequoia   ,  phoenix  , , ,,  mavericks  " }
-
-        it "returns an array of tags split by ',' with blank entries removed" do
-          expect(subject).to match_array(["sequoia", "phoenix", "mavericks"])
-        end
-      end
-
-      context "when log_context contains Array :honeybadger tags" do
-        let(:honeybadger_tags) { ["  sequoia   ", "    phoenix   ", "   ", "", "mavericks"] }
-
-        it "returns the array with blank entries" do
-          expect(subject).to match_array(["sequoia", "phoenix", "mavericks"])
-        end
-      end
-
-      context "when log_context contains unexpected :honeybadger tags type" do
-        let(:honeybadger_tags) { 123 }
-
-        it "returns an empty array" do
-          expect(subject).to match_array([])
-        end
-      end
-    end
-
     def prepare_data(data)
       data.each do |_key, section|
         if section.is_a?(Hash)

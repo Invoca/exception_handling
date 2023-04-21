@@ -108,9 +108,8 @@ describe ExceptionHandling do
   end
 
   before(:each) do
-    # Reset these for every test since they are applied to the class
-    ExceptionHandling.honeybadger_filepath_tagger = nil
-    ExceptionHandling.honeybadger_exception_class_tagger = nil
+    # Reset this for every test since they are applied to the class
+    ExceptionHandling.honeybadger_auto_tagger = nil
   end
 
   context "with warn and honeybadger notify stubbed" do
@@ -156,10 +155,10 @@ describe ExceptionHandling do
         end
 
         it "passes :honeybadger_tags in log context to honeybadger" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "awesome,totallytubular" }))
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "  , awesome  ,  totallytubular,  " }))
           ExceptionHandling.log_error('This is an Error', 'This is the prefix context', honeybadger_tags: '  , awesome  ,  totallytubular,  ')
 
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "cool,neat" }))
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "    cool  neat" }))
           ExceptionHandling.log_error('This is an Error', 'This is the prefix context', honeybadger_tags: ["  ", " cool ", "neat"])
         end
 
@@ -1260,126 +1259,31 @@ describe ExceptionHandling do
       end
     end
 
-    context "#honeybadger_filepath_tagger=" do
-      let(:exception) do
-        exception = StandardError.new("This is an Error")
-        exception.set_backtrace(
-          [
-            "active_table_set (4.2.1) lib/active_table_set/extensions/abstract_mysql_adapter_override.rb:13:in `rescue in execute'",
-            "active_table_set (4.2.1) lib/active_table_set/extensions/abstract_mysql_adapter_override.rb:6:in `execute'",
-            "activerecord (5.2.8.1) lib/active_record/connection_adapters/mysql/database_statements.rb:28:in `execute'",
-            "active_table_set (4.2.1) lib/active_table_set/extensions/connection_extension.rb:10:in `execute'",
-            "invoca-mysql_improvements (0.2.0) lib/invoca/mysql_improvements/mysql2_adapter_kill_on_timeout_mixin.rb:20:in `execute'",
-            "app/models/network.rb:2086:in `block in rank_affiliates'",
-            "app/models/network.rb:2082:in `each'",
-            "app/models/network.rb:2082:in `rank_affiliates'",
-          ]
-        )
-        exception
+    context "#honeybadger_auto_tagger=" do
+      before do
+        ExceptionHandling.honeybadger_auto_tagger =
+          ->(exception) do
+            if exception.message =~ /donuts/
+              ['donut-error', 'high-urgency']
+            else
+              ['low-urgency']
+            end
+          end
       end
 
-      context "with Hash value" do
-        before(:each) do
-          ExceptionHandling.honeybadger_filepath_tagger = {
-            "sequoia" => ["app/models/user", "app/models/network"],
-            "phoenix" => ["app/models/address"],
-            "critical" => ["app/models/network"]
-          }
-        end
-
-        it "includes auto matching filepath tags on honeybadger notify" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "sequoia,critical,neat,ok" }))
-          ExceptionHandling.log_error(exception, nil, honeybadger_tags: ["neat", "ok"])
+      context "without manually passed tags" do
+        it "adds tags from autotagger" do
+          exception = StandardError.new("We are out of chocolate milk")
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "low-urgency" }))
+          ExceptionHandling.log_error(exception, nil)
         end
       end
 
-      context "with Proc value" do
-        before(:each) do
-          full_config = {
-            "sequoia" => ["app/models/user", "app/models/network"],
-            "phoenix" => ["app/models/address"],
-            "critical" => ["app/models/network"]
-          }
-          configurations = [full_config, full_config.except("critical"), "Not a config, this should raise an error"]
-          ExceptionHandling.honeybadger_filepath_tagger = -> { configurations.shift }
-        end
-
-        it "includes auto matching filepath tags on honeybadger notify" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "sequoia,critical,awesome,cool" }))
-          ExceptionHandling.log_error(exception, nil, honeybadger_tags: "awesome, cool")
-        end
-
-        it "calls Proc every time for config" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "sequoia,critical" }))
-          ExceptionHandling.log_error(exception, nil)
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "sequoia" }))
-          ExceptionHandling.log_error(exception, nil)
-        end
-
-        it "does not set tag if Proc raises an exception" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "sequoia,critical" }))
-          ExceptionHandling.log_error(exception, nil)
-
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "sequoia" }))
-          ExceptionHandling.log_error(exception, nil)
-
-          expect(Honeybadger).to receive(:notify) { |args| expect(args[:context]).to_not have_key(:tags) }
-          ExceptionHandling.log_error(exception, nil)
-        end
-      end
-    end
-
-    context "#honeybadger_exception_class_tagger=" do
-      let(:exception) { RuntimeError.new("This is an Error") }
-
-      context "with Hash value" do
-        before(:each) do
-          ExceptionHandling.honeybadger_exception_class_tagger = {
-            "sequoia" => ["SomeOtherErrorClass"],
-            "phoenix" => ["RuntimeError", "SomeOtherErrorClass"],
-            "critical" => [RuntimeError]
-          }
-        end
-
-        it "includes auto matching exception class tags on honeybadger notify" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "phoenix,critical,wow,hi" }))
-          ExceptionHandling.log_error(exception, nil, honeybadger_tags: ["wow", "hi"])
-        end
-      end
-
-      context "with Proc value" do
-        before(:each) do
-          full_config = {
-            "sequoia" => ["SomeOtherErrorClass"],
-            "phoenix" => ["RuntimeError", "SomeOtherErrorClass"],
-            "critical" => [RuntimeError]
-          }
-          configurations = [full_config, full_config.except("critical"), "Not a config, this should raise an error"]
-          ExceptionHandling.honeybadger_exception_class_tagger = -> { configurations.shift }
-        end
-
-        it "includes auto matching exception class tags on honeybadger notify" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "phoenix,critical,woah,hello" }))
-          ExceptionHandling.log_error(exception, nil, honeybadger_tags: "woah, hello")
-        end
-
-        it "calls Proc every time for config" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "phoenix,critical" }))
-          ExceptionHandling.log_error(exception, nil)
-
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "phoenix" }))
-          ExceptionHandling.log_error(exception, nil)
-        end
-
-        it "does not set tag if Proc raises an exception" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "phoenix,critical" }))
-          ExceptionHandling.log_error(exception, nil)
-
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "phoenix" }))
-          ExceptionHandling.log_error(exception, nil)
-
-          expect(Honeybadger).to receive(:notify) { |args| expect(args[:context]).to_not have_key(:tags) }
-          ExceptionHandling.log_error(exception, nil)
+      context "with manually passed tags" do
+        it "merges tags from autotagger with manually passed tags" do
+          exception = StandardError.new("The donuts are burning")
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "donut-error high-urgency upset-customers" }))
+          ExceptionHandling.log_error(exception, nil, honeybadger_tags: ["upset-customers"])
         end
       end
     end
