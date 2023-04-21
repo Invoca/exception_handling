@@ -1296,7 +1296,7 @@ describe ExceptionHandling do
       let(:exception) { StandardError.new("Something else occurred") }
 
       before do
-        ExceptionHandling.honeybadger_auto_tagger = ->(exception) { raise RuntimeError, "boom" }
+        ExceptionHandling.honeybadger_auto_tagger = ->(_exception) { raise RuntimeError, "boom" }
       end
 
       it "logs a message and returns [] for the tags" do
