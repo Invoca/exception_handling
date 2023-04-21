@@ -49,7 +49,7 @@ module ExceptionHandling
     HONEYBADGER_CONTEXT_SECTIONS = [:timestamp, :error_class, :exception_context, :server, :scm_revision, :notes,
                                     :user_details, :request, :session, :environment, :backtrace, :event_response, :log_context].freeze
 
-    attr_reader :exception, :controller, :exception_context, :timestamp
+    attr_reader :exception, :controller, :exception_context, :timestamp, :honeybadger_tags
 
     def initialize(exception, exception_context, timestamp, controller: nil, data_callback: nil, log_context: nil)
       @exception = exception
@@ -59,6 +59,7 @@ module ExceptionHandling
       @data_callback = data_callback
       # merge into the surrounding context just like ContextualLogger does when logging
       @merged_log_context = ExceptionHandling.logger.current_context_for_thread.deep_merge(log_context || {})
+      @honeybadger_tags = Array(@merged_log_context[:honeybadger_tags] || [])
     end
 
     def data
