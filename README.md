@@ -43,8 +43,7 @@ ExceptionHandling.eventmachine_synchrony  = false
 ExceptionHandling.sensu_host              = "127.0.0.1"
 ExceptionHandling.sensu_port              = 3030
 ExceptionHandling.sensu_prefix            = ""
-ExceptionHandling.honeybadger_filepath_tagger        = {} # See "Automatically Tagging Exceptions" section below for specific examples
-ExceptionHandling.honeybadger_exception_class_tagger = {} # See "Automatically Tagging Exceptions" section below for specific examples
+ExceptionHandling.honeybadger_auto_tagger = ->(exception) { [] } # See "Automatically Tagging Exceptions" section below for examples
 ```
 
 ## Usage
@@ -87,11 +86,16 @@ Configure exception handling so that you can automatically apply multiple tags t
 
 The Proc must accept an `exception` argument that will be the exception in question and must always return an array of strings (the array can be empty).
 
-Example:
+Example to enable auto-tagging:
 ```ruby
 ExceptionHandling.honeybadger_auto_tagger = ->(exception) do
   exception.message =~ /fire/ ? ["high-urgency", ""] : ["low-urgency"]
 end
+```
+
+Example to disable auto-tagging:
+```ruby
+ExceptionHandling.honeybadger_auto_tagger = nil
 ```
 
 ## Custom Hooks

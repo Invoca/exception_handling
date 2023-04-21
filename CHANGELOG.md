@@ -4,10 +4,9 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.14.0] - 2023-04-21
+## [2.16.0] - 2023-04-21
 ### Added
-- TODO: ORabani - update this changelog entry
-- Added support for plumbing tags through to honeybadger via the `honeybadger_tags` log context parameter
+- Add interface for automatically adding honeybadger tags `ExceptionHandling.honeybadger_auto_tagger=`
 
 ## [2.15.0] - 2023-03-07
 ### Added
