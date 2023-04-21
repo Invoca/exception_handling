@@ -155,11 +155,13 @@ module ExceptionHandling # never included
       @exception_catalog ||= ExceptionCatalog.new(@filter_list_filename)
     end
 
+    # rubocop:disable Style/TrivialAccessors
     # @param value [Proc|nil] Proc that accepts 1 parameter that will be the exception object or nil to disable the auto-tagger.
     #                         The proc is always expected to return an array of strings. The array can be empty.
-    def honeybadger_auto_tagger=(value) # rubocop:disable Style/TrivialAccessors
+    def honeybadger_auto_tagger=(value)
       @honeybadger_auto_tagger = value
     end
+    # rubocop:enable Style/TrivialAccessors
 
     #
     # internal settings (don't set directly)
