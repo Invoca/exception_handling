@@ -157,7 +157,7 @@ module ExceptionHandling # never included
 
     # @param value [Proc|nil] Proc that accepts 1 parameter that will be the exception object or nil to disable the auto-tagger.
     #                         The proc is always expected to return an array of strings. The array can be empty.
-    def honeybadger_auto_tagger=(value)
+    def honeybadger_auto_tagger=(value) # rubocop:disable Style/TrivialAccessors
       @honeybadger_auto_tagger = value
     end
 
