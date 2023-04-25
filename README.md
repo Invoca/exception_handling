@@ -66,7 +66,7 @@ Then call any method available in the `ExceptionHandling::Methods` mixin:
 
 ### Tagging Exceptions in Honeybadger
 
-⚠️ Honeybadger differentiates tags by spaces and commas, so you should **not** include spaces or commas in your tags.
+⚠️ Honeybadger differentiates tags by spaces and/or commas, so you should **not** include spaces or commas in your tags.
 
 ⚠️ Tags are case-sensitive.
 
@@ -89,7 +89,7 @@ The Proc must accept an `exception` argument that will be the exception in quest
 Example to enable auto-tagging:
 ```ruby
 ExceptionHandling.honeybadger_auto_tagger = ->(exception) do
-  exception.message =~ /fire/ ? ["high-urgency", ""] : ["low-urgency"]
+  exception.message.match?(/fire/) ? ["high-urgency", "danger"] : ["low-urgency"]
 end
 ```
 
