@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.16.0] - UNRELEASED
+## [2.16.0] - 2023-05-01
 ### Added
 - Add interface for automatically adding honeybadger tags `ExceptionHandling.honeybadger_auto_tagger=`
 
