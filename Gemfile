@@ -4,6 +4,9 @@ source 'https://rubygems.org'
 
 gemspec
 
+gem 'actionmailer', '~> 6.0'
+gem 'actionpack', '~> 6.0'
+gem 'activesupport', '~> 6.0'
 gem 'appraisal', '~> 2.2'
 gem 'honeybadger', '~> 4.11'
 gem 'pry'
