@@ -107,6 +107,11 @@ describe ExceptionHandling do
   class SmtpClientErrbackStub < SmtpClientStub
   end
 
+  before(:each) do
+    # Reset this for every test since they are applied to the class
+    ExceptionHandling.honeybadger_auto_tagger = nil
+  end
+
   context "with warn and honeybadger notify stubbed" do
     before do
       allow(ExceptionHandling).to receive(:warn).with(any_args)
@@ -147,6 +152,14 @@ describe ExceptionHandling do
           expect(logged_excluding_reload_filter.last[:message]).to match(/This is an Error/)
           expect(logged_excluding_reload_filter.last[:context]).to_not be_empty
           expect(service_name: 'exception_handling').to eq(logged_excluding_reload_filter.last[:context])
+        end
+
+        it "passes :honeybadger_tags in log context to honeybadger" do
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "  , awesome  ,  totallytubular,  " }))
+          ExceptionHandling.log_error('This is an Error', 'This is the prefix context', honeybadger_tags: '  , awesome  ,  totallytubular,  ')
+
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "    cool  neat" }))
+          ExceptionHandling.log_error('This is an Error', 'This is the prefix context', honeybadger_tags: ["  ", " cool ", "neat"])
         end
 
         it "logs with Severity::FATAL" do
@@ -1243,6 +1256,53 @@ describe ExceptionHandling do
 
         ExceptionHandling.log_periodically(:test_periodic_exception, 30.minutes, "this will be written")
         expect(logged_excluding_reload_filter.size).to eq(3)
+      end
+    end
+
+    context "#honeybadger_auto_tagger=" do
+      context "with proc that runs successfully" do
+        before do
+          ExceptionHandling.honeybadger_auto_tagger =
+            ->(exception) do
+              if exception.message =~ /donuts/
+                ['donut-error', 'high-urgency']
+              else
+                ['low-urgency']
+              end
+            end
+        end
+
+        context "without manually passed tags" do
+          let(:exception) { StandardError.new("We are out of chocolate milk") }
+
+          it "adds tags from autotagger" do
+            expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "low-urgency" }))
+            ExceptionHandling.log_error(exception, nil)
+          end
+        end
+
+        context "with manually passed tags" do
+          let(:exception) { StandardError.new("The donuts are burning") }
+
+          it "merges tags from autotagger with manually passed tags" do
+            expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "donut-error high-urgency upset-customers" }))
+            ExceptionHandling.log_error(exception, nil, honeybadger_tags: ["upset-customers"])
+          end
+        end
+      end
+    end
+
+    context "with proc that raises an exception" do
+      let(:exception) { StandardError.new("Something else occurred") }
+
+      before do
+        ExceptionHandling.honeybadger_auto_tagger = ->(_exception) { raise StandardError, "boom" }
+      end
+
+      it "logs a message and returns [] for the tags" do
+        expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "some-other-tag" }))
+        expect(ExceptionHandling).to receive(:log_info).with(/Unable to execute honeybadger_auto_tags callback. boom/)
+        ExceptionHandling.log_error(exception, nil, honeybadger_tags: ["some-other-tag"])
       end
     end
   end

@@ -25,24 +25,26 @@ Or install it yourself as:
 Add some code to initialize the settings in your application.
 For example:
 
-    require "exception_handling"
+```ruby
+require "exception_handling"
 
-    # required
-    ExceptionHandling.server_name             = Cluster['server_name']
-    ExceptionHandling.sender_address          = %("Exceptions" <exceptions@example.com>)
-    ExceptionHandling.exception_recipients    = ['exceptions@example.com']
-    ExceptionHandling.logger                  = Rails.logger
+# required
+ExceptionHandling.server_name             = Cluster['server_name']
+ExceptionHandling.sender_address          = %("Exceptions" <exceptions@example.com>)
+ExceptionHandling.exception_recipients    = ['exceptions@example.com']
+ExceptionHandling.logger                  = Rails.logger
 
-    # optional
-    ExceptionHandling.escalation_recipients   = ['escalation@example.com']
-    ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
-    ExceptionHandling.email_environment       = Rails.env
-    ExceptionHandling.eventmachine_safe       = false
-    ExceptionHandling.eventmachine_synchrony  = false
-    ExceptionHandling.sensu_host              = "127.0.0.1"
-    ExceptionHandling.sensu_port              = 3030
-    ExceptionHandling.sensu_prefix            = ""
-
+# optional
+ExceptionHandling.escalation_recipients   = ['escalation@example.com']
+ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
+ExceptionHandling.email_environment       = Rails.env
+ExceptionHandling.eventmachine_safe       = false
+ExceptionHandling.eventmachine_synchrony  = false
+ExceptionHandling.sensu_host              = "127.0.0.1"
+ExceptionHandling.sensu_port              = 3030
+ExceptionHandling.sensu_prefix            = ""
+ExceptionHandling.honeybadger_auto_tagger = ->(exception) { [] } # See "Automatically Tagging Exceptions" section below for examples
+```
 
 ## Usage
 
@@ -61,6 +63,40 @@ Then call any method available in the `ExceptionHandling::Methods` mixin:
       log_error( ex, "A specific error occurred." )
       flash.now['error'] = "A specific error occurred. Support has been notified."
     end
+
+### Tagging Exceptions in Honeybadger
+
+⚠️ Honeybadger differentiates tags by spaces and/or commas, so you should **not** include spaces or commas in your tags.
+
+⚠️ Tags are case-sensitive.
+
+#### Manually Tagging Exceptions
+
+Add `:honeybadger_tags` to your `log_context` usage with an array of strings.
+
+```ruby
+log_error(ex, "A specific error occurred.", honeybadger_tags: ["critical", "sequoia"])
+```
+
+**Note**: Manual tags will be merged with any automatic tags.
+
+#### Automatically Tagging Exceptions (`honeybadger_auto_tagger=`)
+
+Configure exception handling so that you can automatically apply multiple tags to exceptions sent to honeybadger.
+
+The Proc must accept an `exception` argument that will be the exception in question and must always return an array of strings (the array can be empty).
+
+Example to enable auto-tagging:
+```ruby
+ExceptionHandling.honeybadger_auto_tagger = ->(exception) do
+  exception.message.match?(/fire/) ? ["high-urgency", "danger"] : ["low-urgency"]
+end
+```
+
+Example to disable auto-tagging:
+```ruby
+ExceptionHandling.honeybadger_auto_tagger = nil
+```
 
 ## Custom Hooks
 

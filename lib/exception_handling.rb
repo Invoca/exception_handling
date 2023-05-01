@@ -114,6 +114,7 @@ module ExceptionHandling # never included
     attr_reader :filter_list_filename
     attr_reader :eventmachine_safe
     attr_reader :eventmachine_synchrony
+    attr_reader :honeybadger_auto_tagger
 
     @filter_list_filename = "./config/exception_filters.yml"
     @email_environment = ""
@@ -153,6 +154,14 @@ module ExceptionHandling # never included
     def exception_catalog
       @exception_catalog ||= ExceptionCatalog.new(@filter_list_filename)
     end
+
+    # rubocop:disable Style/TrivialAccessors
+    # @param value [Proc|nil] Proc that accepts 1 parameter that will be the exception object or nil to disable the auto-tagger.
+    #                         The proc is always expected to return an array of strings. The array can be empty.
+    def honeybadger_auto_tagger=(value)
+      @honeybadger_auto_tagger = value
+    end
+    # rubocop:enable Style/TrivialAccessors
 
     #
     # internal settings (don't set directly)
@@ -270,9 +279,10 @@ module ExceptionHandling # never included
     def send_exception_to_honeybadger(exception_info)
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
+
       # Note: Both commas and spaces are treated as delimiters for the :tags string. Space-delimiters are not officially documented.
       # https://github.com/honeybadger-io/honeybadger-ruby/pull/422
-      tags = exception_info.honeybadger_tags.join(' ')
+      tags = (honeybadger_auto_tags(exception) + exception_info.honeybadger_tags).join(' ')
       response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
                                     error_message: exception.message.to_s,
                                     exception:     exception,
@@ -284,6 +294,18 @@ module ExceptionHandling # never included
       warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
       :failure
+    end
+
+    # @param exception [Exception]
+    #
+    # @return [Array<String>]
+    def honeybadger_auto_tags(exception)
+      @honeybadger_auto_tagger&.call(exception) || []
+    rescue => ex
+      traces = ex.backtrace.join("\n")
+      message = "Unable to execute honeybadger_auto_tags callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}\n"
+      ExceptionHandling.log_info(message)
+      []
     end
 
     #
