@@ -5,6 +5,7 @@ require 'rspec/mocks'
 require 'rspec_junit_formatter'
 
 require 'pry'
+require 'pry-byebug'
 require 'honeybadger'
 require 'contextual_logger'
 

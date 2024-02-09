@@ -1344,7 +1344,7 @@ describe ExceptionHandling do
         end
 
         it "logs a warning" do
-          expect(ExceptionHandling.logger).to receive(:warn).with(/Overwriting existing tag path for 'sample-tag' from/)
+          expect(ExceptionHandling.logger).to receive(:warn).with(/Overwriting existing tag path for 'sample-tag'/, **{})
           add_hb_tag
         end
       end
