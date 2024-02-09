@@ -23,20 +23,28 @@ class LoggerStub
     clear
   end
 
-  def debug(message, log_context = {})
-    logged << { message: message, context: log_context, severity: 'DEBUG' }
+  def debug(message, **log_context)
+    super.tap do
+      logged << { message: message, context: log_context, severity: 'DEBUG' }
+    end
   end
 
-  def info(message, log_context = {})
-    logged << { message: message, context: log_context, severity: 'INFO' }
+  def info(message, **log_context)
+    super.tap do
+      logged << { message: message, context: log_context, severity: 'INFO' }
+    end
   end
 
-  def warn(message, log_context = {})
-    logged << { message: message, context: log_context, severity: 'WARN' }
+  def warn(message, **log_context)
+    super.tap do
+      logged << { message: message, context: log_context, severity: 'WARN' }
+    end
   end
 
-  def fatal(message, log_context = {})
-    logged << { message: message, context: log_context, severity: 'FATAL' }
+  def fatal(message, **log_context)
+    super.tap do
+      logged << { message: message, context: log_context, severity: 'FATAL' }
+    end
   end
 
   def clear
