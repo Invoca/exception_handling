@@ -110,6 +110,7 @@ module ExceptionHandling # never included
     attr_accessor :sensu_host
     attr_accessor :sensu_port
     attr_accessor :sensu_prefix
+    attr_reader   :honeybadger_log_context_tags
 
     attr_reader :filter_list_filename
     attr_reader :eventmachine_safe
@@ -162,6 +163,22 @@ module ExceptionHandling # never included
       @honeybadger_auto_tagger = value
     end
     # rubocop:enable Style/TrivialAccessors
+
+    # @param tag_name [String]
+    # @param path [Array]
+    def add_honeybadger_tag_from_log_context(tag_name, path:)
+      tag_name.is_a?(String) or raise ArgumentError, "tag_name must be a String, #{tag_name.inspect}"
+      path.is_a?(Array) or raise ArgumentError, "path must be an Array, #{path.inspect}"
+      @honeybadger_log_context_tags ||= {}
+      if @honeybadger_log_context_tags.key?(tag_name)
+        log_warning("Overwriting existing tag path for '#{tag_name}' from #{@honeybadger_log_context_tags[tag_name]} to #{path}")
+      end
+      @honeybadger_log_context_tags[tag_name] = path
+    end
+
+    def clear_honeybadger_tags_from_log_context
+      @honeybadger_log_context_tags = nil
+    end
 
     #
     # internal settings (don't set directly)
@@ -282,7 +299,7 @@ module ExceptionHandling # never included
 
       # Note: Both commas and spaces are treated as delimiters for the :tags string. Space-delimiters are not officially documented.
       # https://github.com/honeybadger-io/honeybadger-ruby/pull/422
-      tags = (honeybadger_auto_tags(exception) + exception_info.honeybadger_tags).join(' ')
+      tags = tags_for_honeybadger(exception_info).join(' ')
       response = Honeybadger.notify(error_class: exception_description ? exception_description.filter_name : exception.class.name,
                                     error_message: exception.message.to_s,
                                     exception:     exception,
@@ -294,18 +311,6 @@ module ExceptionHandling # never included
       warn("ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
       write_exception_to_log(ex, "ExceptionHandling.send_exception_to_honeybadger rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
       :failure
-    end
-
-    # @param exception [Exception]
-    #
-    # @return [Array<String>]
-    def honeybadger_auto_tags(exception)
-      @honeybadger_auto_tagger&.call(exception) || []
-    rescue => ex
-      traces = ex.backtrace.join("\n")
-      message = "Unable to execute honeybadger_auto_tags callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}\n"
-      ExceptionHandling.log_info(message)
-      []
     end
 
     #
@@ -455,6 +460,41 @@ module ExceptionHandling # never included
     end
 
     private
+
+    # @param exception_info [ExceptionInfo]
+    #
+    # @return [Array<String>]
+    def tags_for_honeybadger(exception_info)
+      (
+        honeybadger_auto_tags(exception_info.exception) +
+        exception_info.honeybadger_tags +
+        honeybadger_tags_from_log_context(exception_info.honeybadger_context_data)
+      ).uniq
+    end
+
+    # @param exception [Exception]
+    #
+    # @return [Array<String>]
+    def honeybadger_auto_tags(exception)
+      @honeybadger_auto_tagger&.call(exception) || []
+    rescue => ex
+      traces = ex.backtrace.join("\n")
+      message = "Unable to execute honeybadger_auto_tags callback. #{ExceptionHandling.encode_utf8(ex.message.to_s)} #{traces}\n"
+      ExceptionHandling.log_info(message)
+      []
+    end
+
+    def honeybadger_tags_from_log_context(honeybadger_context_data)
+      if @honeybadger_log_context_tags
+        @honeybadger_log_context_tags.map do |tag_name, tag_path|
+          if (tag_found_in_log_context = honeybadger_context_data.dig(:log_context, *tag_path))
+            "#{tag_name}:#{tag_found_in_log_context}"
+          end
+        end.compact
+      else
+        []
+      end
+    end
 
     def execute_custom_log_error_callback(exception_data, exception, treat_like_warning, external_notification_results)
       if ExceptionHandling.post_log_error_hook
