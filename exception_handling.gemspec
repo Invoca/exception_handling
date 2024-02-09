@@ -20,6 +20,8 @@ Gem::Specification.new do |spec|
     "allowed_push_host" => "https://rubygems.org"
   }
 
+  spec.required_ruby_version = '>= 2.7.0'
+
   spec.add_dependency 'actionmailer',      '>= 5.2'
   spec.add_dependency 'actionpack',        '>= 5.2'
   spec.add_dependency 'activesupport',     '>= 5.2'
