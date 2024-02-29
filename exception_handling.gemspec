@@ -20,7 +20,6 @@ Gem::Specification.new do |spec|
     "allowed_push_host" => "https://rubygems.org"
   }
 
-  spec.add_dependency 'actionpack',        '>= 5.2'
   spec.add_dependency 'activesupport',     '>= 5.2'
   spec.add_dependency 'contextual_logger', '~> 1.0'
   spec.add_dependency 'escalate',          '~> 0.3'
