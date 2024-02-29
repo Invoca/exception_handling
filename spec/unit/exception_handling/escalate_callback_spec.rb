@@ -33,7 +33,7 @@ module ExceptionHandling
       context 'when already configured' do
         before do
           @original_logger = ExceptionHandling.logger
-          ExceptionHandling.logger = ::Logger.new('/dev/null')
+          ExceptionHandling.logger = ::Logger.new('/dev/null').extend(ContextualLogger::LoggerMixin)
         end
 
         after do
@@ -66,7 +66,7 @@ module ExceptionHandling
 
           expect(Escalate.on_escalate_callbacks).to be_empty
 
-          ExceptionHandling.logger = ::Logger.new('/dev/null')
+          ExceptionHandling.logger = ::Logger.new('/dev/null').extend(ContextualLogger::LoggerMixin)
           expect(Escalate.on_escalate_callbacks).to_not be_empty
 
           expect(logger).to_not receive(:error)

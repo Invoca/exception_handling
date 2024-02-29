@@ -136,16 +136,6 @@ describe ExceptionHandling do
         ExceptionHandling.logger = nil
       end
 
-      it "[deprecated] mixes in ContextualLogger::Mixin if not there" do
-        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
-        logger = Logger.new('/dev/null')
-        ancestors = logger.singleton_class.ancestors.*.name
-
-        ExceptionHandling.logger = logger
-        expect(ExceptionHandling.logger).to be_kind_of(ContextualLogger::LoggerMixin)
-        expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to_not eq(ancestors)
-      end
-
       context "#log_error" do
         it "takes in additional logging context hash and pass it to the logger" do
           ExceptionHandling.log_error('This is an Error', 'This is the prefix context', service_name: 'exception_handling')

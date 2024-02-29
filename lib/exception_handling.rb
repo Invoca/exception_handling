@@ -49,12 +49,9 @@ module ExceptionHandling # never included
     end
 
     def logger=(logger)
-      @logger = if logger.nil? || logger.is_a?(ContextualLogger::LoggerMixin)
-                  logger
-                else
-                  Deprecation3_0.deprecation_warning('implicit extend with ContextualLogger::LoggerMixin', 'extend your logger instance or include into your logger class first')
-                  logger.extend(ContextualLogger::LoggerMixin)
-                end
+      logger.nil? || logger.is_a?(ContextualLogger::LoggerMixin) or raise ArgumentError,
+                                                                          "The logger must be a ContextualLogger::LoggerMixin, not a #{logger.class}"
+      @logger = logger
       EscalateCallback.register_if_configured!
     end
 
