@@ -55,22 +55,17 @@ module ExceptionHandling # never included
       EscalateCallback.register_if_configured!
     end
 
-    def default_metric_name(exception_data, exception, treat_like_warning, include_prefix: true)
-      include_prefix and Deprecation3_0.deprecation_warning("the 'expection_handling.' prefix in ExceptionHandling::default_metric_name",
-                                                            "do not rely on metric names including the 'exception_handling.' prefix.")
-
-      metric_name = if exception_data['metric_name']
-                      exception_data['metric_name']
-                    elsif exception.is_a?(ExceptionHandling::Warning)
-                      "warning"
-                    elsif treat_like_warning
-                      exception_name = "_#{exception.class.name.split('::').last}" if exception.present?
-                      "unforwarded_exception#{exception_name}"
-                    else
-                      "exception"
-                    end
-
-      "#{'exception_handling.' if include_prefix}#{metric_name}"
+    def default_metric_name(exception_data, exception, treat_like_warning)
+      if exception_data['metric_name']
+        exception_data['metric_name']
+      elsif exception.is_a?(ExceptionHandling::Warning)
+        "warning"
+      elsif treat_like_warning
+        exception_name = "_#{exception.class.name.split('::').last}" if exception.present?
+        "unforwarded_exception#{exception_name}"
+      else
+        "exception"
+      end
     end
 
     def default_honeybadger_metric_name(honeybadger_status)
