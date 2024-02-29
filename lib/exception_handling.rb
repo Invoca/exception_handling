@@ -8,7 +8,7 @@ require 'contextual_logger'
 
 require 'invoca/utils'
 
-require 'exception_handling/methods'
+require 'exception_handling/logging_methods'
 require 'exception_handling/log_stub_error'
 require 'exception_handling/exception_description'
 require 'exception_handling/exception_catalog'

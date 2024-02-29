@@ -60,18 +60,5 @@ module ExceptionHandling
         "LoggingMethodsControllerStub"
       end
     end
-
-    class MethodsControllerStub < ControllerStubBase
-      include ExceptionHandling::Methods
-      set_long_controller_action_timeout 2
-
-      def simulate_around_filter(&block)
-        set_current_controller(&block)
-      end
-
-      def controller_name
-        "MethodsControllerStub"
-      end
-    end
   end
 end
