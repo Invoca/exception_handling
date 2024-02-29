@@ -8,7 +8,6 @@ require 'contextual_logger'
 
 require 'invoca/utils'
 
-require 'exception_handling/mailer'
 require 'exception_handling/sensu'
 require 'exception_handling/methods'
 require 'exception_handling/log_stub_error'
@@ -21,7 +20,6 @@ _ = ActiveSupport::HashWithIndifferentAccess
 
 module ExceptionHandling # never included
   class Warning < StandardError; end
-  class MailerTimeout < Timeout::Error; end
   class ClientLoggingError < StandardError; end
 
   SUMMARY_THRESHOLD = 5
@@ -38,19 +36,9 @@ module ExceptionHandling # never included
     # required settings
     #
     attr_writer :server_name
-    attr_writer :sender_address
-    attr_writer :exception_recipients
 
     def server_name
       @server_name or raise ArgumentError, "You must assign a value to #{name}.server_name"
-    end
-
-    def sender_address
-      @sender_address or raise ArgumentError, "You must assign a value to #{name}.sender_address"
-    end
-
-    def exception_recipients
-      @exception_recipients or raise ArgumentError, "You must assign a value to #{name}.exception_recipients"
     end
 
     def configured?
@@ -102,8 +90,7 @@ module ExceptionHandling # never included
     # optional settings
     #
     attr_accessor :production_support_recipients
-    attr_accessor :escalation_recipients
-    attr_accessor :email_environment
+    attr_accessor :environment
     attr_accessor :custom_data_hook
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
@@ -112,39 +99,12 @@ module ExceptionHandling # never included
     attr_accessor :sensu_prefix
 
     attr_reader :filter_list_filename
-    attr_reader :eventmachine_safe
-    attr_reader :eventmachine_synchrony
     attr_reader :honeybadger_auto_tagger
 
     @filter_list_filename = "./config/exception_filters.yml"
-    @email_environment = ""
-    @eventmachine_safe = false
-    @eventmachine_synchrony = false
     @sensu_host = "127.0.0.1"
     @sensu_port = 3030
     @sensu_prefix = ""
-
-    # set this for operation within an eventmachine reactor
-    def eventmachine_safe=(bool)
-      if bool != true && bool != false
-        raise ArgumentError, "#{name}.eventmachine_safe must be a boolean."
-      end
-
-      if bool
-        require 'eventmachine'
-        require 'em/protocols/smtpclient'
-      end
-      @eventmachine_safe = bool
-    end
-
-    # set this for EM::Synchrony async operation
-    def eventmachine_synchrony=(bool)
-      if bool != true && bool != false
-        raise ArgumentError, "#{name}.eventmachine_synchrony must be a boolean."
-      end
-
-      @eventmachine_synchrony = bool
-    end
 
     def filter_list_filename=(filename)
       @filter_list_filename = filename
@@ -361,34 +321,6 @@ module ExceptionHandling # never included
       nil
     end
 
-    def escalate_to_production_support(exception_or_string, email_subject)
-      production_support_recipients or raise ArgumentError, "In order to escalate to production support, you must set #{name}.production_recipients"
-      ex = make_exception(exception_or_string)
-      escalate(email_subject, ex, last_exception_timestamp, production_support_recipients)
-    end
-
-    def escalate_error(exception_or_string, email_subject, custom_recipients = nil, **log_context)
-      ex = make_exception(exception_or_string)
-      log_error(ex, **log_context)
-      escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
-    end
-
-    def escalate_warning(message, email_subject, custom_recipients = nil, **log_context)
-      ex = Warning.new(message)
-      log_error(ex, **log_context)
-      escalate(email_subject, ex, last_exception_timestamp, custom_recipients)
-    end
-
-    def ensure_escalation(email_subject, custom_recipients = nil, **log_context)
-      yield
-    rescue => ex
-      escalate_error(ex, email_subject, custom_recipients, **log_context)
-      nil
-    end
-
-    deprecate :escalate_to_production_support, :escalate_error, :escalate_warning, :ensure_escalation,
-      deprecator: ActiveSupport::Deprecation.new('3.0', 'ExceptionHandling')
-
     def alert_warning(exception_or_string, alert_name, exception_context, **log_context)
       ex = make_exception(exception_or_string)
       log_error(ex, exception_context, **log_context)
@@ -466,47 +398,6 @@ module ExceptionHandling # never included
       ex_message = encode_utf8(ex.message.to_s)
       ex_backtrace = ex.backtrace.each { |l| "#{l}\n" }
       log_info("Unable to execute custom log_error callback. #{ex_message} #{ex_backtrace}")
-    end
-
-    def escalate(email_subject, ex, timestamp, custom_recipients = nil)
-      exception_info = ExceptionInfo.new(ex, nil, timestamp)
-      deliver(ExceptionHandling::Mailer.escalation_notification(email_subject, exception_info.data, custom_recipients))
-    end
-
-    def deliver(mail_object)
-      if ExceptionHandling.eventmachine_safe
-        EventMachine.schedule do # in case we're running outside the reactor
-          async_send_method = ExceptionHandling.eventmachine_synchrony ? :asend : :send
-          smtp_settings = ActionMailer::Base.smtp_settings
-          dns_deferrable = EventMachine::DNS::Resolver.resolve(smtp_settings[:address])
-          dns_deferrable.callback do |addrs|
-            send_deferrable = EventMachine::Protocols::SmtpClient.__send__(
-              async_send_method,
-              host: addrs.first,
-              port: smtp_settings[:port],
-              domain: smtp_settings[:domain],
-              auth: { type: :plain, username: smtp_settings[:user_name], password: smtp_settings[:password] },
-              from: mail_object['from'].to_s,
-              to: mail_object['to'].to_s,
-              content: "#{mail_object}\r\n.\r\n"
-            )
-            send_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to email by SMTP: #{err.inspect}") }
-          end
-          dns_deferrable.errback { |err| ExceptionHandling.logger.fatal("Failed to resolv DNS for #{smtp_settings[:address]}: #{err.inspect}") }
-        end
-      else
-        safe_email_deliver do
-          mail_object.deliver_now
-        end
-      end
-    end
-
-    def safe_email_deliver
-      Timeout.timeout 30, MailerTimeout do
-        yield
-      end
-    rescue StandardError, MailerTimeout => ex
-      log_error(ex, "ExceptionHandling::safe_email_deliver", treat_like_warning: true)
     end
 
     def make_exception(exception_or_string)

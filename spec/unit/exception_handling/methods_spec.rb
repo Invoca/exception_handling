@@ -20,7 +20,6 @@ module ExceptionHandling
       end
 
       it "set the around filter" do
-        expect(Testing::MethodsControllerStub.around_filter_method).to eq(:set_current_controller)
         expect(ExceptionHandling.current_controller).to be_nil
         @controller.simulate_around_filter do
           expect(ExceptionHandling.current_controller).to eq(@controller)
@@ -73,32 +72,6 @@ module ExceptionHandling
         it "be available to the controller" do
           expect(@controller.methods.include?(:log_warning)).to eq(true)
         end
-      end
-
-      context  "included deprecation" do
-        before do
-          mock_deprecation_3_0
-        end
-
-        it "deprecate when no around_filter in included hook" do
-          k = Class.new
-          k.include ExceptionHandling::Methods
-        end
-
-        it "deprecate controller around_filter in included hook" do
-          controller = Class.new
-          class << controller
-            def around_filter(*)
-            end
-          end
-          controller.include ExceptionHandling::Methods
-        end
-      end
-
-      private
-
-      def mock_deprecation_3_0
-        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING: ExceptionHandling::Methods is deprecated and will be removed from exception_handling 3\.0/)
       end
     end
   end

@@ -9,7 +9,7 @@ module ExceptionHandling
 
     protected
 
-    delegate :log_error_rack, :log_warning, :log_info, :log_debug, :escalate_error, :escalate_warning, :ensure_escalation, :alert_warning, :log_error, to: ExceptionHandling
+    delegate :log_error_rack, :log_warning, :log_info, :log_debug, :alert_warning, :log_error, to: ExceptionHandling
 
     def ensure_safe(exception_context = "")
       yield

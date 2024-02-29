@@ -30,16 +30,11 @@ require "exception_handling"
 
 # required
 ExceptionHandling.server_name             = Cluster['server_name']
-ExceptionHandling.sender_address          = %("Exceptions" <exceptions@example.com>)
-ExceptionHandling.exception_recipients    = ['exceptions@example.com']
 ExceptionHandling.logger                  = Rails.logger
 
 # optional
-ExceptionHandling.escalation_recipients   = ['escalation@example.com']
 ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
-ExceptionHandling.email_environment       = Rails.env
-ExceptionHandling.eventmachine_safe       = false
-ExceptionHandling.eventmachine_synchrony  = false
+ExceptionHandling.environment             = Rails.env
 ExceptionHandling.sensu_host              = "127.0.0.1"
 ExceptionHandling.sensu_port              = 3030
 ExceptionHandling.sensu_prefix            = ""

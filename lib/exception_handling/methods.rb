@@ -24,7 +24,7 @@ module ExceptionHandling
       time = Benchmark.measure do
         result = yield
       end
-      if time.real > long_controller_action_timeout && !['development', 'test'].include?(ExceptionHandling.email_environment)
+      if time.real > long_controller_action_timeout && !['development', 'test'].include?(ExceptionHandling.environment)
         name = begin
                  " in #{controller_name}::#{action_name}"
                rescue
@@ -35,13 +35,6 @@ module ExceptionHandling
       result
     ensure
       ExceptionHandling.current_controller = nil
-    end
-
-    included do
-      Deprecation3_0.deprecation_warning('ExceptionHandling::Methods', 'include LoggingMethods; in controllers, set your own around_filter to set logging context')
-      if respond_to? :around_filter
-        around_filter :set_current_controller
-      end
     end
 
     class_methods do
