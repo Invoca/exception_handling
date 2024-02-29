@@ -124,6 +124,7 @@ module ExceptionHandling # never included
     @sensu_host = "127.0.0.1"
     @sensu_port = 3030
     @sensu_prefix = ""
+    @honeybadger_log_context_tags = {}
 
     # set this for operation within an eventmachine reactor
     def eventmachine_safe=(bool)
@@ -165,19 +166,18 @@ module ExceptionHandling # never included
     # rubocop:enable Style/TrivialAccessors
 
     # @param tag_name [String]
-    # @param path [Array]
+    # @param path [Array<String>]
     def add_honeybadger_tag_from_log_context(tag_name, path:)
       tag_name.is_a?(String) or raise ArgumentError, "tag_name must be a String, #{tag_name.inspect}"
-      path.is_a?(Array) or raise ArgumentError, "path must be an Array, #{path.inspect}"
-      @honeybadger_log_context_tags ||= {}
+      (path.is_a?(Array) && path.all? { _1.is_a?(String) }) or raise ArgumentError, "path must be an Array<String>, #{path.inspect}"
       if @honeybadger_log_context_tags.key?(tag_name)
-        log_warning("Overwriting existing tag path for '#{tag_name}' from #{@honeybadger_log_context_tags[tag_name]} to #{path}")
+        log_warning("Overwriting existing tag path for #{tag_name.inspect} from #{@honeybadger_log_context_tags[tag_name]} to #{path}")
       end
       @honeybadger_log_context_tags[tag_name] = path
     end
 
     def clear_honeybadger_tags_from_log_context
-      @honeybadger_log_context_tags = nil
+      @honeybadger_log_context_tags = {}
     end
 
     #

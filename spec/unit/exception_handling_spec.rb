@@ -107,7 +107,7 @@ describe ExceptionHandling do
   class SmtpClientErrbackStub < SmtpClientStub
   end
 
-  before(:each) do
+  before do
     # Reset this for every test since they are applied to the class
     ExceptionHandling.honeybadger_auto_tagger = nil
     ExceptionHandling.clear_honeybadger_tags_from_log_context
@@ -1325,6 +1325,14 @@ describe ExceptionHandling do
         end
       end
 
+      context "when path doesn't contain only strings" do
+        let(:path) { [:sample, :path] }
+
+        it "raises an argument error" do
+          expect { add_hb_tag }.to raise_error(ArgumentError, /path must be an Array<String>/)
+        end
+      end
+
       context "when tag_name is not a string" do
         let(:tag_name) { 1 }
 
@@ -1334,7 +1342,7 @@ describe ExceptionHandling do
       end
 
       context "when there already exists a tag with the same name" do
-        before(:each) do
+        before do
           ExceptionHandling.add_honeybadger_tag_from_log_context(tag_name, path: ["other", "path"])
         end
 
@@ -1344,7 +1352,7 @@ describe ExceptionHandling do
         end
 
         it "logs a warning" do
-          expect(ExceptionHandling.logger).to receive(:warn).with(/Overwriting existing tag path for 'sample-tag'/, **{})
+          expect(ExceptionHandling.logger).to receive(:warn).with(/Overwriting existing tag path for "sample-tag"/, **{})
           add_hb_tag
         end
       end
@@ -1352,7 +1360,7 @@ describe ExceptionHandling do
 
     describe "honey badger tags" do
       context "with log context tags" do
-        before(:each) do
+        before do
           ExceptionHandling.add_honeybadger_tag_from_log_context("kubernetes_context", path: ["kubernetes", "context"])
         end
 
@@ -1385,7 +1393,7 @@ describe ExceptionHandling do
       context "with all different honeybadger tagging" do
         subject(:log_error) { ExceptionHandling.log_error(StandardError.new("Error"), nil, honeybadger_tags: inline_tags) }
         let(:inline_tags) { ["inline-tag"] }
-        before(:each) do
+        before do
           ExceptionHandling.honeybadger_auto_tagger = ->(_exception) { ["auto-tag"] }
           ExceptionHandling.add_honeybadger_tag_from_log_context("log-context", path: ["inside", "context"])
         end
