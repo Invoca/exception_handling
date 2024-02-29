@@ -27,8 +27,6 @@ module ExceptionHandling # never included
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION', 'X-HTTP_AUTHORIZATION', 'X_HTTP_AUTHORIZATION', 'REDIRECT_X_HTTP_AUTHORIZATION'].freeze
   HONEYBADGER_STATUSES   = [:success, :failure, :skipped].freeze
 
-  Deprecation3_0 = ActiveSupport::Deprecation.new('3.0', 'exception_handling')
-
   class << self
 
     #

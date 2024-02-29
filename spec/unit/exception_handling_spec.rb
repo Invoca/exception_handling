@@ -131,9 +131,9 @@ describe ExceptionHandling do
         expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to eq(ancestors)
       end
 
-      it "allows logger = nil (no deprecation warning)" do
-        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING/).never
+      it "allows logger = nil" do
         ExceptionHandling.logger = nil
+        expect { ExceptionHandling.logger }.to raise_error(ArgumentError, "You must assign a value to ExceptionHandling.logger")
       end
 
       context "#log_error" do
