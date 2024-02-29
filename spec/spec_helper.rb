@@ -90,9 +90,6 @@ module TestHelper
     ExceptionHandling.environment           = 'not_test'
     ExceptionHandling.server_name           = 'server'
     ExceptionHandling.filter_list_filename    = "./config/exception_filters.yml"
-    ExceptionHandling.sensu_host              = "127.0.0.1"
-    ExceptionHandling.sensu_port              = 3030
-    ExceptionHandling.sensu_prefix            = ""
   end
 
   def teardown_constant_overrides

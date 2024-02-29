@@ -35,9 +35,6 @@ ExceptionHandling.logger                  = Rails.logger
 # optional
 ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
 ExceptionHandling.environment             = Rails.env
-ExceptionHandling.sensu_host              = "127.0.0.1"
-ExceptionHandling.sensu_port              = 3030
-ExceptionHandling.sensu_prefix            = ""
 ExceptionHandling.honeybadger_auto_tagger = ->(exception) { [] } # See "Automatically Tagging Exceptions" section below for examples
 ```
 

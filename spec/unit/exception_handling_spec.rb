@@ -512,32 +512,6 @@ describe ExceptionHandling do
         end
       end
 
-      context "ExceptionHandling.ensure_alert" do
-        it "log the exception as usual and fire a sensu event" do
-          expect(ExceptionHandling::Sensu).to receive(:generate_event).with("Favorite Feature", "test context\nblah")
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
-          ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError, "blah" }
-        end
-
-        it "should not send sensu event if an exception is not raised." do
-          expect(ExceptionHandling.logger).to_not receive(:fatal)
-          expect(ExceptionHandling::Sensu).to_not receive(:generate_event)
-          ExceptionHandling.ensure_alert('Ignored', 'test context') { ; }
-        end
-
-        it "log if the sensu event could not be sent" do
-          expect(ExceptionHandling::Sensu).to receive(:send_event).with(anything) { raise "Failed to send" }
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/first_test_exception/, any_args)
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to send/, any_args)
-          ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError, "first_test_exception" }
-        end
-
-        it "log if the exception message is nil" do
-          expect(ExceptionHandling::Sensu).to receive(:generate_event).with("some alert", "test context\n")
-          ExceptionHandling.ensure_alert('some alert', 'test context') { raise_exception_with_nil_message }
-        end
-      end
-
       context "exception timestamp" do
         before do
           Time.now_override = Time.parse('1986-5-21 4:17 am UTC')

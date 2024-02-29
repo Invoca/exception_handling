@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Invoca"]
   spec.email         = ["development@invoca.com"]
   spec.description   = 'Exception handling logger'
-  spec.summary       = "Invoca's exception handling logger layer, based on exception_notifier. Works with Rails or EventMachine or EventMachine+Synchrony."
+  spec.summary       = "Invoca's exception handling logger layer, based on exception_notifier."
   spec.homepage      = "https://github.com/Invoca/exception_handling"
 
   spec.files         = `git ls-files`.split("\n")

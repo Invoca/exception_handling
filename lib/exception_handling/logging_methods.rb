@@ -9,19 +9,13 @@ module ExceptionHandling
 
     protected
 
-    delegate :log_error_rack, :log_warning, :log_info, :log_debug, :alert_warning, :log_error, to: ExceptionHandling
+    delegate :log_error_rack, :log_warning, :log_info, :log_debug, :log_error, to: ExceptionHandling
 
     def ensure_safe(exception_context = "")
       yield
     rescue => ex
       log_error ex, exception_context
       nil
-    end
-
-    def ensure_alert(*args)
-      ExceptionHandling.ensure_alert(*args) do
-        yield
-      end
     end
   end
 end

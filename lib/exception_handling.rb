@@ -8,7 +8,6 @@ require 'contextual_logger'
 
 require 'invoca/utils'
 
-require 'exception_handling/sensu'
 require 'exception_handling/methods'
 require 'exception_handling/log_stub_error'
 require 'exception_handling/exception_description'
@@ -94,17 +93,11 @@ module ExceptionHandling # never included
     attr_accessor :custom_data_hook
     attr_accessor :post_log_error_hook
     attr_accessor :stub_handler
-    attr_accessor :sensu_host
-    attr_accessor :sensu_port
-    attr_accessor :sensu_prefix
 
     attr_reader :filter_list_filename
     attr_reader :honeybadger_auto_tagger
 
     @filter_list_filename = "./config/exception_filters.yml"
-    @sensu_host = "127.0.0.1"
-    @sensu_port = 3030
-    @sensu_prefix = ""
 
     def filter_list_filename=(filename)
       @filter_list_filename = filename
@@ -318,23 +311,6 @@ module ExceptionHandling # never included
       raise
     rescue Exception => ex
       log_error(ex, exception_context, **log_context)
-      nil
-    end
-
-    def alert_warning(exception_or_string, alert_name, exception_context, **log_context)
-      ex = make_exception(exception_or_string)
-      log_error(ex, exception_context, **log_context)
-      begin
-        ExceptionHandling::Sensu.generate_event(alert_name, exception_context.to_s + "\n" + encode_utf8(ex.message.to_s))
-      rescue => ex
-        log_error(ex, 'ExceptionHandling.alert_warning')
-      end
-    end
-
-    def ensure_alert(alert_name, exception_context, **log_context)
-      yield
-    rescue => ex
-      alert_warning(ex, alert_name, exception_context, **log_context)
       nil
     end
 
