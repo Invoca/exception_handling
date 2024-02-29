@@ -5,6 +5,7 @@ require 'timeout'
 require 'active_support'
 require 'active_support/core_ext'
 require 'contextual_logger'
+require 'yaml'
 
 require 'invoca/utils'
 
