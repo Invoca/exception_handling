@@ -68,15 +68,6 @@ module ExceptionHandling # never included
       end
     end
 
-    def default_honeybadger_metric_name(honeybadger_status)
-      metric_name = if honeybadger_status.in?(HONEYBADGER_STATUSES)
-                      honeybadger_status
-                    else
-                      :unknown_status
-                    end
-      "exception_handling.honeybadger.#{metric_name}"
-    end
-
     #
     # optional settings
     #
