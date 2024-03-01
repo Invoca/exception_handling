@@ -5,8 +5,8 @@ require File.expand_path('lib/exception_handling/version', __dir__)
 Gem::Specification.new do |spec|
   spec.authors       = ["Invoca"]
   spec.email         = ["development@invoca.com"]
-  spec.description   = 'Exception handling logger/emailer'
-  spec.summary       = "Invoca's exception handling logger/emailer layer, based on exception_notifier. Works with Rails or EventMachine or EventMachine+Synchrony."
+  spec.description   = 'Exception handling logger'
+  spec.summary       = "Invoca's exception handling logger layer, based on exception_notifier."
   spec.homepage      = "https://github.com/Invoca/exception_handling"
 
   spec.files         = `git ls-files`.split("\n")
@@ -15,18 +15,14 @@ Gem::Specification.new do |spec|
   spec.name          = "exception_handling"
   spec.require_paths = ["lib"]
   spec.version       = ExceptionHandling::VERSION
-  spec.metadata    = {
+  spec.metadata      = {
     "source_code_uri"   => "https://github.com/Invoca/exception_handling",
     "allowed_push_host" => "https://rubygems.org"
   }
 
-  spec.add_dependency 'actionmailer',      '>= 5.2'
-  spec.add_dependency 'actionpack',        '>= 5.2'
   spec.add_dependency 'activesupport',     '>= 5.2'
   spec.add_dependency 'contextual_logger', '~> 1.0'
   spec.add_dependency 'escalate',          '~> 0.3'
-  spec.add_dependency 'eventmachine',      '~> 1.0'
   spec.add_dependency 'invoca-utils',      '~> 0.3'
   spec.add_dependency 'psych',             '~> 3.0'
-  spec.add_dependency 'net-smtp'
 end

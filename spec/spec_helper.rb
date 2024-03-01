@@ -74,15 +74,11 @@ def dont_stub_log_error
   true
 end
 
-ActionMailer::Base.delivery_method = :test
-
-
 module TestHelper
   @constant_overrides = []
   class << self
     attr_accessor :constant_overrides
   end
-
 
   def setup_constant_overrides
     unless TestHelper.constant_overrides.nil? || TestHelper.constant_overrides.empty?
@@ -91,19 +87,9 @@ module TestHelper
 
     Time.now_override = nil
 
-    ActionMailer::Base.deliveries.clear
-
-    ExceptionHandling.email_environment     = 'Test'
-    ExceptionHandling.sender_address        = 'server@example.com'
-    ExceptionHandling.exception_recipients  = 'exceptions@example.com'
-    ExceptionHandling.escalation_recipients = 'escalation@example.com'
+    ExceptionHandling.environment           = 'not_test'
     ExceptionHandling.server_name           = 'server'
     ExceptionHandling.filter_list_filename    = "./config/exception_filters.yml"
-    ExceptionHandling.eventmachine_safe       = false
-    ExceptionHandling.eventmachine_synchrony  = false
-    ExceptionHandling.sensu_host              = "127.0.0.1"
-    ExceptionHandling.sensu_port              = 3030
-    ExceptionHandling.sensu_prefix            = ""
   end
 
   def teardown_constant_overrides
@@ -141,16 +127,6 @@ module TestHelper
     TestHelper.constant_overrides << [final_parent_module, final_const_name, original_value]
 
     silence_warnings { final_parent_module.const_set(final_const_name, value) }
-  end
-
-  def assert_emails(expected, message = nil)
-    if block_given?
-      original_count = ActionMailer::Base.deliveries.size
-      yield
-    else
-      original_count = 0
-    end
-    expect(ActionMailer::Base.deliveries.size - original_count).to eq(expected), "wrong number of emails#{': ' + message.to_s if message}"
   end
 end
 

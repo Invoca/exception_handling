@@ -131,19 +131,9 @@ describe ExceptionHandling do
         expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to eq(ancestors)
       end
 
-      it "allows logger = nil (no deprecation warning)" do
-        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING/).never
+      it "allows logger = nil" do
         ExceptionHandling.logger = nil
-      end
-
-      it "[deprecated] mixes in ContextualLogger::Mixin if not there" do
-        expect(STDERR).to receive(:puts).with(/DEPRECATION WARNING: implicit extend with ContextualLogger::LoggerMixin is deprecated and will be removed from exception_handling 3\.0/)
-        logger = Logger.new('/dev/null')
-        ancestors = logger.singleton_class.ancestors.*.name
-
-        ExceptionHandling.logger = logger
-        expect(ExceptionHandling.logger).to be_kind_of(ContextualLogger::LoggerMixin)
-        expect(ExceptionHandling.logger.singleton_class.ancestors.*.name).to_not eq(ancestors)
+        expect { ExceptionHandling.logger }.to raise_error(ArgumentError, "You must assign a value to ExceptionHandling.logger")
       end
 
       context "#log_error" do
@@ -316,115 +306,44 @@ describe ExceptionHandling do
 
     context "Exception Handling" do
       context "default_metric_name" do
-        context "with include_prefix true" do
-          it "logs a deprecation warning" do
-            expect { ExceptionHandling.default_metric_name({}, StandardError.new('this is an exception'), false) }
-              .to output(/DEPRECATION WARNING: the 'expection_handling\.' prefix in ExceptionHandling::default_metric_name is deprecated/).to_stderr
+        context "when metric_name is present in exception_data" do
+          it "include metric_name in resulting metric name" do
+            exception = StandardError.new('this is an exception')
+            metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true)
+            expect(metric).to eq('special_metric')
+          end
+        end
+
+        context "when metric_name is not present in exception_data" do
+          it "return exception_handling.warning when using log warning" do
+            warning = ExceptionHandling::Warning.new('this is a warning')
+            metric  = ExceptionHandling.default_metric_name({}, warning, false)
+            expect(metric).to eq('warning')
           end
 
-          context "when metric_name is present in exception_data" do
-            it "include metric_name in resulting metric name" do
-              exception = StandardError.new('this is an exception')
-              metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true, include_prefix: true)
-              expect(metric).to eq('exception_handling.special_metric')
-            end
+          it "return exception_handling.exception when using log error" do
+            exception = StandardError.new('this is an exception')
+            metric    = ExceptionHandling.default_metric_name({}, exception, false)
+            expect(metric).to eq('exception')
           end
 
-          context "when metric_name is not present in exception_data" do
-            it "return exception_handling.warning when using log warning" do
-              warning = ExceptionHandling::Warning.new('this is a warning')
-              metric  = ExceptionHandling.default_metric_name({}, warning, false, include_prefix: true)
-              expect(metric).to eq('exception_handling.warning')
+          context "when using log error with treat_like_warning" do
+            it "return exception_handling.unforwarded_exception when exception not present" do
+              metric = ExceptionHandling.default_metric_name({}, nil, true)
+              expect(metric).to eq('unforwarded_exception')
             end
 
-            it "return exception_handling.exception when using log error" do
-              exception = StandardError.new('this is an exception')
-              metric    = ExceptionHandling.default_metric_name({}, exception, false, include_prefix: true)
-              expect(metric).to eq('exception_handling.exception')
-            end
-
-            context "when using log error with treat_like_warning" do
-              it "return exception_handling.unforwarded_exception when exception not present" do
-                metric = ExceptionHandling.default_metric_name({}, nil, true, include_prefix: true)
-                expect(metric).to eq('exception_handling.unforwarded_exception')
-              end
-
-              it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
-                module SomeModule
-                  class SomeException < StandardError
-                  end
+            it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
+              module SomeModule
+                class SomeException < StandardError
                 end
-
-                exception = SomeModule::SomeException.new('this is an exception')
-                metric    = ExceptionHandling.default_metric_name({}, exception, true, include_prefix: true)
-                expect(metric).to eq('exception_handling.unforwarded_exception_SomeException')
-              end
-            end
-          end
-        end
-
-        context "with include_prefix false" do
-          context "when metric_name is present in exception_data" do
-            it "include metric_name in resulting metric name" do
-              exception = StandardError.new('this is an exception')
-              metric    = ExceptionHandling.default_metric_name({ 'metric_name' => 'special_metric' }, exception, true, include_prefix: false)
-              expect(metric).to eq('special_metric')
-            end
-          end
-
-          context "when metric_name is not present in exception_data" do
-            it "return exception_handling.warning when using log warning" do
-              warning = ExceptionHandling::Warning.new('this is a warning')
-              metric  = ExceptionHandling.default_metric_name({}, warning, false, include_prefix: false)
-              expect(metric).to eq('warning')
-            end
-
-            it "return exception_handling.exception when using log error" do
-              exception = StandardError.new('this is an exception')
-              metric    = ExceptionHandling.default_metric_name({}, exception, false, include_prefix: false)
-              expect(metric).to eq('exception')
-            end
-
-            context "when using log error with treat_like_warning" do
-              it "return exception_handling.unforwarded_exception when exception not present" do
-                metric = ExceptionHandling.default_metric_name({}, nil, true, include_prefix: false)
-                expect(metric).to eq('unforwarded_exception')
               end
 
-              it "return exception_handling.unforwarded_exception with exception classname when exception is present" do
-                module SomeModule
-                  class SomeException < StandardError
-                  end
-                end
-
-                exception = SomeModule::SomeException.new('this is an exception')
-                metric    = ExceptionHandling.default_metric_name({}, exception, true, include_prefix: false)
-                expect(metric).to eq('unforwarded_exception_SomeException')
-              end
+              exception = SomeModule::SomeException.new('this is an exception')
+              metric    = ExceptionHandling.default_metric_name({}, exception, true)
+              expect(metric).to eq('unforwarded_exception_SomeException')
             end
           end
-        end
-      end
-
-      context "default_honeybadger_metric_name" do
-        it "return exception_handling.honeybadger.success when status is :success" do
-          metric = ExceptionHandling.default_honeybadger_metric_name(:success)
-          expect(metric).to eq('exception_handling.honeybadger.success')
-        end
-
-        it "return exception_handling.honeybadger.failure when status is :failure" do
-          metric = ExceptionHandling.default_honeybadger_metric_name(:failure)
-          expect(metric).to eq('exception_handling.honeybadger.failure')
-        end
-
-        it "return exception_handling.honeybadger.skipped when status is :skipped" do
-          metric = ExceptionHandling.default_honeybadger_metric_name(:skipped)
-          expect(metric).to eq('exception_handling.honeybadger.skipped')
-        end
-
-        it "return exception_handling.honeybadger.unknown_status when status is not recognized" do
-          metric = ExceptionHandling.default_honeybadger_metric_name(nil)
-          expect(metric).to eq('exception_handling.honeybadger.unknown_status')
         end
       end
 
@@ -432,26 +351,6 @@ describe ExceptionHandling do
         it "log an exception with call stack if an exception is raised." do
           expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
           ExceptionHandling.ensure_safe { raise ArgumentError, "blah" }
-        end
-
-        if ActionView::VERSION::MAJOR >= 5
-          it "log an exception with call stack if an ActionView template exception is raised." do
-            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, any_args)
-            ExceptionHandling.ensure_safe do
-              begin
-                # Rails 5 made the switch from ActionView::TemplateError taking in the original exception
-                # as an argument to using the $! global to extract the original exception
-                raise ArgumentError, "blah"
-              rescue
-                raise ActionView::TemplateError.new({})
-              end
-            end
-          end
-        else
-          it "log an exception with call stack if an ActionView template exception is raised." do
-            expect(ExceptionHandling.logger).to receive(:fatal).with(/\(Error:\d+\) \nActionView::Template::Error: \(blah\):\n /, any_args)
-            ExceptionHandling.ensure_safe { raise ActionView::TemplateError.new({}, ArgumentError.new("blah")) }
-          end
         end
 
         it "should not log an exception if an exception is not raised." do
@@ -529,99 +428,6 @@ describe ExceptionHandling do
               end
             end.to raise_exception(exception)
           end
-        end
-      end
-
-      context "ExceptionHandling.ensure_escalation" do
-        before do
-          capture_notifications
-          ActionMailer::Base.deliveries.clear
-        end
-
-        it "log the exception as usual and send the proper email" do
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
-          ExceptionHandling.ensure_escalation("Favorite Feature") { raise ArgumentError, "blah" }
-          expect(ActionMailer::Base.deliveries.count).to eq(1)
-          expect(sent_notifications.size).to eq(1), sent_notifications.inspect
-
-          email = ActionMailer::Base.deliveries.last
-          expect(email.subject).to eq("#{ExceptionHandling.email_environment} Escalation: Favorite Feature")
-          expect(email.body.to_s).to match('ArgumentError: blah')
-          expect(email.body.to_s).to match(ExceptionHandling.last_exception_timestamp.to_s)
-        end
-
-        it "should not escalate if an exception is not raised." do
-          expect(ExceptionHandling.logger).to_not receive(:fatal)
-          ExceptionHandling.ensure_escalation('Ignored') { ; }
-          expect(ActionMailer::Base.deliveries.count).to eq(0)
-        end
-
-        it "log if the escalation email cannot be sent" do
-          expect_any_instance_of(Mail::Message).to receive(:deliver).and_raise(RuntimeError.new, "Delivery Error")
-          log_fatals = []
-          expect(ExceptionHandling.logger).to receive(:fatal).with(any_args).at_least(:once) do |*args|
-            log_fatals << args
-          end
-
-          ExceptionHandling.ensure_escalation("ensure context") { raise ArgumentError, "first_test_exception" }
-          expect(log_fatals[0].first).to match(/ArgumentError.*first_test_exception/)
-          expect(log_fatals[1].first).to match(/safe_email_deliver.*Delivery Error/m)
-
-          expect(log_fatals.size).to eq(2), log_fatals.inspect
-
-          expect(sent_notifications.size).to eq(1), sent_notifications.inspect # still sent to honeybadger
-        end
-
-        it "allow the caller to specify custom recipients" do
-          custom_recipients = ['something@invoca.com']
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
-          ExceptionHandling.ensure_escalation("Favorite Feature", custom_recipients) { raise ArgumentError, "blah" }
-          expect(ActionMailer::Base.deliveries.count).to eq(1)
-          expect(sent_notifications.size).to eq(1), sent_notifications.inspect
-
-          email = ActionMailer::Base.deliveries.last
-          expect(email.subject).to eq("#{ExceptionHandling.email_environment} Escalation: Favorite Feature")
-          expect(email.body.to_s).to match('ArgumentError: blah')
-          expect(email.body.to_s).to match(ExceptionHandling.last_exception_timestamp.to_s)
-          expect(email.to).to eq(custom_recipients)
-        end
-      end
-
-      context "ExceptionHandling.ensure_alert" do
-        it "log the exception as usual and fire a sensu event" do
-          expect(ExceptionHandling::Sensu).to receive(:generate_event).with("Favorite Feature", "test context\nblah")
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/\(blah\):\n.*exception_handling_spec\.rb/, any_args)
-          ExceptionHandling.ensure_alert('Favorite Feature', 'test context') { raise ArgumentError, "blah" }
-        end
-
-        it "should not send sensu event if an exception is not raised." do
-          expect(ExceptionHandling.logger).to_not receive(:fatal)
-          expect(ExceptionHandling::Sensu).to_not receive(:generate_event)
-          ExceptionHandling.ensure_alert('Ignored', 'test context') { ; }
-        end
-
-        it "log if the sensu event could not be sent" do
-          expect(ExceptionHandling::Sensu).to receive(:send_event).with(anything) { raise "Failed to send" }
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/first_test_exception/, any_args)
-          expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to send/, any_args)
-          ExceptionHandling.ensure_alert("Not Used", 'test context') { raise ArgumentError, "first_test_exception" }
-        end
-
-        it "log if the exception message is nil" do
-          expect(ExceptionHandling::Sensu).to receive(:generate_event).with("some alert", "test context\n")
-          ExceptionHandling.ensure_alert('some alert', 'test context') { raise_exception_with_nil_message }
-        end
-      end
-
-      context "ExceptionHandling.escalate_to_production_support" do
-        it "notify production support" do
-          subject = "Runtime Error found!"
-          exception = RuntimeError.new("Test")
-          recipients = ["prodsupport@example.com"]
-
-          expect(ExceptionHandling).to receive(:production_support_recipients).and_return(recipients).exactly(2)
-          expect(ExceptionHandling).to receive(:escalate).with(subject, exception, ExceptionHandling.last_exception_timestamp, recipients)
-          ExceptionHandling.escalate_to_production_support(exception, subject)
         end
       end
 
@@ -1053,88 +859,6 @@ describe ExceptionHandling do
         ExceptionHandling.filter_list_filename = "./config/other_exception_filters.yml"
         expect(ExceptionHandling.exception_catalog).to_not eq(catalog)
       end
-
-      context "Exception Handling Mailer" do
-        EXPECTED_SMTP_HASH =
-          {
-            host: '127.0.0.1',
-            domain: 'localhost.localdomain',
-            from: 'server@example.com',
-            to: 'escalation@example.com'
-          }.freeze
-
-        [[true, false], [true, true]].each do |em_flag, synchrony_flag|
-          context "eventmachine_safe = #{em_flag} && eventmachine_synchrony = #{synchrony_flag}" do
-            before do
-              ExceptionHandling.eventmachine_safe       = em_flag
-              ExceptionHandling.eventmachine_synchrony  = synchrony_flag
-              EventMachineStub.block = nil
-              set_test_const('EventMachine', EventMachineStub)
-              set_test_const('EventMachine::Protocols', Module.new)
-              set_test_const('EventMachine::DNS', Module.new)
-              set_test_const('EventMachine::DNS::Resolver', DNSResolvStub)
-            end
-
-            after do
-              ExceptionHandling.eventmachine_safe       = false
-              ExceptionHandling.eventmachine_synchrony  = false
-            end
-
-            it "schedule EventMachine STMP when EventMachine defined" do
-              ActionMailer::Base.deliveries.clear
-
-              set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
-
-              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              expect(EventMachineStub.block).to be_truthy
-              EventMachineStub.block.call
-              expect(DNSResolvStub.callback_block).to be_truthy
-              DNSResolvStub.callback_block.call ['127.0.0.1']
-              expect((SmtpClientStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }) .to eq(EXPECTED_SMTP_HASH), SmtpClientStub.send_hash.inspect
-              expect(SmtpClientStub.last_method).to eq((synchrony_flag ? :asend : :send))
-              expect(SmtpClientStub.send_hash[:content]).to match(/Exception to escalate/)
-              assert_emails 0, ActionMailer::Base.deliveries.*.to_s
-            end
-
-            it "pass the content as a proper rfc 2822 message" do
-              set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientStub)
-              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              expect(EventMachineStub.block).to be_truthy
-              EventMachineStub.block.call
-              expect(DNSResolvStub.callback_block).to be_truthy
-              DNSResolvStub.callback_block.call ['127.0.0.1']
-              expect(content = SmtpClientStub.send_hash[:content]).to be_truthy
-              expect(content).to match(/Content-Transfer-Encoding: 7bit/)
-              expect(content).to match(/\r\n\.\r\n\z/)
-            end
-
-            it "log fatal on EventMachine STMP errback" do
-              ActionMailer::Base.deliveries.clear
-
-              set_test_const('EventMachine::Protocols::SmtpClient', SmtpClientErrbackStub)
-              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, any_args)
-              expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to email by SMTP: "credential mismatch"/)
-
-              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              expect(EventMachineStub.block).to be_truthy
-              EventMachineStub.block.call
-              expect(DNSResolvStub.callback_block).to be_truthy
-              DNSResolvStub.callback_block.call(['127.0.0.1'])
-              SmtpClientErrbackStub.block.call("credential mismatch")
-              expect((SmtpClientErrbackStub.send_hash & EXPECTED_SMTP_HASH.keys).map_hash { |_k, v| v.to_s }).to eq(EXPECTED_SMTP_HASH), SmtpClientErrbackStub.send_hash.inspect            end
-
-            it "log fatal on EventMachine dns resolver errback" do
-              expect(ExceptionHandling.logger).to receive(:fatal).with(/Exception to escalate/, any_args)
-              expect(ExceptionHandling.logger).to receive(:fatal).with(/Failed to resolv DNS for localhost: "softlayer sucks"/)
-
-              ExceptionHandling.ensure_escalation("ensure message") { raise 'Exception to escalate!' }
-              expect(EventMachineStub.block).to be_truthy
-              EventMachineStub.block.call
-              DNSResolvStub.errback_block.call("softlayer sucks")
-            end
-          end
-        end
-      end
     end
 
     context "Exception mapping" do
@@ -1307,28 +1031,6 @@ describe ExceptionHandling do
     end
   end
 
-  context "ExceptionHandling < 3.0 " do
-    it "should return a deprecation warning" do
-      ExceptionHandling.production_support_recipients = "prodsupport@example.com"
-      expect { ExceptionHandling.escalate_to_production_support("blah", "invoca@example.com") }
-        .to output(/DEPRECATION WARNING: escalate_to_production_support is deprecated and will be removed from ExceptionHandling 3.0/).to_stderr
-    end
-
-    it "should return a deprecation warning" do
-      expect { ExceptionHandling.escalate_error("blah", "invoca@example.com") }
-        .to output(/DEPRECATION WARNING: escalate_error is deprecated and will be removed from ExceptionHandling 3.0/).to_stderr
-    end
-
-    it "should return a deprecation warning" do
-      expect { ExceptionHandling.escalate_warning("blah", "invoca@example.com") }
-        .to output(/DEPRECATION WARNING: escalate_warning is deprecated and will be removed from ExceptionHandling 3.0/).to_stderr
-    end
-
-    it "should return a deprecation warning" do
-      expect { ExceptionHandling.ensure_escalation("blah", "invoca@example.com") }
-        .to output(/DEPRECATION WARNING: ensure_escalation is deprecated and will be removed from ExceptionHandling 3.0/).to_stderr
-    end
-  end
 
   private
 
