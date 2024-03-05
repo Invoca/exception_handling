@@ -28,6 +28,8 @@ module ExceptionHandling # never included
   AUTHENTICATION_HEADERS = ['HTTP_AUTHORIZATION', 'X-HTTP_AUTHORIZATION', 'X_HTTP_AUTHORIZATION', 'REDIRECT_X_HTTP_AUTHORIZATION'].freeze
   HONEYBADGER_STATUSES   = [:success, :failure, :skipped].freeze
 
+  @honeybadger_log_context_tags = {}
+
   class << self
 
     #
@@ -81,7 +83,6 @@ module ExceptionHandling # never included
     attr_reader :honeybadger_log_context_tags
 
     @filter_list_filename = "./config/exception_filters.yml"
-    @honeybadger_log_context_tags = {}
 
     def filter_list_filename=(filename)
       @filter_list_filename = filename
