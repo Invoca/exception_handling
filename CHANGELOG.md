@@ -4,18 +4,27 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.17.0] - Unreleased
+## [3.1.0] - Unreleased
 ### Added
 - Add interface for tagging exceptions sent to honeybadger with values from the log context.
   - `ExceptionHandling.add_honeybadger_tag_from_log_context`
-- Added Ruby 3.2 and 3.3 to the CI test matrix
 
 ### Changed
 - Require ruby version 2.7 or greater
 
-### Removed
-- Removed Ruby versions 2.5 and 2.6 from the CI test matrix.
+## [3.0.0] - 2024-03-01
+### Added
+- Added explicit testing and support for Ruby 3.2 and 3.3
 
+### Changed
+- Changed `ExceptionHandling.email_environment` configuration to `ExceptionHandling.environment`
+
+### Removed
+- Removed explicit testing of Rails 5
+- Removed all emailing logic from the gem
+- Removed all sensu alerting logic from the gem
+- Removed `Methods` module
+- Removed functionality from `ExceptionHandling.logger=` will implicitly extend the logger with `ContextualLogger::LoggerMixin`
 
 ## [2.16.0] - 2023-05-01
 ### Added
