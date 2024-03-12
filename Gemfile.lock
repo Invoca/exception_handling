@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    exception_handling (3.1.0.pre.3)
+    exception_handling (3.1.0)
       activesupport (>= 5.2)
       contextual_logger (~> 1.0)
       escalate (~> 0.3)

@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0] - Unreleased
+## [3.1.0] - 2024-03-12
 ### Added
 - Add interface for tagging exceptions sent to honeybadger with values from the log context.
   - `ExceptionHandling.add_honeybadger_tag_from_log_context`
