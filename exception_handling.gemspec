@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
     "source_code_uri"   => "https://github.com/Invoca/exception_handling",
     "allowed_push_host" => "https://rubygems.org"
   }
+  spec.required_ruby_version = '>= 2.7'
 
   spec.add_dependency 'activesupport',     '>= 5.2'
   spec.add_dependency 'contextual_logger', '~> 1.0'

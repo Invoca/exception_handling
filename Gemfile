@@ -6,6 +6,7 @@ gemspec
 
 gem 'activesupport'
 gem 'appraisal', '~> 2.2'
+gem 'gem-release'
 gem 'honeybadger', '~> 4.11'
 gem 'pry'
 gem 'pry-byebug'

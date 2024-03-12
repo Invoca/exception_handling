@@ -36,6 +36,7 @@ ExceptionHandling.logger                  = Rails.logger
 ExceptionHandling.filter_list_filename    = "#{Rails.root}/config/exception_filters.yml"
 ExceptionHandling.environment             = Rails.env
 ExceptionHandling.honeybadger_auto_tagger = ->(exception) { [] } # See "Automatically Tagging Exceptions" section below for examples
+ExceptionHandling.add_honeybadger_tag_from_log_context("tag-name", path: ["path", "in", "log", "context"])
 ```
 
 ## Usage
@@ -72,7 +73,7 @@ log_error(ex, "A specific error occurred.", honeybadger_tags: ["critical", "sequ
 
 **Note**: Manual tags will be merged with any automatic tags.
 
-#### Automatically Tagging Exceptions (`honeybadger_auto_tagger=`)
+#### Automatically Tagging Exceptions via Proc (`honeybadger_auto_tagger=`)
 
 Configure exception handling so that you can automatically apply multiple tags to exceptions sent to honeybadger.
 
@@ -88,6 +89,34 @@ end
 Example to disable auto-tagging:
 ```ruby
 ExceptionHandling.honeybadger_auto_tagger = nil
+```
+
+#### Automatically Tagging Exceptions from Log Context (`add_honeybadger_tag_from_log_context`)
+
+Add a tag to exceptions sent to honeybadger based on a value in the log context.
+
+To configure this, use the `add_honeybadger_tag_from_log_context` method.
+```ruby
+ExceptionHandling.add_honeybadger_tag_from_log_context("kubernetes_context", path: ["kubernetes", "context"])
+```
+
+This will add a tag to the exception if the log context contains a value at the specified path: "kubernetes" => { "context" => "value" }.
+
+For example:
+```ruby
+ExceptionHandling.logger.with_context("kubernetes" => { "context" => "local" }) do
+  log_error(ex, "A specific error occurred.")
+end
+```
+
+This will add the following tag to the exception sent to honeybadger:
+```
+kubernetes_context:local
+```
+
+To clear all automated tagging from the log context, use the `clear_honeybadger_tags_from_log_context` method.
+```ruby
+ExceptionHandling.clear_honeybadger_tags_from_log_context
 ```
 
 ## Custom Hooks

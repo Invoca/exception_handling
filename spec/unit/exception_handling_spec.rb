@@ -107,9 +107,10 @@ describe ExceptionHandling do
   class SmtpClientErrbackStub < SmtpClientStub
   end
 
-  before(:each) do
+  before do
     # Reset this for every test since they are applied to the class
     ExceptionHandling.honeybadger_auto_tagger = nil
+    ExceptionHandling.clear_honeybadger_tags_from_log_context
   end
 
   context "with warn and honeybadger notify stubbed" do
@@ -1027,6 +1028,117 @@ describe ExceptionHandling do
         expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "some-other-tag" }))
         expect(ExceptionHandling).to receive(:log_info).with(/Unable to execute honeybadger_auto_tags callback. boom/)
         ExceptionHandling.log_error(exception, nil, honeybadger_tags: ["some-other-tag"])
+      end
+    end
+
+    describe "#add_honeybadger_tag_from_log_context" do
+      subject(:add_hb_tag) { ExceptionHandling.add_honeybadger_tag_from_log_context(tag_name, path: path) }
+      let(:tag_name) { "sample-tag" }
+      let(:path) { ["sample", "path"] }
+
+      it "sets the honeybadger log context tags to the tag name and path" do
+        add_hb_tag
+        expect(ExceptionHandling.honeybadger_log_context_tags).to include("sample-tag" => ["sample", "path"])
+      end
+
+      context "when path is not an array" do
+        let(:path) { "not an array" }
+
+        it "raises an argument error" do
+          expect { add_hb_tag }.to raise_error(ArgumentError, /path must be an Array/)
+        end
+      end
+
+      context "when path doesn't contain only strings" do
+        let(:path) { [:sample, :path] }
+
+        it "raises an argument error" do
+          expect { add_hb_tag }.to raise_error(ArgumentError, /path must be an Array<String>/)
+        end
+      end
+
+      context "when tag_name is not a string" do
+        let(:tag_name) { 1 }
+
+        it "raises an argument error" do
+          expect { add_hb_tag }.to raise_error(ArgumentError, /tag_name must be a String/)
+        end
+      end
+
+      context "when there already exists a tag with the same name" do
+        before do
+          ExceptionHandling.add_honeybadger_tag_from_log_context(tag_name, path: ["other", "path"])
+        end
+
+        it "overwrites the existing tag to the new one" do
+          add_hb_tag
+          expect(ExceptionHandling.honeybadger_log_context_tags).to include("sample-tag" => ["sample", "path"])
+        end
+
+        it "logs a warning" do
+          expect(ExceptionHandling.logger).to receive(:warn).with(/Overwriting existing tag path for "sample-tag"/, **{})
+          add_hb_tag
+        end
+      end
+    end
+
+    describe "honey badger tags" do
+      context "with log context tags" do
+        before do
+          ExceptionHandling.add_honeybadger_tag_from_log_context("kubernetes_context", path: ["kubernetes", "context"])
+        end
+
+        context "when error is logged within a log context that matches the path" do
+          it "notifies honeybadger with the tags from the log context" do
+            ExceptionHandling.logger.with_context("kubernetes" => { "context" => "local" }) do
+              expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "kubernetes_context--local" }))
+              ExceptionHandling.log_error(StandardError.new("Error"), nil)
+            end
+          end
+        end
+
+        context "when error is logged within a log context that doesn't match the path" do
+          it "does not specify any tags in the honeybadger notify" do
+            ExceptionHandling.logger.with_context("kubernetes" => { "pod" => "frontend-abc" }) do
+              expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "" }))
+              ExceptionHandling.log_error(StandardError.new("Error"), nil)
+            end
+          end
+        end
+
+        context "when error is logged outside of a log context block" do
+          it "does not specify any tags in the honeybadger notify" do
+            expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "" }))
+            ExceptionHandling.log_error(StandardError.new("Error"), nil)
+          end
+        end
+      end
+
+      context "with all different honeybadger tagging" do
+        subject(:log_error) { ExceptionHandling.log_error(StandardError.new("Error"), nil, honeybadger_tags: inline_tags) }
+        let(:inline_tags) { ["inline-tag"] }
+        before do
+          ExceptionHandling.honeybadger_auto_tagger = ->(_exception) { ["auto-tag"] }
+          ExceptionHandling.add_honeybadger_tag_from_log_context("log-context", path: ["inside", "context"])
+        end
+
+        it "combines all the tags from different sources" do
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "auto-tag inline-tag log-context--tag" }))
+          ExceptionHandling.logger.with_context("inside" => { "context" => "tag" }) do
+            log_error
+          end
+        end
+
+        context "when there are duplicate tags" do
+          let(:inline_tags) { ["auto-tag"] }
+
+          it "notifies honeybadger with the set of tags" do
+            expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "auto-tag log-context--tag" }))
+            ExceptionHandling.logger.with_context("inside" => { "context" => "tag" }) do
+              log_error
+            end
+          end
+        end
       end
     end
   end
