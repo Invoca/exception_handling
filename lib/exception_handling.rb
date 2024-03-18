@@ -379,7 +379,7 @@ module ExceptionHandling # never included
       if @honeybadger_log_context_tags
         @honeybadger_log_context_tags.map do |tag_name, tag_path|
           if (value_from_log_context = honeybadger_context_data.dig(:log_context, *tag_path))
-            "#{tag_name}--#{value_from_log_context}"
+            "#{tag_name}:#{value_from_log_context}"
           end
         end.compact
       else

@@ -1091,7 +1091,7 @@ describe ExceptionHandling do
         context "when error is logged within a log context that matches the path" do
           it "notifies honeybadger with the tags from the log context" do
             ExceptionHandling.logger.with_context("kubernetes" => { "context" => "local" }) do
-              expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "kubernetes_context--local" }))
+              expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "kubernetes_context:local" }))
               ExceptionHandling.log_error(StandardError.new("Error"), nil)
             end
           end
@@ -1123,7 +1123,7 @@ describe ExceptionHandling do
         end
 
         it "combines all the tags from different sources" do
-          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "auto-tag inline-tag log-context--tag" }))
+          expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "auto-tag inline-tag log-context:tag" }))
           ExceptionHandling.logger.with_context("inside" => { "context" => "tag" }) do
             log_error
           end
@@ -1133,7 +1133,7 @@ describe ExceptionHandling do
           let(:inline_tags) { ["auto-tag"] }
 
           it "notifies honeybadger with the set of tags" do
-            expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "auto-tag log-context--tag" }))
+            expect(Honeybadger).to receive(:notify).with(hash_including({ tags: "auto-tag log-context:tag" }))
             ExceptionHandling.logger.with_context("inside" => { "context" => "tag" }) do
               log_error
             end
