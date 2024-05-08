@@ -1,0 +1,26 @@
+version: 2
+updates:
+- package-ecosystem: bundler
+  directory: "/"
+  registries: "*"
+  schedule:
+    interval: weekly
+    day: monday
+    time: "08:00"
+    timezone: PST8PDT
+  open-pull-requests-limit: 10
+  versioning-strategy: auto
+  commit-message:
+    prefix: non-production
+    include: scope
+  groups:
+    minor-patch-versions: # Group together minor / patch updates.
+      applies-to: "version-updates"
+      update-types:
+      - "minor"
+      - "patch"
+    minor-patch-security:
+        applies-to: "security-updates"
+        update-types:
+        - "minor"
+        - "patch"

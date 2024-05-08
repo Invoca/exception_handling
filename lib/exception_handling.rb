@@ -192,7 +192,7 @@ module ExceptionHandling # never included
     # Write an exception out to the log file using our own custom format.
     #
     def write_exception_to_log(ex, exception_context, timestamp, log_context = {})
-      ActiveSupport::Deprecation.silence do
+      with_deprecations_silenced do
         log_message = "#{exception_context}\n#{ex.class}: (#{encode_utf8(ex.message.to_s)}):\n  " + clean_backtrace(ex).join("\n  ") + "\n\n"
 
         if ex.is_a?(Warning)
@@ -351,6 +351,14 @@ module ExceptionHandling # never included
     end
 
     private
+
+    def with_deprecations_silenced(&block)
+      if ActiveSupport.version >= Gem::Version.new('7.1.0')
+        ActiveSupport.deprecator.silence(&block)
+      else
+        ActiveSupport::Deprecation.silence(&block)
+      end
+    end
 
     # @param exception_info [ExceptionInfo]
     #

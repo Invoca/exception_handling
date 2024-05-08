@@ -4,6 +4,10 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] - Unreleased
+### Fixed
+- Fixed deprecation warnings that were coming from usage of `silence` when using this gem with Rails 7.1
+
 ## [3.1.1] - 2024-03-19
 ### Changed
 - Changed how the `honeybadger_tag_from_log_context` to now combine the tag name with the value using a colon `:` instead of two hyphens `--`.
