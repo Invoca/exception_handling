@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.2] - Unreleased
+## [3.1.2] - 2024-05-08
 ### Fixed
 - Fixed deprecation warnings that were coming from usage of `silence` when using this gem with Rails 7.1
 
