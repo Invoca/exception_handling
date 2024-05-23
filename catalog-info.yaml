@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: exception_handling
+  annotations:
+    github.com/project-slug: Invoca/exception_handling
+spec:
+  type: other
+  lifecycle: unknown
+  owner: octothorpe
