@@ -5,6 +5,7 @@ metadata:
   title: ExceptionHandling gem
   annotations:
     github.com/project-slug: Invoca/exception_handling
+    endoflife.date/products: ruby@3.3
   tags:
   - ruby
   - open-source
