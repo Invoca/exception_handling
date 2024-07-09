@@ -33,3 +33,4 @@ spec:
   dependsOn:
   - component:escalate-gem
   - component:invoca-utils-gem
+  - component:contextual_logger-gem
