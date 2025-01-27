@@ -25,6 +25,8 @@ metadata:
   - ruby
   - open-source
   - gem
+  - public
+  - rails-dependent
   description: Exception handling logger
 spec:
   type: library
