@@ -110,9 +110,12 @@ PLATFORMS
 DEPENDENCIES
   activesupport
   appraisal (~> 2.2)
+  base64 (~> 0.2.0)
+  bigdecimal (~> 3.1)
   exception_handling!
   gem-release
   honeybadger (~> 4.11)
+  mutex_m (~> 0.2.0)
   pry
   pry-byebug
   rake
