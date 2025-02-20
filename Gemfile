@@ -5,7 +5,8 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'activesupport'
-gem 'appraisal', '~> 2.2'
+gem 'appraisal'
+gem 'appraisal-matrix'
 gem 'gem-release'
 gem 'honeybadger', '~> 4.11'
 gem 'pry'
