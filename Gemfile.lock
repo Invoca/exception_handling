@@ -38,6 +38,7 @@ GEM
       activesupport
       json
     diff-lcs (1.5.1)
+    docile (1.4.1)
     drb (2.2.1)
     escalate (0.3.0)
     gem-release (2.2.2)
@@ -98,6 +99,13 @@ GEM
     rubocop-ast (1.31.3)
       parser (>= 3.3.1.0)
     ruby-progressbar (1.13.0)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+    simplecov-html (0.13.2)
+    simplecov-lcov (0.9.0)
+    simplecov_json_formatter (0.1.4)
     stringio (3.1.0)
     test-unit (3.6.2)
       power_assert
@@ -126,6 +134,8 @@ DEPENDENCIES
   rspec
   rspec_junit_formatter
   rubocop
+  simplecov (~> 0.22)
+  simplecov-lcov (~> 0.8)
   test-unit
 
 BUNDLED WITH
