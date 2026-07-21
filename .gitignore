@@ -4,3 +4,4 @@
 spec/reports/*
 gemfiles/*.lock
 pkg/
+coverage/

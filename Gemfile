@@ -15,6 +15,8 @@ gem 'rake'
 gem 'rspec'
 gem 'rspec_junit_formatter'
 gem 'rubocop'
+gem 'simplecov', '~> 0.22'
+gem 'simplecov-lcov', '~> 0.8'
 gem 'test-unit'
 
 

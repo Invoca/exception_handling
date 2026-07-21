@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "simplecov_helper"
+
 require 'rspec'
 require 'rspec/mocks'
 require 'rspec_junit_formatter'
