@@ -211,6 +211,9 @@ module ExceptionHandling # never included
       if honeybadger_defined?
         results[:honeybadger_status] = send_exception_to_honeybadger_unless_filtered(exception_info)
       end
+      if sentry_defined?
+        results[:sentry_status] = send_exception_to_sentry_unless_filtered(exception_info)
+      end
       results
     end
 
@@ -249,11 +252,43 @@ module ExceptionHandling # never included
       :failure
     end
 
+    # Returns :success or :failure or :skipped
+    def send_exception_to_sentry_unless_filtered(exception_info)
+      if exception_info.send_to_sentry?
+        send_exception_to_sentry(exception_info)
+      else
+        log_info("Filtered exception using '#{exception_info.exception_description.filter_name}'; not sending notification to Sentry")
+        :skipped
+      end
+    end
+
+    #
+    # Log exception to Sentry.
+    #
+    # Returns :success or :failure
+    #
+    def send_exception_to_sentry(exception_info)
+      exception = exception_info.exception
+      response = Sentry.capture_exception(exception)
+      response ? :success : :failure
+    rescue Exception => ex
+      warn("ExceptionHandling.send_exception_to_sentry rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
+      write_exception_to_log(ex, "ExceptionHandling.send_exception_to_sentry rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
+      :failure
+    end
+
     #
     # Check if Honeybadger defined.
     #
     def honeybadger_defined?
       Object.const_defined?("Honeybadger")
+    end
+
+    #
+    # Check if Sentry defined.
+    #
+    def sentry_defined?
+      Object.const_defined?("Sentry")
     end
 
     #
