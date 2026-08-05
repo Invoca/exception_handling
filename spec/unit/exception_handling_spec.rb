@@ -781,6 +781,29 @@ describe ExceptionHandling do
             ExceptionHandling.log_error(exception_1)
           end
 
+          it "passes context, tags, and filter fingerprint to Sentry via the scope" do
+            scope = double("Sentry::Scope")
+            expect(scope).to receive(:set_context).with("exception_handling", hash_including(:error_class, :timestamp, :server, :backtrace))
+            expect(scope).to receive(:set_tags).with(hash_including("critical" => true, "team" => "platform"))
+            expect(scope).to receive(:set_fingerprint).with(["Test Exception"])
+            expect(scope).to receive(:set_context).with("controller", { name: "some_controller" })
+
+            expect(Sentry).to receive(:capture_exception).with(instance_of(StandardError)).and_yield(scope).and_return(Object.new)
+
+            env = { server: "fe98" }
+            parameters = { advertiser_id: 435, controller: "some_controller" }
+            session = { username: "jsmith" }
+            controller = create_dummy_controller(env, parameters, session, "host/path")
+            allow(ExceptionHandling).to receive(:server_name).and_return("invoca_fe98")
+
+            ExceptionHandling.log_error(
+              StandardError.new("Some Exception"),
+              { "SERVER_NAME" => "exceptional.com" },
+              controller,
+              honeybadger_tags: ["critical", "team:platform"]
+            )
+          end
+
           it "also notify Honeybadger when both are available" do
             expect(Honeybadger).to receive(:notify).with(any_args).and_return("hb-id")
             expect(Sentry).to receive(:capture_exception).with(exception_1).and_return(Object.new)

@@ -56,6 +56,8 @@ end
 ExceptionHandling.enable_sentry
 ```
 
+When enabled, ExceptionHandling sends the same contextual sections it builds for Honeybadger (request/session/environment/log context, etc.), maps tags into Sentry tag key/values, sets controller context when present, and fingerprints matched filters by `filter_name` so grouping stays aligned across services.
+
 Matched exception filters in `exception_filters.yml` control delivery:
 
 - `send_to_honeybadger: true` — send to Honeybadger (and also to Sentry during migration, when Sentry is enabled)

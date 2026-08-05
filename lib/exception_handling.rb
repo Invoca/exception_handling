@@ -268,8 +268,16 @@ module ExceptionHandling # never included
     # Returns :success or :failure
     #
     def send_exception_to_sentry(exception_info)
-      exception = exception_info.exception
-      response = Sentry.capture_exception(exception)
+      exception             = exception_info.exception
+      exception_description = exception_info.exception_description
+
+      response = Sentry.capture_exception(exception) do |scope|
+        tags = tags_hash_for_sentry(exception_info)
+        scope.set_tags(tags) if tags.any?
+        scope.set_context("exception_handling", exception_info.honeybadger_context_data)
+        scope.set_context("controller", { name: exception_info.controller_name }) if exception_info.controller_name.present?
+        scope.set_fingerprint([exception_description.filter_name.to_s]) if exception_description
+      end
       response ? :success : :failure
     rescue Exception => ex
       warn("ExceptionHandling.send_exception_to_sentry rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
@@ -413,6 +421,24 @@ module ExceptionHandling # never included
         exception_info.honeybadger_tags +
         honeybadger_tags_from_log_context(exception_info.honeybadger_context_data)
       ).uniq
+    end
+
+    # Convert Honeybadger-style tag strings into a Sentry tags hash.
+    # Tags containing ":" are split into key/value; others become key => true.
+    #
+    # @param exception_info [ExceptionInfo]
+    # @return [Hash{String => String, TrueClass}]
+    def tags_hash_for_sentry(exception_info)
+      tags_for_honeybadger(exception_info).each_with_object({}) do |tag, hash|
+        tag = tag.to_s.strip
+        next if tag.empty?
+
+        if (separator_index = tag.index(":"))
+          hash[tag[0...separator_index]] = tag[(separator_index + 1)..]
+        else
+          hash[tag] = true
+        end
+      end
     end
 
     # @param exception [Exception]
