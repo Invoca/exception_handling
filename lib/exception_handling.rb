@@ -211,7 +211,7 @@ module ExceptionHandling # never included
       if honeybadger_defined?
         results[:honeybadger_status] = send_exception_to_honeybadger_unless_filtered(exception_info)
       end
-      if sentry_defined?
+      if sentry_enabled?
         results[:sentry_status] = send_exception_to_sentry_unless_filtered(exception_info)
       end
       results
@@ -285,10 +285,19 @@ module ExceptionHandling # never included
     end
 
     #
-    # Check if Sentry defined.
+    # Whether ExceptionHandling should notify Sentry. Off by default; call enable_sentry after Sentry.init.
     #
-    def sentry_defined?
-      Object.const_defined?("Sentry")
+    def sentry_enabled?
+      !!@sentry_enabled
+    end
+
+    #
+    # Opt in to Sentry notifications. Requires the Sentry constant and a prior Sentry.init.
+    #
+    def enable_sentry
+      Object.const_defined?("Sentry") or raise ArgumentError, "Sentry is not defined"
+      Sentry.initialized? or raise ArgumentError, "Sentry is not initialized"
+      @sentry_enabled = true
     end
 
     #

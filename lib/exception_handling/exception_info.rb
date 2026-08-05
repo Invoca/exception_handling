@@ -79,7 +79,7 @@ module ExceptionHandling
     end
 
     def send_to_sentry?
-      ExceptionHandling.sentry_defined? && (
+      ExceptionHandling.sentry_enabled? && (
         !exception_description ||
           exception_description.send_to_sentry ||
           exception_description.send_to_honeybadger

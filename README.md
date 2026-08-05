@@ -44,15 +44,23 @@ ExceptionHandling.add_honeybadger_tag_from_log_context("tag-name", path: ["path"
 ExceptionHandling notifies configured external services from `log_error` (and related paths):
 
 - **Honeybadger** — when the `Honeybadger` constant is defined
-- **Sentry** — when the `Sentry` constant is defined (for example after initializing the Sentry Ruby SDK in your app)
+- **Sentry** — only after you call `ExceptionHandling.enable_sentry` (requires `Sentry` to be defined and initialized)
 
-Both can run at the same time. This gem does not depend on `sentry-ruby`; initialize Sentry in the host application.
+Both can run at the same time. This gem does not depend on `sentry-ruby`; initialize Sentry in the host application, then opt in:
+
+```ruby
+Sentry.init do |config|
+  config.dsn = ENV["SENTRY_DSN"]
+end
+
+ExceptionHandling.enable_sentry
+```
 
 Matched exception filters in `exception_filters.yml` control delivery:
 
-- `send_to_honeybadger: true` — send to Honeybadger (and also to Sentry during migration)
-- `send_to_sentry: true` — send to Sentry
-- Unmatched exceptions are sent when the corresponding service is defined
+- `send_to_honeybadger: true` — send to Honeybadger (and also to Sentry during migration, when Sentry is enabled)
+- `send_to_sentry: true` — send to Sentry (when Sentry is enabled)
+- Unmatched exceptions are sent when the corresponding service is active
 - Matched filters with both flags false skip both services
 
 ## Usage
