@@ -111,6 +111,7 @@ describe ExceptionHandling do
     # Reset this for every test since they are applied to the class
     ExceptionHandling.honeybadger_auto_tagger = nil
     ExceptionHandling.clear_honeybadger_tags_from_log_context
+    ExceptionHandling.instance_variable_set(:@sentry_enabled, false)
   end
 
   context "with warn and honeybadger notify stubbed" do
@@ -691,11 +692,31 @@ describe ExceptionHandling do
       end
 
       context "Sentry integration" do
-        context "with Sentry not defined" do
-          before do
-            allow(ExceptionHandling).to receive(:sentry_defined?).and_return(false)
+        context "enable_sentry" do
+          it "raises when Sentry is not defined" do
+            hide_const("Sentry") if Object.const_defined?("Sentry")
+            expect { ExceptionHandling.enable_sentry }.to raise_error(ArgumentError, "Sentry is not defined")
+            expect(ExceptionHandling.sentry_enabled?).to eq(false)
           end
 
+          it "raises when Sentry is defined but not initialized" do
+            stub_const("Sentry", Module.new do
+              def self.initialized?; false; end
+            end)
+            expect { ExceptionHandling.enable_sentry }.to raise_error(ArgumentError, "Sentry is not initialized")
+            expect(ExceptionHandling.sentry_enabled?).to eq(false)
+          end
+
+          it "enables Sentry notifications when Sentry is defined and initialized" do
+            stub_const("Sentry", Module.new do
+              def self.initialized?; true; end
+            end)
+            ExceptionHandling.enable_sentry
+            expect(ExceptionHandling.sentry_enabled?).to eq(true)
+          end
+        end
+
+        context "with Sentry not enabled" do
           it "not invoke send_exception_to_sentry when log_error is executed" do
             expect(ExceptionHandling).to_not receive(:send_exception_to_sentry)
             ExceptionHandling.log_error(exception_1)
@@ -705,11 +726,21 @@ describe ExceptionHandling do
             expect(ExceptionHandling).to_not receive(:send_exception_to_sentry)
             ExceptionHandling.ensure_safe { raise exception_1 }
           end
+
+          it "not send to Sentry even when the Sentry constant is defined" do
+            stub_const("Sentry", Module.new do
+              def self.initialized?; true; end
+              def self.capture_exception(_exception); end
+            end)
+            expect(Sentry).to_not receive(:capture_exception)
+            ExceptionHandling.log_error(exception_1)
+          end
         end
 
-        context "with Sentry defined" do
+        context "with Sentry enabled" do
           let(:sentry_module) do
             Module.new do
+              def self.initialized?; true; end
               def self.capture_exception(_exception); end
             end
           end
@@ -717,6 +748,7 @@ describe ExceptionHandling do
           before do
             stub_const("Sentry", sentry_module)
             allow(Sentry).to receive(:capture_exception).and_return(Object.new)
+            ExceptionHandling.enable_sentry
           end
 
           it "not send_exception_to_sentry when log_warning is executed" do
@@ -749,7 +781,30 @@ describe ExceptionHandling do
             ExceptionHandling.log_error(exception_1)
           end
 
-          it "also notify Honeybadger when both are defined" do
+          it "passes context, tags, and filter fingerprint to Sentry via the scope" do
+            scope = double("Sentry::Scope")
+            expect(scope).to receive(:set_context).with("exception_handling", hash_including(:error_class, :timestamp, :server, :backtrace))
+            expect(scope).to receive(:set_tags).with(hash_including("critical" => true, "team" => "platform"))
+            expect(scope).to receive(:set_fingerprint).with(["Test Exception"])
+            expect(scope).to receive(:set_context).with("controller", { name: "some_controller" })
+
+            expect(Sentry).to receive(:capture_exception).with(instance_of(StandardError)).and_yield(scope).and_return(Object.new)
+
+            env = { server: "fe98" }
+            parameters = { advertiser_id: 435, controller: "some_controller" }
+            session = { username: "jsmith" }
+            controller = create_dummy_controller(env, parameters, session, "host/path")
+            allow(ExceptionHandling).to receive(:server_name).and_return("invoca_fe98")
+
+            ExceptionHandling.log_error(
+              StandardError.new("Some Exception"),
+              { "SERVER_NAME" => "exceptional.com" },
+              controller,
+              honeybadger_tags: ["critical", "team:platform"]
+            )
+          end
+
+          it "also notify Honeybadger when both are available" do
             expect(Honeybadger).to receive(:notify).with(any_args).and_return("hb-id")
             expect(Sentry).to receive(:capture_exception).with(exception_1).and_return(Object.new)
             ExceptionHandling.log_error(exception_1)
