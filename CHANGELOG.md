@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.2.0] - 2026-08-04
+## [3.2.0] - 2026-08-06
 ### Added
 - Optional Sentry notifications from `send_external_notifications` via explicit `ExceptionHandling.enable_sentry` (requires `Sentry` to be defined and initialized)
 - Sentry events include ExceptionHandling context, tags, controller name, and filter-based fingerprinting (aligned with Honeybadger grouping via `filter_name`)
