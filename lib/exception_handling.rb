@@ -211,6 +211,9 @@ module ExceptionHandling # never included
       if honeybadger_defined?
         results[:honeybadger_status] = send_exception_to_honeybadger_unless_filtered(exception_info)
       end
+      if sentry_enabled?
+        results[:sentry_status] = send_exception_to_sentry_unless_filtered(exception_info)
+      end
       results
     end
 
@@ -249,11 +252,60 @@ module ExceptionHandling # never included
       :failure
     end
 
+    # Returns :success or :failure or :skipped
+    def send_exception_to_sentry_unless_filtered(exception_info)
+      if exception_info.send_to_sentry?
+        send_exception_to_sentry(exception_info)
+      else
+        log_info("Filtered exception using '#{exception_info.exception_description.filter_name}'; not sending notification to Sentry")
+        :skipped
+      end
+    end
+
+    #
+    # Log exception to Sentry.
+    #
+    # Returns :success or :failure
+    #
+    def send_exception_to_sentry(exception_info)
+      exception             = exception_info.exception
+      exception_description = exception_info.exception_description
+
+      response = Sentry.capture_exception(exception) do |scope|
+        tags = tags_hash_for_sentry(exception_info)
+        scope.set_tags(tags) if tags.any?
+        scope.set_context("exception_handling", exception_info.honeybadger_context_data)
+        scope.set_context("controller", { name: exception_info.controller_name }) if exception_info.controller_name.present?
+        scope.set_fingerprint([exception_description.filter_name.to_s]) if exception_description
+      end
+      response ? :success : :failure
+    rescue Exception => ex
+      warn("ExceptionHandling.send_exception_to_sentry rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}:\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}")
+      write_exception_to_log(ex, "ExceptionHandling.send_exception_to_sentry rescued exception while logging #{exception_info.exception_context}:\n#{exception.class}: #{exception.message}", exception_info.timestamp)
+      :failure
+    end
+
     #
     # Check if Honeybadger defined.
     #
     def honeybadger_defined?
       Object.const_defined?("Honeybadger")
+    end
+
+    #
+    # Whether ExceptionHandling should notify Sentry. Off by default; call enable_sentry after Sentry.init.
+    #
+    def sentry_enabled?
+      !!@sentry_enabled
+    end
+
+    #
+    # Opt in to Sentry notifications. Requires the Sentry constant and a prior Sentry.init.
+    #
+    def enable_sentry
+      Object.const_defined?("Sentry") or raise ArgumentError, "Sentry is not defined"
+      Sentry.initialized? or raise ArgumentError, "Sentry is not initialized"
+      @sentry_enabled = true
     end
 
     #
@@ -369,6 +421,24 @@ module ExceptionHandling # never included
         exception_info.honeybadger_tags +
         honeybadger_tags_from_log_context(exception_info.honeybadger_context_data)
       ).uniq
+    end
+
+    # Convert Honeybadger-style tag strings into a Sentry tags hash.
+    # Tags containing ":" are split into key/value; others become key => true.
+    #
+    # @param exception_info [ExceptionInfo]
+    # @return [Hash{String => String, TrueClass}]
+    def tags_hash_for_sentry(exception_info)
+      tags_for_honeybadger(exception_info).each_with_object({}) do |tag, hash|
+        tag = tag.to_s.strip
+        next if tag.empty?
+
+        if (separator_index = tag.index(":"))
+          hash[tag[0...separator_index]] = tag[(separator_index + 1)..]
+        else
+          hash[tag] = true
+        end
+      end
     end
 
     # @param exception [Exception]

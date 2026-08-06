@@ -35,6 +35,12 @@ module ExceptionHandling
         expect(!ExceptionDescription.new(:filter1, error: "my error message").send_to_honeybadger).to be_truthy
       end
 
+      it "allow send_to_sentry to be specified and have it disabled by default" do
+        expect(ExceptionDescription.new(:filter1, error: "my error message", send_to_sentry: false).send_to_sentry).to eq(false)
+        expect(ExceptionDescription.new(:filter1, error: "my error message", send_to_sentry: true).send_to_sentry).to eq(true)
+        expect(ExceptionDescription.new(:filter1, error: "my error message").send_to_sentry).to eq(false)
+      end
+
       it "allow send_metric to be configured" do
         expect(!ExceptionDescription.new(:filter1, error: "my error message", send_metric: false).send_metric).to be_truthy
         expect(ExceptionDescription.new(:filter1, error: "my error message").send_metric).to be_truthy

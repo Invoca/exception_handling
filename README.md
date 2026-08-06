@@ -39,6 +39,32 @@ ExceptionHandling.honeybadger_auto_tagger = ->(exception) { [] } # See "Automati
 ExceptionHandling.add_honeybadger_tag_from_log_context("tag-name", path: ["path", "in", "log", "context"])
 ```
 
+### External error trackers (Honeybadger / Sentry)
+
+ExceptionHandling notifies configured external services from `log_error` (and related paths):
+
+- **Honeybadger** — when the `Honeybadger` constant is defined
+- **Sentry** — only after you call `ExceptionHandling.enable_sentry` (requires `Sentry` to be defined and initialized)
+
+Both can run at the same time. This gem does not depend on `sentry-ruby`; initialize Sentry in the host application, then opt in:
+
+```ruby
+Sentry.init do |config|
+  config.dsn = ENV["SENTRY_DSN"]
+end
+
+ExceptionHandling.enable_sentry
+```
+
+When enabled, ExceptionHandling sends the same contextual sections it builds for Honeybadger (request/session/environment/log context, etc.), maps tags into Sentry tag key/values, sets controller context when present, and fingerprints matched filters by `filter_name` so grouping stays aligned across services.
+
+Matched exception filters in `exception_filters.yml` control delivery:
+
+- `send_to_honeybadger: true` — send to Honeybadger (and also to Sentry during migration, when Sentry is enabled)
+- `send_to_sentry: true` — send to Sentry (when Sentry is enabled)
+- Unmatched exceptions are sent when the corresponding service is active
+- Matched filters with both flags false skip both services
+
 ## Usage
 
 Mixin the `ExceptionHandling::Methods` module into your controllers, models or classes. The example below adds it to all the controllers in you rails application:

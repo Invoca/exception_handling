@@ -4,6 +4,12 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Note:** this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-08-06
+### Added
+- Optional Sentry notifications from `send_external_notifications` via explicit `ExceptionHandling.enable_sentry` (requires `Sentry` to be defined and initialized)
+- Sentry events include ExceptionHandling context, tags, controller name, and filter-based fingerprinting (aligned with Honeybadger grouping via `filter_name`)
+- `send_to_sentry` exception filter flag (default `false`); filters with `send_to_honeybadger: true` also send to Sentry to ease migration
+
 ## [3.1.2] - 2024-05-08
 ### Fixed
 - Fixed deprecation warnings that were coming from usage of `silence` when using this gem with Rails 7.1

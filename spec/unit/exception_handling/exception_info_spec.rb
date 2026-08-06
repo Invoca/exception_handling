@@ -452,6 +452,48 @@ module ExceptionHandling
       end
     end
 
+    context "send_to_sentry?" do
+      it "be enabled when Sentry is enabled and exception is not in the filter list" do
+        allow(ExceptionHandling).to receive(:sentry_enabled?).and_return(true)
+        exception_info = ExceptionInfo.new(StandardError.new("something went wrong"), nil, Time.now)
+        expect(exception_info.exception_description).to be_nil
+        expect(exception_info.send_to_sentry?).to eq(true)
+      end
+
+      it "be enabled when Sentry is enabled and filter has send_to_sentry true" do
+        allow(ExceptionHandling).to receive(:sentry_enabled?).and_return(true)
+        exception = StandardError.new("No route matches")
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
+        allow(exception_info.exception_description).to receive(:send_to_sentry).and_return(true)
+        allow(exception_info.exception_description).to receive(:send_to_honeybadger).and_return(false)
+        expect(exception_info.send_to_sentry?).to eq(true)
+      end
+
+      it "be enabled when Sentry is enabled and filter has send_to_honeybadger true only" do
+        allow(ExceptionHandling).to receive(:sentry_enabled?).and_return(true)
+        exception = StandardError.new("No route matches")
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
+        allow(exception_info.exception_description).to receive(:send_to_sentry).and_return(false)
+        allow(exception_info.exception_description).to receive(:send_to_honeybadger).and_return(true)
+        expect(exception_info.send_to_sentry?).to eq(true)
+      end
+
+      it "be disabled when Sentry is enabled and both filter flags are false" do
+        allow(ExceptionHandling).to receive(:sentry_enabled?).and_return(true)
+        exception = StandardError.new("No route matches")
+        exception_info = ExceptionInfo.new(exception, nil, Time.now)
+        allow(exception_info.exception_description).to receive(:send_to_sentry).and_return(false)
+        allow(exception_info.exception_description).to receive(:send_to_honeybadger).and_return(false)
+        expect(exception_info.send_to_sentry?).to eq(false)
+      end
+
+      it "be disabled when Sentry is not enabled" do
+        allow(ExceptionHandling).to receive(:sentry_enabled?).and_return(false)
+        exception_info = ExceptionInfo.new(StandardError.new("something went wrong"), nil, Time.now)
+        expect(exception_info.send_to_sentry?).to eq(false)
+      end
+    end
+
     context "honeybadger_context_data" do
       before do
         allow(ExceptionHandling.logger).to receive(:current_context_for_thread).and_return({ cuid: 'ABCD' })

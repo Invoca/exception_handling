@@ -78,6 +78,14 @@ module ExceptionHandling
       ExceptionHandling.honeybadger_defined? && (!exception_description || exception_description.send_to_honeybadger)
     end
 
+    def send_to_sentry?
+      ExceptionHandling.sentry_enabled? && (
+        !exception_description ||
+          exception_description.send_to_sentry ||
+          exception_description.send_to_honeybadger
+      )
+    end
+
     def honeybadger_context_data
       @honeybadger_context_data ||= enhanced_data_to_honeybadger_context
     end
