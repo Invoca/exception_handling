@@ -271,12 +271,18 @@ module ExceptionHandling # never included
       exception             = exception_info.exception
       exception_description = exception_info.exception_description
 
+      tags = tags_hash_for_sentry(exception_info)
+      exception_handling_context = exception_info.honeybadger_context_data
+      controller_context = exception_info.controller_name.present? ? { name: exception_info.controller_name } : nil
+      fingerprint_data = exception_description ? [exception_description.filter_name.to_s] : nil
+
       response = Sentry.capture_exception(exception) do |scope|
-        tags = tags_hash_for_sentry(exception_info)
+        log_info("!!! Setting Sentry scope")
         scope.set_tags(tags) if tags.any?
-        scope.set_context("exception_handling", exception_info.honeybadger_context_data)
-        scope.set_context("controller", { name: exception_info.controller_name }) if exception_info.controller_name.present?
-        scope.set_fingerprint([exception_description.filter_name.to_s]) if exception_description
+        scope.set_context("exception_handling", exception_handling_context)
+        scope.set_context("controller", controller_context) if controller_context
+        scope.set_fingerprint(fingerprint_data) if fingerprint_data
+        log_info("!!! Finished setting Sentry scope")
       end
       response ? :success : :failure
     rescue Exception => ex
